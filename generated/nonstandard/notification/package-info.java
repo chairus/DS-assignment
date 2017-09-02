@@ -6,4 +6,4 @@
 //
 
 @javax.xml.bind.annotation.XmlSchema(namespace = "urn:nonstandard:notification", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
-package nonstandard.notification;
+package generated.nonstandard.notification;

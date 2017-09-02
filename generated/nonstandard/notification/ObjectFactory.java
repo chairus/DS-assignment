@@ -6,7 +6,7 @@
 //
 
 
-package nonstandard.notification;
+package generated.nonstandard.notification;
 
 import javax.xml.bind.annotation.XmlRegistry;
 

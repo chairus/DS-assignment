@@ -2,10 +2,12 @@ package uni.mitter;
 
 import generated.nonstandard.notification.*;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.Socket;
 import java.util.GregorianCalendar;
 
@@ -26,32 +28,54 @@ public class MitterClient {
         try {
             socket = new Socket("localhost", 3000);
             InputStream in = socket.getInputStream();
-            InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+            // InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+            // BufferedReader buffReader = new BufferedReader(reader);
+            // StringReader dataReader;
 
-            System.out.println("Unmarshalling xml from connection stream");
-            System.out.println("Printing it out...");
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            // JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            // Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
             
+            while (true) {
+                try {
+                    InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+                    BufferedReader buffReader = new BufferedReader(reader);
 
-            /* init jaxb unmarshaller */
-            Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-            Notification notification = (Notification) jaxbUnmarshaller.unmarshal(reader);
-            System.out.println("Sender: " + notification.getSender());
-            System.out.println("Location: " + notification.getLocation());
-            System.out.println("Message: " + notification.getMessage());
-            System.out.println("Severity: " + notification.getSeverity());
-            System.out.println("Update: " + notification.isUpdate());
-            System.out.println("Timestamp: " + notification.getTimestamp().getDate() + " " + notification.getTimestamp().getTime());
+                    JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+                    Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+                    // System.out.println("Breakpoint 4");
+                    System.out.println("Trying to read XML data...");
+                    StringReader dataReader = new StringReader(buffReader.readLine());
+                    System.out.println("Unmarshalling read XML data...");
+                    Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                    System.out.println("Received notification!!!");
+                    System.out.println("Sender: " + notification.getSender());
+                    System.out.println("Location: " + notification.getLocation());
+                    System.out.println("Message: " + notification.getMessage());
+                    System.out.println("Severity: " + notification.getSeverity());
+                    System.out.println("Update: " + notification.isUpdate());
+                    System.out.println("Timestamp: " + 
+                                        notification.getTimestamp().getDate() + 
+                                        " " + notification.getTimestamp().getTime());
+
+                } catch (Exception e) {
+                    // ignore
+                    // System.out.println("Stream was closed\nExiting...");
+                    // System.exit(1);
+                    e.printStackTrace();
+                }
+                
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            // if (socket != null) {
-            //     try {
-            //         socket.close();
-            //     } catch (IOException e) {
-            //         // ignore
-            //     }
-            // }
         }
+
+        // if (socket != null) {
+        //     try {
+        //         socket.close();
+        //     } catch (IOException e) {
+        //         // ignore
+        //     }
+        // }
     }
 }
