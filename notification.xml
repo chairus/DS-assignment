@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<notification>
+    <sender>Barr Smith Library</sender>
+    <location>Barr Smith South Library</location>
+    <message>Room 101 maintenance</message>
+    <timestamp date="2017-09-02+09:30" time="16:01:30.697+09:30"/>
+    <severity>caution</severity>
+    <update>false</update>
+</notification>
