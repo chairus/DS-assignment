@@ -73,11 +73,34 @@ public class MitterServer {
             on.setSequenceNumber(1);
             on.setNotification(notification); 
     
+            System.out.print("Adding notification to caution list...");
+            cautionList.add(on);
+            System.out.println("SUCCESS");
+            System.out.println("Size of caution list is " + cautionList.size());
+            
+            notification = new Notification();
+            notification.setSender("BSS_library");
+            notification.setLocation("Barr Smith South Library, Room 301");
+            notification.setMessage("Room currently unavailable. Asbestos contamination.");
+            timestamp = new Notification.Timestamp();
+            gc = new GregorianCalendar();
+            xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
+            timestamp.setDate(xmlGC);
+            timestamp.setTime(xmlGC);
+            notification.setTimestamp(timestamp);
+            notification.setSeverity("urgent");
+            notification.setUpdate(false);
+            notification.setMessageId(0);
+    
+            on = new OrderedNotification();
+            on.setSequenceNumber(1);
+            on.setNotification(notification); 
+    
             System.out.print("Adding notification to urgent list...");
             urgentList.add(on);
             System.out.println("SUCCESS");
             System.out.println("Size of urgent list is " + urgentList.size());
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         }
