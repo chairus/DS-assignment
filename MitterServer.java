@@ -13,10 +13,13 @@ import java.net.Socket;
 import java.io.File;
 import java.io.IOException;
 import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 /* JAVAX */
+import java.util.concurrent.TimeUnit;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -26,6 +29,7 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeFactory;
 
 public class MitterServer {
+    public static List<OrderedNotification> urgentList, cautionList, noticeList;
     private ServerSocket server;
     private int clientPort;
     private int notifierPort;
@@ -33,7 +37,7 @@ public class MitterServer {
     private Writer writer;
     private Notification notification;
     private BufferedWriter buffWriter;
-    
+
 
     /**
      * Constructor
@@ -67,7 +71,7 @@ public class MitterServer {
 
             // Open up port for clients to connect
             server = new ServerSocket(clientPort);
-
+            server.setSoTimeout(30000); // block for no more than 30 seconds
             Socket client = server.accept();
             
             OutputStream out = client.getOutputStream();
@@ -75,7 +79,7 @@ public class MitterServer {
             writer = new OutputStreamWriter(out, "UTF-8");
 
             Timer t = new Timer();
-            Ticker ticker = new Ticker();
+            Ticker ticker = new Ticker(client);
             t.scheduleAtFixedRate(ticker,0,1000);
 
             System.out.println("Marshalling notification...");
@@ -94,45 +98,32 @@ public class MitterServer {
             buffWriter.newLine();
             buffWriter.flush();
             
-            while (true) {
-                if (timer % 20 == 0) {
-                    System.out.println("IDIOT!!");
-                } else {
-                    sent = false;
-                }
-                
-                // client.close();
-            }
             
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            
 
         }
     }
 
-    /**
-     * This method open's up two ports for clients and notifiers.
-     */
-    public void init() {
-
-    }
-
     public class Ticker extends TimerTask {
         boolean sent;
+        Socket clientSocket;
 
-        public Ticker() {
+        public Ticker(Socket sock) {
             sent = false;
+            this.clientSocket = sock;
         }
 
         public void run() {
             timer += 1;
             System.out.println("Timer: " + timer);
 
-            if (timer % 15 == 0) {
+            if (timer % 10 == 0) {
+                // sendNow = true;
+
                 try {
                     if (!sent) {
                         System.out.println("Marshalling notification...");
@@ -152,8 +143,19 @@ public class MitterServer {
 
                         sent = true;
                     }
-                } catch (Exception e) {
-                
+                } catch (JAXBException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    System.out.println("Connection lost.");
+                    this.cancel();
+                    System.out.println("Closing socket...");
+                    try {
+                        clientSocket.close();    
+                    } catch (Exception ex) {
+                        //TODO: handle exception
+                    }
+                    System.out.println("Exiting...");
+                    System.exit(0);
                 }
             } else {
                 sent = false;
@@ -164,5 +166,5 @@ public class MitterServer {
     public static void main(String[] args) {
         MitterServer mServer = new MitterServer(3000,3001);
         mServer.start();
-    }    
+    }
 }

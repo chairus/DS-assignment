@@ -27,10 +27,13 @@ public class ClientListener extends Thread {
         while (true) {
             try {
                 clientSocket = serverSocket.accept();
-                // Create and start the thread for the client and add it into the list of active clients
+                // Create and start the thread for the client
                 Thread t = new ClientThread(clientSocket);
                 t.start();
-                clientsList.add(t);
+                // Add new connected client to the list of active clients
+                synchronized (clientsList) {
+                    clientsList.add(t);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
