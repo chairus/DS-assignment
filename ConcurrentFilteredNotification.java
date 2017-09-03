@@ -17,11 +17,13 @@ public class ConcurrentFilteredNotification {
 
     public ConcurrentFilteredNotification() {
         this.notificationsToBeSent = new ArrayList<>();
-        this.filter = new Filter();
     }
     
-    public void setFilter(Subscription s) {
-        filter.setSubscription(s);
+    /**
+     * Sets the filter
+     */
+    public void setFilter(Filter f) {
+        this.filter = f;
     }
 
     /**
@@ -49,14 +51,17 @@ public class ConcurrentFilteredNotification {
     /**
      * This method adds a notification into the list if it passes through the filter
      */
-    public void add(OrderedNotification on) {
+    public boolean add(OrderedNotification on) {
         Notification n = on.getNotification();
 
         if (filter.filterNotification(n)) {
             synchronized (notificationsToBeSent) {
                 notificationsToBeSent.add(on);
             }
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -94,5 +99,12 @@ public class ConcurrentFilteredNotification {
         }
 
         return false;
+    }
+
+    /**
+     * FOR DEBUGGING PURPOSES
+     */
+    public int size() {
+        return notificationsToBeSent.size();
     }
 }

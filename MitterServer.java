@@ -30,7 +30,7 @@ import javax.xml.datatype.DatatypeFactory;
 
 public class MitterServer {
     public static List<OrderedNotification> urgentList, cautionList, noticeList;
-    private ServerSocket server;
+    private ServerSocket serverSocket;
     private int clientPort;
     private int notifierPort;
     private long timer;
@@ -45,17 +45,16 @@ public class MitterServer {
     public MitterServer(int clientPort, int notifierPort) {
         this.clientPort = clientPort;
         this.notifierPort = notifierPort;
+        urgentList = new ArrayList<>();
+        cautionList = new ArrayList<>();
+        noticeList = new ArrayList<>();
         timer = 0;
+        init();
     }
 
-    /**
-     * This method starts the server listens for connection from clients and notifiers.
-     */
-    public void start() {
-        boolean sent = false;
-
+    public void init() {
+        OrderedNotification on;
         try {
-            // Notification notification = new Notification();
             notification = new Notification();
             notification.setSender("IW_building");
             notification.setLocation("Ingkarni Wardli Building");
@@ -68,43 +67,83 @@ public class MitterServer {
             notification.setTimestamp(timestamp);
             notification.setSeverity("caution");
             notification.setUpdate(false);
-
-            // Open up port for clients to connect
-            server = new ServerSocket(clientPort);
-            server.setSoTimeout(30000); // block for no more than 30 seconds
-            Socket client = server.accept();
+            notification.setMessageId(0);
+    
+            on = new OrderedNotification();
+            on.setSequenceNumber(1);
+            on.setNotification(notification); 
+    
+            System.out.print("Adding notification to urgent list...");
+            urgentList.add(on);
+            System.out.println("SUCCESS");
+            System.out.println("Size of urgent list is " + urgentList.size());
             
-            OutputStream out = client.getOutputStream();
-            // Writer writer = new OutputStreamWriter(out, "UTF-8");
-            writer = new OutputStreamWriter(out, "UTF-8");
-
-            Timer t = new Timer();
-            Ticker ticker = new Ticker(client);
-            t.scheduleAtFixedRate(ticker,0,1000);
-
-            System.out.println("Marshalling notification...");
-            /* init jaxb marshaller */
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-            StringWriter dataWriter = new StringWriter();
-            /* set this flag to true to format the output */
-            // jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            System.out.println("Sending marshalled notification to the client...");
-            /* marshalling of java objects in xml (send to client) */
-            jaxbMarshaller.marshal(notification, dataWriter);
-            buffWriter = new BufferedWriter(writer);
-            buffWriter.write(dataWriter.toString());
-            // writer.flush();
-            buffWriter.newLine();
-            buffWriter.flush();
-            
-            
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
+        }
+        
+    }
 
+    /**
+     * This method starts the server listens for connection from clients and notifiers.
+     */
+    public void start() {
+        boolean sent = false;
+
+        try {
+            // Notification notification = new Notification();
+            // notification = new Notification();
+            // notification.setSender("IW_building");
+            // notification.setLocation("Ingkarni Wardli Building");
+            // notification.setMessage("Elevator maintenance");
+            // Notification.Timestamp timestamp = new Notification.Timestamp();
+            // GregorianCalendar gc = new GregorianCalendar();
+            // XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
+            // timestamp.setDate(xmlGC);
+            // timestamp.setTime(xmlGC);
+            // notification.setTimestamp(timestamp);
+            // notification.setSeverity("caution");
+            // notification.setUpdate(false);
+
+            // Open up port for clients to connect
+            serverSocket = new ServerSocket(clientPort);
+            // serverSocket.setSoTimeout(30000); // block for no more than 30 seconds
+            // Socket client = server.accept();
+            
+            // OutputStream out = client.getOutputStream();
+            // // Writer writer = new OutputStreamWriter(out, "UTF-8");
+            // writer = new OutputStreamWriter(out, "UTF-8");
+
+            // Timer t = new Timer();
+            // Ticker ticker = new Ticker(client);
+            // t.scheduleAtFixedRate(ticker,0,1000);
+
+            // System.out.println("Marshalling notification...");
+            // /* init jaxb marshaller */
+            // JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            // Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+            // StringWriter dataWriter = new StringWriter();
+            // /* set this flag to true to format the output */
+            // // jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            // System.out.println("Sending marshalled notification to the client...");
+            // /* marshalling of java objects in xml (send to client) */
+            // jaxbMarshaller.marshal(notification, dataWriter);
+            // buffWriter = new BufferedWriter(writer);
+            // buffWriter.write(dataWriter.toString());
+            // // writer.flush();
+            // buffWriter.newLine();
+            // buffWriter.flush();
+
+            Thread tClient = new ClientListener(serverSocket);
+            tClient.start();
+
+            System.out.println("MitterServer is running...");
+            while (true) {
+
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

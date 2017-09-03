@@ -3,27 +3,27 @@ package uni.mitter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This class listen and accept client connection, and create threads for each connected client.
  */
 public class ClientListener extends Thread {
-    private int clientPort;
     private ServerSocket serverSocket;
     public Socket clientSocket;
-    public List<Thread> clientsList;    // A list that stores active clients
+    public static List<Thread> clientsList;    // A list that stores active clients
 
-    public ClientListener(ServerSocket serverSocket, int clientPort, List<Thread> clientsList) {
+    public ClientListener(ServerSocket serverSocket) {
         this.serverSocket = serverSocket;
-        this.clientPort = clientPort;
-        this.clientsList = clientsList;
+        clientsList = new ArrayList<>();
     }
 
     /**
      * This method accept client connection and create's a thread that manages each connected client.
      */
     public void run() {
+        System.out.println("Listening for client connection...");
         while (true) {
             try {
                 clientSocket = serverSocket.accept();

@@ -8,13 +8,13 @@ import java.io.BufferedReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.net.Socket;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
 import java.io.StringWriter;
 import generated.nonstandard.subscription.Subscription;
+import java.util.Timer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -29,40 +29,57 @@ import javax.xml.bind.JAXBContext;
  * @author cyrusvillacampa
  */
 public class ClientThread extends Thread {
-    private Socket socket;
+    private Socket clientSocket;
     public ConcurrentFilteredNotification notificationsToBeSent;
-    public long[] sequenceNumbers = {0,0,0};    // Holds the current sequence number of all three notifications(urgent, caution and notice)
+    public Filter filter;
 
-    public ClientThread(Socket socket) {
-        this.socket = socket;
+    public ClientThread(Socket clientSocket) {
+        this.clientSocket = clientSocket;
         notificationsToBeSent = new ConcurrentFilteredNotification();
+        this.filter = new Filter();
     }
 
     /**
      * This method
      */
     public void run() {
+        try {
+            // Get stream for reading subscriptions
+            InputStream in = clientSocket.getInputStream();
+            Reader reader = new InputStreamReader(in, "UTF-8");
+            BufferedReader buffReader = new BufferedReader(reader);
 
+            // Initialize unmarshaller(subscription)
+            JAXBContext jaxbContextSubs = JAXBContext.newInstance(Subscription.class);
+            Unmarshaller jaxbUnmarshallerSubs = jaxbContextSubs.createUnmarshaller();
 
-            // // Get stream for reading subscriptions
-            // InputStream in = socket.getInputStream();
-            // Reader reader = new InputStreamReader(in, "UTF-8");
-            // BufferedReader buffReader = new BufferedReader(reader);
-            
-            // // Get stream for writing notifications
-            // OutputStream out = socket.getOutputStream();
-            // Writer writer = new OutputStreamWriter(out, "UTF-8");
-            // BufferedWriter buffWriter = new BufferedWriter(writer);
+            // Read and unmarshall client subscription
+            System.out.println("Reading subscription from client...");
+            StringReader dataReader = new StringReader(buffReader.readLine());
+            Subscription subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
 
-            // // Initialize both marshaller and unmarshaller(subscription)
-            // JAXBContext jaxbContextSubs = JAXBContext.newInstance(Subscription.class);
-            // Unmarshaller jaxbUnmarshallerSubs = jaxbContextSubs.createUnmarshaller();
-            // Marshaller jaxbMarshallerSubs = jaxbContextSubs.createMarshaller();
+            /* ======== FOR DEBUGGING PURPOSES ======== */
+            System.out.println("Received client subscription...printing");
+            System.out.println("Sender subscription: " + subs.getSender());
+            System.out.println("Location subscription: " + subs.getLocation());
 
-            // // Read and unmarshall client subscription
-            // System.out.println("Reading subscription from client...");
-            // StringReader dataReader = new StringReader(buffReader.readLine());
-            // Subscription subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
-        
+            Timer t = new Timer();
+            NotificationAssembler na = new NotificationAssembler(notificationsToBeSent, clientSocket, this);
+
+            System.out.print("Setting filter...");
+            // Set the filter
+            filter.setSubscription(subs);
+            na.setFilter(filter);
+            System.out.println("SUCCESS");
+
+            System.out.print("Starting notification assembler...");
+            // Execute the task in the NotificationAssembler every 10ms
+            t.scheduleAtFixedRate(na, 0, 10);
+            System.out.println("SUCCESS");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JAXBException e) {
+            e.printStackTrace();
+        }
     }
 }
