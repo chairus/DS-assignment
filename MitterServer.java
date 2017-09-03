@@ -33,6 +33,7 @@ public class MitterServer {
     private Writer writer;
     private Notification notification;
     private BufferedWriter buffWriter;
+    
 
     /**
      * Constructor
@@ -92,35 +93,12 @@ public class MitterServer {
             // writer.flush();
             buffWriter.newLine();
             buffWriter.flush();
-
-            // System.out.println("Entering while loop with timer value " + timer);
             
             while (true) {
-                if (timer == 10) {
-                    System.out.println("Timer is " + timer);
-                }
-
                 if (timer % 20 == 0) {
-                    // System.out.println("20 seconds has passed!");
-                    // if (!sent) {
-                    //     System.out.println("Marshalling notification...");
-                    //     /* init jaxb marshaller */
-                    //     JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-                    //     Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-            
-                    //     /* set this flag to true to format the output */
-                    //     jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-                    //     System.out.println("Storing marshalled notification into \'notification.xml\' file \n and sending to client...");
-                    //     /* marshalling of java objects in xml (send to client) */
-                    //     jaxbMarshaller.marshal(notification, new File("notification.xml"));
-                    //     jaxbMarshaller.marshal(notification, writer);
-                    //     writer.flush();
-
-                    //     sent = true;
-                    // }
+                    System.out.println("IDIOT!!");
                 } else {
                     sent = false;
-                    // System.out.println("Timer: " + timer);
                 }
                 
                 // client.close();
@@ -154,7 +132,7 @@ public class MitterServer {
             timer += 1;
             System.out.println("Timer: " + timer);
 
-            if (timer % 10 == 0) {
+            if (timer % 15 == 0) {
                 try {
                     if (!sent) {
                         System.out.println("Marshalling notification...");
@@ -167,7 +145,6 @@ public class MitterServer {
                         System.out.println("Sending marshalled notification to the client...");
                         /* marshalling of java objects in xml (send to client) */
                         jaxbMarshaller.marshal(notification, dataWriter);
-                        // buffWriter = new BufferedWriter(writer);
                         buffWriter.write(dataWriter.toString());
                         // writer.flush();
                         buffWriter.newLine();

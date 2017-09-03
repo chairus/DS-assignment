@@ -42,11 +42,12 @@ public class MitterClient {
 
                     JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
                     Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-                    // System.out.println("Breakpoint 4");
+                    
                     System.out.println("Trying to read XML data...");
                     StringReader dataReader = new StringReader(buffReader.readLine());
                     System.out.println("Unmarshalling read XML data...");
                     Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                    System.out.println("===================================================");
                     System.out.println("Received notification!!!");
                     System.out.println("Sender: " + notification.getSender());
                     System.out.println("Location: " + notification.getLocation());
