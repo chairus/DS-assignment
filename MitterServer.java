@@ -2,6 +2,7 @@ package uni.mitter;
 
 import generated.nonstandard.notification.*;
 
+import generated.nonstandard.notification.Notification.Timestamp;
 import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -27,6 +28,11 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeFactory;
+
+/**
+ * This class is the implementation of a single Mitter server.
+ * @author cyrusvillacampa
+ */
 
 public class MitterServer {
     public static List<OrderedNotification> urgentList, cautionList, noticeList;
@@ -161,8 +167,34 @@ public class MitterServer {
             tClient.start();
 
             System.out.println("MitterServer is running...");
-            while (true) {
 
+            TimeUnit.MILLISECONDS.sleep(15000);
+
+            notification = new Notification();
+            notification.setSender("Central_Hub");
+            notification.setLocation("Central Hub, Room 402");
+            notification.setMessage("Room currently unavailable. Cleaning in progress.");
+            Notification.Timestamp timestamp = new Notification.Timestamp();
+            GregorianCalendar gc = new GregorianCalendar();
+            XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
+            timestamp.setDate(xmlGC);
+            timestamp.setTime(xmlGC);
+            notification.setTimestamp(timestamp);
+            notification.setSeverity("caution");
+            notification.setUpdate(false);
+            notification.setMessageId(0);
+    
+            OrderedNotification on = new OrderedNotification();
+            on.setSequenceNumber(2);
+            on.setNotification(notification); 
+    
+            System.out.print("Adding notification to caution list...");
+            cautionList.add(on);
+            System.out.println("SUCCESS");
+            System.out.println("Size of caution list is " + cautionList.size());
+        
+            while (true) {
+            
             }
             
         } catch (Exception e) {

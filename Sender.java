@@ -51,6 +51,7 @@ public class Sender {
                 buffWriter.newLine();
                 buffWriter.flush();
             } catch (Exception e) {
+                // Releasing all resources related to the disconnected client
                 System.out.println("Connection lost.");
                 synchronized (ClientListener.clientsList) {
                     System.out.println("Closing client socket...");

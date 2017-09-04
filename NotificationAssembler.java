@@ -60,7 +60,7 @@ public class NotificationAssembler extends TimerTask {
             long seqNum = on.getSequenceNumber();
             if (seqNum > notificationSequenceNumbers.get(URGENT)) {
                 boolean hasAdded = notificationsToBeSent.add(on);
-                if (hasAdded) {
+                if (hasAdded) { // Update the sequence number for "urgent" notifications
                     notificationSequenceNumbers.set(URGENT, seqNum);
                     // System.out.println("Added urgent notification");
                 }
@@ -69,12 +69,12 @@ public class NotificationAssembler extends TimerTask {
         
         timer += 1;
         // Check caution notification second
-        if (timer % 1000 == 0) {    // 10 seconds has passed
+        if (timer % 1000 == 0) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             for (OrderedNotification on: MitterServer.cautionList) {
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(CAUTION)) {
                     boolean hasAdded = notificationsToBeSent.add(on);
-                    if (hasAdded) {
+                    if (hasAdded) { // Update the sequence number for "caution" notifications
                         notificationSequenceNumbers.set(CAUTION,seqNum);
                         // System.out.println("Added caution notification");
                     }
@@ -83,12 +83,12 @@ public class NotificationAssembler extends TimerTask {
         }
 
         // Check notice notification third
-        if (timer % 2000 == 0) {
+        if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
             for (OrderedNotification on: MitterServer.noticeList) {
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(NOTICE)) {
                     boolean hasAdded = notificationsToBeSent.add(on);
-                    if (hasAdded) {
+                    if (hasAdded) { // Update the sequence number for "notice" notifications
                         notificationSequenceNumbers.set(NOTICE, seqNum);
                         // System.out.println("Added notice notification");
                     }

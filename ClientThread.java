@@ -15,7 +15,6 @@ import java.io.BufferedWriter;
 import java.io.StringWriter;
 import generated.nonstandard.subscription.Subscription;
 import java.util.Timer;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
