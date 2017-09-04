@@ -53,7 +53,7 @@ public class Sender {
             } catch (Exception e) {
                 // Releasing all resources related to the disconnected client
                 System.out.println("Connection lost.");
-                synchronized (ClientListener.clientsList) {
+                synchronized (MitterServer.clientsList) {
                     System.out.println("Closing client socket...");
                     try {
                         clientSocket.close();
@@ -61,7 +61,7 @@ public class Sender {
                         
                     }
                     System.out.println("Stopping all threads related to this client...");
-                    ClientListener.clientsList.remove(clientThread);
+                    MitterServer.clientsList.remove(clientThread);
                     notificationAssembler.cancel();
                 }
             }

@@ -12,12 +12,10 @@ import java.util.List;
  */
 public class ClientListener extends Thread {
     private ServerSocket serverSocket;
-    public Socket clientSocket;
-    public static List<Thread> clientsList;    // A list that stores active clients
+    public Socket clientSocket;    
 
     public ClientListener(ServerSocket serverSocket) {
         this.serverSocket = serverSocket;
-        clientsList = new ArrayList<>();
     }
 
     /**
@@ -32,8 +30,8 @@ public class ClientListener extends Thread {
                 Thread t = new ClientThread(clientSocket);
                 t.start();
                 // Add new connected client to the list of active clients
-                synchronized (clientsList) {
-                    clientsList.add(t);
+                synchronized (MitterServer.clientsList) {
+                    MitterServer.clientsList.add(t);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

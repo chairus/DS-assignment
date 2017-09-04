@@ -71,7 +71,7 @@ public class NotificationAssembler extends TimerTask {
         
         timer += 1;
         // Check caution notification second
-        addDeletedNotifications("urgent", notificationSequenceNumbers.get(CAUTION));
+        addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
         if (timer % 1000 == 0) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             for (OrderedNotification on: MitterServer.cautionList) {
                 long seqNum = on.getSequenceNumber();
@@ -85,7 +85,7 @@ public class NotificationAssembler extends TimerTask {
         }
 
         // Check notice notification third
-        addDeletedNotifications("urgent", notificationSequenceNumbers.get(NOTICE));
+        addDeletedNotifications("notice", notificationSequenceNumbers.get(NOTICE));
         if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
             for (OrderedNotification on: MitterServer.noticeList) {
                 long seqNum = on.getSequenceNumber();
@@ -105,6 +105,10 @@ public class NotificationAssembler extends TimerTask {
         }
     }
 
+    /**
+     * This method returns true if a given ordered notification has a larger sequence number than the
+     * last previously sent notification to the client. 
+     */
     private boolean isLargerSeqNum(OrderedNotification on, Long currentSeqNum) {
         long seqNum = on.getSequenceNumber();   // Get the sequence number of the notification
         if (seqNum > currentSeqNum.longValue()) {
@@ -114,6 +118,10 @@ public class NotificationAssembler extends TimerTask {
         return false;
     }
 
+    /**
+     * This method checks the severity type of the given ordered notification. This method returns true
+     * if the ordered notification has the same severity type as the given severity parameter.
+     */
     private boolean isOfSeverityType(OrderedNotification on, String severityType) {
         String severity = on.getNotification().getSeverity();   // Get the severity of the notification
         if (severity.compareToIgnoreCase(severityType) == 0) {

@@ -35,7 +35,8 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
-    public static List<OrderedNotification> urgentList, cautionList, noticeList;
+    public static List<OrderedNotification> urgentList, cautionList, noticeList;    // Lists that stores all received notifications
+    public static List<Thread> clientsList; // A list that stores active clients
     private ServerSocket serverSocket;
     private int clientPort;
     private int notifierPort;
@@ -54,6 +55,7 @@ public class MitterServer {
         urgentList = new ArrayList<>();
         cautionList = new ArrayList<>();
         noticeList = new ArrayList<>();
+        clientsList = new ArrayList<>();
         timer = 0;
         init();
     }
@@ -194,7 +196,7 @@ public class MitterServer {
             System.out.println("Size of caution list is " + cautionList.size());
         
             while (true) {
-            
+                System.out.println(clientsList.size());
             }
             
         } catch (Exception e) {
