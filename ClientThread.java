@@ -14,6 +14,8 @@ import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
 import java.io.StringWriter;
 import generated.nonstandard.subscription.Subscription;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -30,12 +32,13 @@ import javax.xml.bind.JAXBContext;
 public class ClientThread extends Thread {
     private Socket clientSocket;
     public FilteredNotificationList notificationsToBeSent;
-    public FilteredNotificationList deletedNotifications;
+    public List<OrderedNotification> deletedNotifications;
     public Filter filter;
 
     public ClientThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
         notificationsToBeSent = new FilteredNotificationList();
+        deletedNotifications = new ArrayList<>();
         this.filter = new Filter();
     }
 

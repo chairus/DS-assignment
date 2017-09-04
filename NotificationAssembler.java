@@ -1,5 +1,6 @@
 package uni.mitter;
 
+import generated.nonstandard.notification.Notification;
 import generated.nonstandard.subscription.Subscription;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -26,12 +27,12 @@ public class NotificationAssembler extends TimerTask {
     /* Holds the notifications that has been deleted by the server. The notifications stored in 
        here could possibly be sent to the client and if they are they will be sent in the order
        they where added to the list. */
-    public FilteredNotificationList deletedNotifications;
+    public List<OrderedNotification> deletedNotifications;
     public Subscription currentSub;
 
     public NotificationAssembler(FilteredNotificationList notificationsToBeSent, 
                                  Socket clientSocket,
-                                 FilteredNotificationList deletedNotifications,
+                                 List<OrderedNotification> deletedNotifications,
                                  ClientThread clientThread) {
         this.notificationsToBeSent = notificationsToBeSent;
         this.deletedNotifications = deletedNotifications;
@@ -56,19 +57,21 @@ public class NotificationAssembler extends TimerTask {
         /* !!!!!!!!!! NOTE: PROVIDE SYNCHRONIZATION LATER !!!!!!!!! */
 
         // Check urgent notification first
+        addDeletedNotifications("urgent", notificationSequenceNumbers.get(URGENT));
         for (OrderedNotification on: MitterServer.urgentList) {
             long seqNum = on.getSequenceNumber();
+
             if (seqNum > notificationSequenceNumbers.get(URGENT)) {
                 boolean hasAdded = notificationsToBeSent.add(on);
                 if (hasAdded) { // Update the sequence number for "urgent" notifications
                     notificationSequenceNumbers.set(URGENT, seqNum);
-                    // System.out.println("Added urgent notification");
                 }
             }
         }
         
         timer += 1;
         // Check caution notification second
+        addDeletedNotifications("urgent", notificationSequenceNumbers.get(CAUTION));
         if (timer % 1000 == 0) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             for (OrderedNotification on: MitterServer.cautionList) {
                 long seqNum = on.getSequenceNumber();
@@ -76,13 +79,13 @@ public class NotificationAssembler extends TimerTask {
                     boolean hasAdded = notificationsToBeSent.add(on);
                     if (hasAdded) { // Update the sequence number for "caution" notifications
                         notificationSequenceNumbers.set(CAUTION,seqNum);
-                        // System.out.println("Added caution notification");
                     }
                 }
             }
         }
 
         // Check notice notification third
+        addDeletedNotifications("urgent", notificationSequenceNumbers.get(NOTICE));
         if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
             for (OrderedNotification on: MitterServer.noticeList) {
                 long seqNum = on.getSequenceNumber();
@@ -90,20 +93,72 @@ public class NotificationAssembler extends TimerTask {
                     boolean hasAdded = notificationsToBeSent.add(on);
                     if (hasAdded) { // Update the sequence number for "notice" notifications
                         notificationSequenceNumbers.set(NOTICE, seqNum);
-                        // System.out.println("Added notice notification");
                     }
                 }
             } 
         }
 
-        // Start a thread that sends notifications to clients
+        // Send notifications to clients
         if (!notificationsToBeSent.isEmpty()) {
-            // System.out.print("Starting sender thread...");
-            // Thread sender = new Sender(notificationsToBeSent, clientSocket, clientThread, this);
-            // sender.start();
-            // System.out.println("SUCCESS");
             Sender sender = new Sender(notificationsToBeSent, clientSocket, clientThread, this);
             sender.send();
+        }
+    }
+
+    private boolean isLargerSeqNum(OrderedNotification on, Long currentSeqNum) {
+        long seqNum = on.getSequenceNumber();   // Get the sequence number of the notification
+        if (seqNum > currentSeqNum.longValue()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isOfSeverityType(OrderedNotification on, String severityType) {
+        String severity = on.getNotification().getSeverity();   // Get the severity of the notification
+        if (severity.compareToIgnoreCase(severityType) == 0) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * This method adds the deleted notifications to the list of notifications to be sent.
+     */
+    private void addDeletedNotifications(String severityType, Long currentSeqNum) {
+        // Check for deleted urgent notifications and add it onto the list of notifications to be sent if necessary
+        synchronized (deletedNotifications) {
+            if (!deletedNotifications.isEmpty()) {
+                int i = 0;
+                OrderedNotification on;
+                while (i < deletedNotifications.size()) {
+                    on = deletedNotifications.get(i);
+                    if (isOfSeverityType(on, severityType)) {
+                        if (isLargerSeqNum(on, on.getSequenceNumber())) {
+                            boolean hasAdded = notificationsToBeSent.add(on);
+                            if (hasAdded) { // If it is the notification that the client has subscribed to.
+                                switch (severityType.toLowerCase()) {   // Update current sequence number
+                                    case "urgent":
+                                        notificationSequenceNumbers.set(URGENT, on.getSequenceNumber());                                 
+                                        break;
+                                    case "caution":
+                                        notificationSequenceNumbers.set(CAUTION, on.getSequenceNumber());                                 
+                                        break;
+                                    case "notice":
+                                        notificationSequenceNumbers.set(NOTICE, on.getSequenceNumber());                                 
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                        deletedNotifications.remove(i);
+                        i -= 1;
+                    }
+                    i += 1;
+                }
+            }
+            
         }
     }
 }

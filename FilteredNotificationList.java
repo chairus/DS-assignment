@@ -45,7 +45,7 @@ public class FilteredNotificationList {
     }
 
     /**
-     * This method adds a notification into the list if it passes through the filter
+     * This method adds a notification into the list if the filter returns true
      */
     public boolean add(OrderedNotification on) {
         Notification n = on.getNotification();
