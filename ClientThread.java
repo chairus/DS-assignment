@@ -23,24 +23,29 @@ import javax.xml.bind.JAXBContext;
 
 
 /**
- * This class manages a single client and at the same time creates two TimerTask, that handles
- * sending of caution and notice notification. Furthermore this class handles sending of urgent
- * notifications.
+ * This class manages a single client and at the same time creates a TimerTask, that handles
+ * preparing the notifications and sending them to the client. Furthermore this class monitors
+ * the state of the connection of the client.
  * @author cyrusvillacampa
  */
 public class ClientThread extends Thread {
     private Socket clientSocket;
-    public ConcurrentFilteredNotification notificationsToBeSent;
+    public FilteredNotificationList notificationsToBeSent;
+    public FilteredNotificationList deletedNotifications;
     public Filter filter;
 
     public ClientThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        notificationsToBeSent = new ConcurrentFilteredNotification();
+        notificationsToBeSent = new FilteredNotificationList();
         this.filter = new Filter();
     }
 
     /**
-     * This method
+     * This method reads XML subscription sent by the client and sets the filter with it. It also creates
+     * a task that will be executed in a 10ms interval. Furthermore this method also monitors the state
+     * of the connection of the client, that is it constantly sends a heart beat message to check if
+     * the client is still connected.
+     * @author cyrusvillacampa
      */
     public void run() {
         try {
@@ -64,7 +69,10 @@ public class ClientThread extends Thread {
             System.out.println("Location subscription: " + subs.getLocation());
 
             Timer t = new Timer();
-            NotificationAssembler na = new NotificationAssembler(notificationsToBeSent, clientSocket, this);
+            NotificationAssembler na = new NotificationAssembler(notificationsToBeSent, 
+                                                                 clientSocket,
+                                                                 deletedNotifications,
+                                                                 this);
 
             System.out.print("Setting filter...");
             // Set the filter
@@ -73,7 +81,7 @@ public class ClientThread extends Thread {
             System.out.println("SUCCESS");
 
             System.out.print("Starting notification assembler...");
-            // Execute the task in the NotificationAssembler every 10ms
+            // Execute the task in the NotificationAssembler every 10 milliseconds
             t.scheduleAtFixedRate(na, 0, 10);
             System.out.println("SUCCESS");
         } catch (IOException e) {

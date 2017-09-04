@@ -10,13 +10,13 @@ import java.io.StringWriter;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 
-public class Sender extends Thread {
-    private ConcurrentFilteredNotification queue;
+public class Sender {
+    private FilteredNotificationList queue;
     private Socket clientSocket;
     private ClientThread clientThread;
     private NotificationAssembler notificationAssembler;
 
-    public Sender(ConcurrentFilteredNotification queue, 
+    public Sender(FilteredNotificationList queue, 
                   Socket clientSocket, 
                   ClientThread clientThread,
                   NotificationAssembler notificationAssembler) {
@@ -26,7 +26,10 @@ public class Sender extends Thread {
         this.notificationAssembler = notificationAssembler;
     }
 
-    public void run() {
+    /**
+     * This method sends the notifications to the client.
+     */
+    public void send() {
         while (!queue.isEmpty()) {
             Notification notification = queue.popHead().getNotification();
 

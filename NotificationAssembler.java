@@ -22,16 +22,19 @@ public class NotificationAssembler extends TimerTask {
     /* Holds the current sequence number of all three notifications(urgent, caution and notice) */
     public List<Long> notificationSequenceNumbers;  /* [urgent, caution, notice] */
     /* Holds the notifications that will be sent to the client */
-    public ConcurrentFilteredNotification notificationsToBeSent;
-    /* Holds the notifications that has been deleted by the server. 
-       The notifications stored in here could possibly be sent to the client. */
-    public ConcurrentFilteredNotification deletedNotifications;
+    public FilteredNotificationList notificationsToBeSent;
+    /* Holds the notifications that has been deleted by the server. The notifications stored in 
+       here could possibly be sent to the client and if they are they will be sent in the order
+       they where added to the list. */
+    public FilteredNotificationList deletedNotifications;
     public Subscription currentSub;
 
-    public NotificationAssembler(ConcurrentFilteredNotification notificationsToBeSent, 
-                                 Socket clientSocket, 
+    public NotificationAssembler(FilteredNotificationList notificationsToBeSent, 
+                                 Socket clientSocket,
+                                 FilteredNotificationList deletedNotifications,
                                  ClientThread clientThread) {
         this.notificationsToBeSent = notificationsToBeSent;
+        this.deletedNotifications = deletedNotifications;
         this.clientSocket = clientSocket;
         this.clientThread = clientThread;
         this.notificationSequenceNumbers = Arrays.asList(Long.parseLong("0"),Long.parseLong("0"),Long.parseLong("0"));
@@ -46,7 +49,8 @@ public class NotificationAssembler extends TimerTask {
      * This method goes through the notification list maintained by the server and adds notifications
      * into the list that will be sent to the client. It first checks the urgent list every 10ms and 
      * if 1 min. has passed it will check the urgent and then the caution list in that order, and when
-     * 30 mins. have passed it will check the urgent, caution and then notice list in that order.
+     * 30 mins. have passed it will check the urgent, caution and then notice list in that order. This
+     * guarantees the order of the notifications sent to client to be 'urgent then caution then notice'.
      */
     public void run() {
         /* !!!!!!!!!! NOTE: PROVIDE SYNCHRONIZATION LATER !!!!!!!!! */
@@ -94,10 +98,12 @@ public class NotificationAssembler extends TimerTask {
 
         // Start a thread that sends notifications to clients
         if (!notificationsToBeSent.isEmpty()) {
-            System.out.print("Starting sender thread...");
-            Thread sender = new Sender(notificationsToBeSent, clientSocket, clientThread, this);
-            sender.start();
-            System.out.println("SUCCESS");
+            // System.out.print("Starting sender thread...");
+            // Thread sender = new Sender(notificationsToBeSent, clientSocket, clientThread, this);
+            // sender.start();
+            // System.out.println("SUCCESS");
+            Sender sender = new Sender(notificationsToBeSent, clientSocket, clientThread, this);
+            sender.send();
         }
     }
 }
