@@ -166,7 +166,6 @@ public class NotificationAssembler extends TimerTask {
                     i += 1;
                 }
             }
-            
         }
     }
 }
