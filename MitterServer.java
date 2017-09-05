@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.*;
+import generated.nonstandard.notification.Notification;
 
 import generated.nonstandard.notification.Notification.Timestamp;
 import java.io.BufferedWriter;
@@ -53,16 +53,18 @@ public class MitterServer {
     private Writer writer;
     private Notification notification;
     private BufferedWriter buffWriter;
-    // A variable that holds how many writer are ready to write or if how many writer is currently writing. 
-    public static Integer writerCount;
+    // A variable that holds if the MitterServer is ready to write or if the MitterServer is currently writing on one of the lists(urgent, caution, notice).
+    public static Integer[] writerCount = {0,0,0};  // [urgent, caution, notice]
     // Semaphores that synchronizes the readers and writers. This semaphore allows 100 readers to read at the same time.
-    public static Semaphore urgentListReadWriteSemaphore;
-    public static Semaphore cautionListReadWriteSemaphore;
-    public static Semaphore noticeListReadWriteSemaphore;
+    public static List<Semaphore> readWriteSemaphores;    // [urgent, caution, notice]
+    // public static Semaphore urgentListReadWriteSemaphore;
+    // public static Semaphore cautionListReadWriteSemaphore;
+    // public static Semaphore noticeListReadWriteSemaphore;
     public static List<Notification> notificationList;
     public Thread notifierListenerThread;
-
-    private long timer;
+    public Thread clientListenerThread;
+    public static long notificationListCount;
+    private long totalOrderSequenceNumber;
 
     /**
      * Constructor
@@ -74,69 +76,16 @@ public class MitterServer {
         cautionList = new ArrayList<>();
         noticeList = new ArrayList<>();
         clientsList = new ArrayList<>();
-        writerCount = 0;
-        urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
-        cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
-        noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
-        notificationList = new ArrayList<>();
-
-        timer = 0;
-        init();
-    }
-
-    public void init() {
-        OrderedNotification on;
-        try {
-            notification = new Notification();
-            notification.setSender("IW_building");
-            notification.setLocation("Ingkarni Wardli Building");
-            notification.setMessage("Elevator maintenance");
-            Notification.Timestamp timestamp = new Notification.Timestamp();
-            GregorianCalendar gc = new GregorianCalendar();
-            XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-            timestamp.setDate(xmlGC);
-            timestamp.setTime(xmlGC);
-            notification.setTimestamp(timestamp);
-            notification.setSeverity("caution");
-            notification.setUpdate(false);
-            notification.setMessageId(0);
-    
-            on = new OrderedNotification();
-            on.setSequenceNumber(1);
-            on.setNotification(notification); 
-    
-            System.out.print("Adding notification to caution list...");
-            cautionList.add(on);
-            System.out.println("SUCCESS");
-            System.out.println("Size of caution list is " + cautionList.size());
-            
-            notification = new Notification();
-            notification.setSender("BSS_library");
-            notification.setLocation("Barr Smith South Library, Room 301");
-            notification.setMessage("Room currently unavailable. Asbestos contamination.");
-            timestamp = new Notification.Timestamp();
-            gc = new GregorianCalendar();
-            xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-            timestamp.setDate(xmlGC);
-            timestamp.setTime(xmlGC);
-            notification.setTimestamp(timestamp);
-            notification.setSeverity("urgent");
-            notification.setUpdate(false);
-            notification.setMessageId(0);
-    
-            on = new OrderedNotification();
-            on.setSequenceNumber(1);
-            on.setNotification(notification); 
-    
-            System.out.print("Adding notification to urgent list...");
-            urgentList.add(on);
-            System.out.println("SUCCESS");
-            System.out.println("Size of urgent list is " + urgentList.size());
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        // writerCount = 0;
+        notificationListCount = 0;
+        totalOrderSequenceNumber = 0;
+        // urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
+        // cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
+        // noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
+        for (int i = 0; i < 3; i++) {
+            readWriteSemaphores.add(new Semaphore(MAX_NUM_READERS, true));
         }
-        
+        notificationList = new ArrayList<>();
     }
 
     /**
@@ -146,135 +95,24 @@ public class MitterServer {
         boolean sent = false;
 
         try {
-            // Notification notification = new Notification();
-            // notification = new Notification();
-            // notification.setSender("IW_building");
-            // notification.setLocation("Ingkarni Wardli Building");
-            // notification.setMessage("Elevator maintenance");
-            // Notification.Timestamp timestamp = new Notification.Timestamp();
-            // GregorianCalendar gc = new GregorianCalendar();
-            // XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-            // timestamp.setDate(xmlGC);
-            // timestamp.setTime(xmlGC);
-            // notification.setTimestamp(timestamp);
-            // notification.setSeverity("caution");
-            // notification.setUpdate(false);
-
             // Open up port for clients to connect
             serverSocket = new ServerSocket(clientPort);
             // serverSocket.setSoTimeout(30000); // block for no more than 30 seconds
-            // Socket client = server.accept();
             
             // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
             notifierListenerThread = new NotifierListener(notifierPort);
             notifierListenerThread.start();
 
-            // OutputStream out = client.getOutputStream();
-            // // Writer writer = new OutputStreamWriter(out, "UTF-8");
-            // writer = new OutputStreamWriter(out, "UTF-8");
-
-            // Timer t = new Timer();
-            // Ticker ticker = new Ticker(client);
-            // t.scheduleAtFixedRate(ticker,0,1000);
-
-            // System.out.println("Marshalling notification...");
-            // /* init jaxb marshaller */
-            // JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-            // Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-            // StringWriter dataWriter = new StringWriter();
-            // /* set this flag to true to format the output */
-            // // jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            // System.out.println("Sending marshalled notification to the client...");
-            // /* marshalling of java objects in xml (send to client) */
-            // jaxbMarshaller.marshal(notification, dataWriter);
-            // buffWriter = new BufferedWriter(writer);
-            // buffWriter.write(dataWriter.toString());
-            // // writer.flush();
-            // buffWriter.newLine();
-            // buffWriter.flush();
-
-            Thread tClient = new ClientListener(serverSocket);
-            tClient.start();
+            clientListenerThread = new ClientListener(serverSocket);
+            clientListenerThread.start();
 
             System.out.println("MitterServer is running...");
 
-            TimeUnit.MILLISECONDS.sleep(15000);
-
-            notification = new Notification();
-            notification.setSender("Central_Hub");
-            notification.setLocation("Central Hub, Room 402");
-            notification.setMessage("Room currently unavailable. Cleaning in progress.");
-            Notification.Timestamp timestamp = new Notification.Timestamp();
-            GregorianCalendar gc = new GregorianCalendar();
-            XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-            timestamp.setDate(xmlGC);
-            timestamp.setTime(xmlGC);
-            notification.setTimestamp(timestamp);
-            notification.setSeverity("caution");
-            notification.setUpdate(false);
-            notification.setMessageId(0);
-    
-            OrderedNotification on = new OrderedNotification();
-            on.setSequenceNumber(2);
-            on.setNotification(notification); 
-    
-            System.out.print("Adding notification to caution list...");
-            cautionList.add(on);
-            System.out.println("SUCCESS");
-            System.out.println("Size of caution list is " + cautionList.size());
-        
-
-            notification = new Notification();
-            notification.setSender("Physics_Bld");
-            notification.setLocation("Physics Building, Room 112");
-            notification.setMessage("Room currently unavailable. Experiment gone wild.");
-            timestamp = new Notification.Timestamp();
-            gc = new GregorianCalendar();
-            xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-            timestamp.setDate(xmlGC);
-            timestamp.setTime(xmlGC);
-            notification.setTimestamp(timestamp);
-            notification.setSeverity("caution");
-            notification.setUpdate(false);
-            notification.setMessageId(0);
-    
-            on = new OrderedNotification();
-            on.setSequenceNumber(3);
-            on.setNotification(notification); 
-    
-            System.out.print("Adding notification to caution list...");
-            cautionList.add(on);
-            System.out.println("SUCCESS");
-            System.out.println("Size of caution list is " + cautionList.size());
-
-
-            notification = new Notification();
-            notification.setSender("Engineering_Bld");
-            notification.setLocation("Engineering South Building, Room 321");
-            notification.setMessage("Room currently unavailable. Experiment gone wild.");
-            timestamp = new Notification.Timestamp();
-            gc = new GregorianCalendar();
-            xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-            timestamp.setDate(xmlGC);
-            timestamp.setTime(xmlGC);
-            notification.setTimestamp(timestamp);
-            notification.setSeverity("caution");
-            notification.setUpdate(false);
-            notification.setMessageId(0);
-    
-            on = new OrderedNotification();
-            on.setSequenceNumber(4);
-            on.setNotification(notification); 
-    
-            System.out.print("Adding notification to caution list...");
-            cautionList.add(on);
-            System.out.println("SUCCESS");
-            System.out.println("Size of caution list is " + cautionList.size());
-
-
-
             while (true) {
-                // System.out.println(clientsList.size());
+                if (!notificationList.isEmpty()) {
+                    Notification notification = takeFromNotificationList();
+                    assignSequenceNumberAndStore(notification);
+                }
             }
             
         } catch (Exception e) {
@@ -282,61 +120,95 @@ public class MitterServer {
         }
     }
 
-    public class Ticker extends TimerTask {
-        boolean sent;
-        Socket clientSocket;
+    /**
+     * Take notifications from the notification list and stores it into one of the lists.
+     * This method waits if the notification list is empty.
+     */
+    public Notification takeFromNotificationList() throws InterruptedException {
+        Notification notification = null;
+        
+        notificationListLock.lock();    // Obtain the lock for the notification list
 
-        public Ticker(Socket sock) {
-            sent = false;
-            this.clientSocket = sock;
+        if (notificationListCount != 0) { 
+            notification = notificationList.get(0);
+            notificationListCount -= 1;
         }
 
-        public void run() {
-            timer += 1;
-            System.out.println("Timer: " + timer);
+        notificationListNotFullCondition.signal();  // Signal waiting notifier thread
+        notificationListLock.unlock();  // Release lock
 
-            if (timer % 10 == 0) {
-                // sendNow = true;
+        return notification;
+    }
 
-                try {
-                    if (!sent) {
-                        System.out.println("Marshalling notification...");
-                        /* init jaxb marshaller */
-                        JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-                        Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-                        StringWriter dataWriter = new StringWriter();
-                        /* set this flag to true to format the output */
-                        // jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-                        System.out.println("Sending marshalled notification to the client...");
-                        /* marshalling of java objects in xml (send to client) */
-                        jaxbMarshaller.marshal(notification, dataWriter);
-                        buffWriter.write(dataWriter.toString());
-                        // writer.flush();
-                        buffWriter.newLine();
-                        buffWriter.flush();
+    /**
+     * This method assign a sequence number to a notification and store it into the correct list.
+     * This method will eventually run PAXOS algorithm to obtain a sequence number.
+     */
+    public void assignSequenceNumberAndStore(Notification notification) throws InterruptedException {
+        OrderedNotification orderedNotification = new OrderedNotification();
 
-                        sent = true;
-                    }
-                } catch (JAXBException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    System.out.println("Connection lost.");
-                    this.cancel();
-                    System.out.println("Closing socket...");
-                    try {
-                        clientSocket.close();    
-                    } catch (Exception ex) {
-                        //TODO: handle exception
-                    }
-                    System.out.println("Exiting...");
-                    System.exit(0);
-                }
-            } else {
-                sent = false;
-            }
+        orderedNotification.setNotification(notification);
+        orderedNotification.setSequenceNumber(totalOrderSequenceNumber);
+        totalOrderSequenceNumber += 1;
+        putOrderedNotificationToList(orderedNotification);
+    }
+
+    /**
+     * This method stores the ordered notification into the correct list.
+     * @param orderedNotification - A notification with a sequence number
+     */
+    public void putOrderedNotificationToList(OrderedNotification orderedNotification) throws InterruptedException {
+        String severity = orderedNotification.getNotification().getSeverity();
+        switch (severity.toLowerCase()) {
+            case "urgent":
+                put(orderedNotification,0);
+                break;
+            case "caution":
+                put(orderedNotification,1);
+                break;
+            case "notice":
+                put(orderedNotification,2);
+                break;
+            default:
+                break;
         }
     }
 
+    /**
+     * This method puts the ordered notification into the list specified by the list number argument
+     * @param orderedNotification - A notification with a sequence number
+     * @param listNumber - 0 for urgent, 1 for caution and 2 for notice
+     */
+    public void put(OrderedNotification orderedNotification, int listNumber) throws InterruptedException {
+        synchronized (writerCount) {    // Tell the reader that the server is ready to write
+            writerCount[listNumber] += 1;
+        }
+
+        readWriteSemaphores.get(listNumber).acquire(MAX_NUM_READERS);   // Obtain lock
+        switch (listNumber) {
+            case 0:
+                urgentList.add(orderedNotification);
+                break;
+            case 1:
+                cautionList.add(orderedNotification);
+                break;
+            case 2:
+                noticeList.add(orderedNotification);
+                break;
+            default:
+                break;
+        }
+
+        synchronized (writerCount) {    // Tell the readers that the server has finished writing
+            writerCount[listNumber] += 1;
+        }
+
+        readWriteSemaphores.get(listNumber).release();  // Release lock
+    }
+
+    /**
+     * Main
+     */
     public static void main(String[] args) {
         MitterServer mServer = new MitterServer(3000,3001);
         mServer.start();

@@ -15,7 +15,7 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 
-public class MitterNotifier {
+public class MitterNotifier2 {
     public static void main(String[] args) throws Exception {
         Socket socket;
 
@@ -35,9 +35,9 @@ public class MitterNotifier {
             
             try {
                 System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("IW_building",
-                                                  "Ingkarni Wardli Building",
-                                                  "Elevator Maintenance",
+                notification = createNotification("Central_Hub",
+                                                  "Central Hub, Room 402",
+                                                  "Room currently unavailable. Cleaning in progress.",
                                                   "caution",
                                                   0);
                 /* marshalling of java objects in xml (send to sever) */
@@ -47,14 +47,30 @@ public class MitterNotifier {
                 buffWriter.newLine();
                 buffWriter.flush();
 
-                TimeUnit.MILLISECONDS.sleep(2000);
+                TimeUnit.MILLISECONDS.sleep(5000);
 
                 System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("BSS_library",
-                                                  "Barr Smith South Library, Room 301",
-                                                  "Room currently unavailable. Asbestos contamination.",
+                notification = createNotification("Physics_Bld",
+                                                  "Physics Building, Room 112",
+                                                  "Room currently unavailable. Experiment gone wild.",
+                                                  "caution",
+                                                  1);
+
+                /* marshalling of java objects in xml (send to sever) */
+                jaxbMarshaller.marshal(notification, dataWriter);
+                buffWriter = new BufferedWriter(writer);
+                buffWriter.write(dataWriter.toString());
+                buffWriter.newLine();
+                buffWriter.flush();
+
+                TimeUnit.MILLISECONDS.sleep(4000);
+
+                System.out.println("Sending marshalled notification to the server...");
+                notification = createNotification("Engineering_Bld",
+                                                  "Engineering South Building, Room 321",
+                                                  "Room currently unavailable. Robot gone wild.",
                                                   "urgent",
-                                                  0);
+                                                  2);
 
                 /* marshalling of java objects in xml (send to sever) */
                 jaxbMarshaller.marshal(notification, dataWriter);

@@ -63,12 +63,12 @@ public class NotificationAssembler extends TimerTask {
         int count;
         do {    // Check if there are writers that are ready or already writing
             synchronized (MitterServer.writerCount) {
-                count = MitterServer.writerCount.intValue();
+                count = MitterServer.writerCount[URGENT].intValue();
             }
         } while (count > 0);
         
         try {
-            MitterServer.urgentListReadWriteSemaphore.acquire();    // Acquire a Semaphore for urgent list
+            MitterServer.readWriteSemaphores.get(URGENT).acquire();    // Acquire a Semaphore for urgent list
         } catch (InterruptedException e) {
             //TODO: handle exception
         }
@@ -84,7 +84,7 @@ public class NotificationAssembler extends TimerTask {
             }
         }
         
-        MitterServer.urgentListReadWriteSemaphore.release();    // Release a Semaphore for urgent list
+        MitterServer.readWriteSemaphores.get(URGENT).release();    // Release a Semaphore for urgent list
 
         timer += 1;
         // Check caution notification second
@@ -92,12 +92,12 @@ public class NotificationAssembler extends TimerTask {
         if (timer % 1000 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             do {    // Check if there are writers that are ready or already writing
                 synchronized (MitterServer.writerCount) {
-                    count = MitterServer.writerCount.intValue();
+                    count = MitterServer.writerCount[CAUTION].intValue();
                 }
             } while (count > 0);
 
             try {
-                MitterServer.cautionListReadWriteSemaphore.acquire();   // Acquire a Semaphore for caution list
+                MitterServer.readWriteSemaphores.get(CAUTION).acquire();   // Acquire a Semaphore for caution list
             } catch (InterruptedException e) {
                 System.err.println("Interrupted Thread.");
             }
@@ -112,7 +112,7 @@ public class NotificationAssembler extends TimerTask {
                 }
             }
 
-            MitterServer.cautionListReadWriteSemaphore.release();   // Release a Semaphore for caution list
+            MitterServer.readWriteSemaphores.get(CAUTION).release();   // Release a Semaphore for caution list
         }
 
         // Check notice notification third
@@ -120,12 +120,12 @@ public class NotificationAssembler extends TimerTask {
         if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
             do {    // Check if there are writers that are ready or already writing
                 synchronized (MitterServer.writerCount) {
-                    count = MitterServer.writerCount.intValue();
+                    count = MitterServer.writerCount[NOTICE].intValue();
                 }
             } while (count > 0);
             
             try {
-                MitterServer.noticeListReadWriteSemaphore.acquire();    // Acquire a Semaphore for notice list
+                MitterServer.readWriteSemaphores.get(NOTICE).acquire();    // Acquire a Semaphore for notice list
             } catch (InterruptedException e) {
                 System.err.println("Interrupted Thread.");
             }
@@ -140,7 +140,7 @@ public class NotificationAssembler extends TimerTask {
                 }
             }
 
-            MitterServer.noticeListReadWriteSemaphore.release();    // Release a Semaphore for notice list
+            MitterServer.readWriteSemaphores.get(NOTICE).release();    // Release a Semaphore for notice list
         }
 
         if (newConnection) {    // Update new client connection to old client connection

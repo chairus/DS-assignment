@@ -135,11 +135,12 @@ public class NotifierListener extends Thread {
     public void put(Notification notification) throws InterruptedException {
         MitterServer.notificationListLock.lock();   // Obtain lock for the notification list
 
-        while (MitterServer.MAX_NOTIFICATIONS_LIST == MitterServer.notificationList.size()) {
+        while (MitterServer.MAX_NOTIFICATIONS_LIST == MitterServer.notificationListCount) {
             MitterServer.notificationListNotFullCondition.await();
         }
 
         MitterServer.notificationList.add(notification);
+        MitterServer.notificationListCount += 1;
         MitterServer.notificationListNotEmptyCondition.signal();    // Signal waiting threads
         MitterServer.notificationListLock.unlock(); // Release lock
     }
