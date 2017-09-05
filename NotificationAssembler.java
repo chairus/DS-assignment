@@ -58,14 +58,16 @@ public class NotificationAssembler extends TimerTask {
 
         // Check urgent notification first
         addDeletedNotifications("urgent", notificationSequenceNumbers.get(URGENT));
-        do {    // Check if there are writers that are aready or already writing
+        do {    // Check if there are writers that are ready or already writing
             int count;
             synchronized (MitterServer.writerCount) {
                 count = MitterServer.writerCount.intValue();
             }
-        } while (count == 1);
+        } while (count > 0);
 
-        for (OrderedNotification on: MitterServer.urgentList) {
+        MitterServer.urgentListReadWriteSemaphore.acquire();    // Acquire a Semaphore for urgent list
+
+        for (OrderedNotification on: MitterServer.urgentList) { // Perform read operation on the list
             long seqNum = on.getSequenceNumber();
 
             if (seqNum > notificationSequenceNumbers.get(URGENT)) {
@@ -76,18 +78,22 @@ public class NotificationAssembler extends TimerTask {
             }
         }
         
+        MitterServer.urgentListReadWriteSemaphore.release();    // Release a Semaphore for urgent list
+
         timer += 1;
         // Check caution notification second
         addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
         if (timer % 1000 == 0) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
-            do {    // Check if there are writers that are aready or already writing
+            do {    // Check if there are writers that are ready or already writing
                 int count;
                 synchronized (MitterServer.writerCount) {
                     count = MitterServer.writerCount.intValue();
                 }
-            } while (count == 1);
+            } while (count > 0);
 
-            for (OrderedNotification on: MitterServer.cautionList) {
+            MitterServer.cautionListReadWriteSemaphore.acquire();   // Acquire a Semaphore for caution list
+
+            for (OrderedNotification on: MitterServer.cautionList) {    // Perform read operation on the list
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(CAUTION)) {
                     boolean hasAdded = notificationsToBeSent.add(on);
@@ -96,19 +102,23 @@ public class NotificationAssembler extends TimerTask {
                     }
                 }
             }
+
+            MitterServer.cautionListReadWriteSemaphore.release();   // Release a Semaphore for caution list
         }
 
         // Check notice notification third
         addDeletedNotifications("notice", notificationSequenceNumbers.get(NOTICE));
         if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
-            do {    // Check if there are writers that are aready or already writing
+            do {    // Check if there are writers that are ready or already writing
                 int count;
                 synchronized (MitterServer.writerCount) {
                     count = MitterServer.writerCount.intValue();
                 }
-            } while (count == 1);
+            } while (count > 0);
 
-            for (OrderedNotification on: MitterServer.noticeList) {
+            MitterServer.noticeListReadWriteSemaphore.acquire();    // Acquire a Semaphore for notice list
+
+            for (OrderedNotification on: MitterServer.noticeList) { // Perform read operation on the list
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(NOTICE)) {
                     boolean hasAdded = notificationsToBeSent.add(on);
@@ -116,7 +126,9 @@ public class NotificationAssembler extends TimerTask {
                         notificationSequenceNumbers.set(NOTICE, seqNum);
                     }
                 }
-            } 
+            }
+
+            MitterServer.noticeListReadWriteSemaphore.release();    // Release a Semaphore for notice list
         }
 
         // Send notifications to clients
