@@ -21,6 +21,9 @@ import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 /* JAVAX */
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -36,12 +39,17 @@ import javax.xml.datatype.DatatypeFactory;
 
 public class MitterServer {
     public static final int MAX_NUM_READERS = 100;
-    public static List<OrderedNotification> urgentList, cautionList, noticeList;    // Lists that stores all received notifications
+    public static final int MAX_NOTIFICATIONS_LIST = 1000;
+    // Locks for the MitterServer and the Notifier threads(PRODUCER-CONSUMER)
+    public static final Lock notificationListLock = new ReentrantLock();
+    public static final Condition notificationListNotFullCondition = notificationListLock.newCondition();
+    public static final Condition notificationListNotEmptyCondition = notificationListLock.newCondition();
+    // Lists that stores all received notifications
+    public static List<OrderedNotification> urgentList, cautionList, noticeList;
     public static List<Thread> clientsList; // A list that stores active clients
     private ServerSocket serverSocket;
     private int clientPort;
     private int notifierPort;
-    private long timer;
     private Writer writer;
     private Notification notification;
     private BufferedWriter buffWriter;
@@ -51,6 +59,10 @@ public class MitterServer {
     public static Semaphore urgentListReadWriteSemaphore;
     public static Semaphore cautionListReadWriteSemaphore;
     public static Semaphore noticeListReadWriteSemaphore;
+    public static List<Notification> notificationList;
+    public Thread notifierListenerThread;
+
+    private long timer;
 
     /**
      * Constructor
@@ -66,6 +78,7 @@ public class MitterServer {
         urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
         cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
         noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
+        notificationList = new ArrayList<>();
 
         timer = 0;
         init();
@@ -152,6 +165,10 @@ public class MitterServer {
             // serverSocket.setSoTimeout(30000); // block for no more than 30 seconds
             // Socket client = server.accept();
             
+            // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
+            notifierListenerThread = new NotifierListener(notifierPort);
+            notifierListenerThread.start();
+
             // OutputStream out = client.getOutputStream();
             // // Writer writer = new OutputStreamWriter(out, "UTF-8");
             // writer = new OutputStreamWriter(out, "UTF-8");
