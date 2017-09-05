@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-
+import java.util.concurrent.Semaphore;
 /* JAVAX */
 import java.util.concurrent.TimeUnit;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -35,6 +35,7 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
+    public static final int MAX_NUM_READERS = 100;
     public static List<OrderedNotification> urgentList, cautionList, noticeList;    // Lists that stores all received notifications
     public static List<Thread> clientsList; // A list that stores active clients
     private ServerSocket serverSocket;
@@ -44,7 +45,12 @@ public class MitterServer {
     private Writer writer;
     private Notification notification;
     private BufferedWriter buffWriter;
-
+    // A variable that holds how many writer are ready to write or if how many writer is currently writing. 
+    public static Integer writerCount;
+    // Semaphores that synchronizes the readers and writers. This semaphore allows 100 readers to read at the same time.
+    public static Semaphore urgentListReadWriteSemaphore;
+    public static Semaphore cautionListReadWriteSemaphore;
+    public static Semaphore noticeListReadWriteSemaphore;
 
     /**
      * Constructor
@@ -56,6 +62,11 @@ public class MitterServer {
         cautionList = new ArrayList<>();
         noticeList = new ArrayList<>();
         clientsList = new ArrayList<>();
+        writerCount = 0;
+        urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
+        cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
+        noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
+
         timer = 0;
         init();
     }
@@ -196,7 +207,7 @@ public class MitterServer {
             System.out.println("Size of caution list is " + cautionList.size());
         
             while (true) {
-                System.out.println(clientsList.size());
+                // System.out.println(clientsList.size());
             }
             
         } catch (Exception e) {

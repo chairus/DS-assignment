@@ -3,6 +3,10 @@ package uni.mitter;
 import generated.nonstandard.notification.Notification;
 import generated.nonstandard.subscription.Subscription;
 
+/**
+ * This class filters out the notifications using the given subscription.
+ * @author cyrusvillacampa
+ */
 public class Filter {
     private Subscription subs;
 

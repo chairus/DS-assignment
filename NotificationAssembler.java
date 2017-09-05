@@ -58,6 +58,13 @@ public class NotificationAssembler extends TimerTask {
 
         // Check urgent notification first
         addDeletedNotifications("urgent", notificationSequenceNumbers.get(URGENT));
+        do {    // Check if there are writers that are aready or already writing
+            int count;
+            synchronized (MitterServer.writerCount) {
+                count = MitterServer.writerCount.intValue();
+            }
+        } while (count == 1);
+
         for (OrderedNotification on: MitterServer.urgentList) {
             long seqNum = on.getSequenceNumber();
 
@@ -73,6 +80,13 @@ public class NotificationAssembler extends TimerTask {
         // Check caution notification second
         addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
         if (timer % 1000 == 0) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
+            do {    // Check if there are writers that are aready or already writing
+                int count;
+                synchronized (MitterServer.writerCount) {
+                    count = MitterServer.writerCount.intValue();
+                }
+            } while (count == 1);
+
             for (OrderedNotification on: MitterServer.cautionList) {
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(CAUTION)) {
@@ -87,6 +101,13 @@ public class NotificationAssembler extends TimerTask {
         // Check notice notification third
         addDeletedNotifications("notice", notificationSequenceNumbers.get(NOTICE));
         if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
+            do {    // Check if there are writers that are aready or already writing
+                int count;
+                synchronized (MitterServer.writerCount) {
+                    count = MitterServer.writerCount.intValue();
+                }
+            } while (count == 1);
+
             for (OrderedNotification on: MitterServer.noticeList) {
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(NOTICE)) {
