@@ -74,7 +74,8 @@ public class ClientThread extends Thread {
             NotificationAssembler na = new NotificationAssembler(notificationsToBeSent, 
                                                                  clientSocket,
                                                                  deletedNotifications,
-                                                                 this);
+                                                                 this,
+                                                                 true);
 
             System.out.print("Setting filter...");
             // Set the filter

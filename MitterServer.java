@@ -231,6 +231,30 @@ public class MitterServer {
             System.out.println("Size of caution list is " + cautionList.size());
 
 
+            notification = new Notification();
+            notification.setSender("Engineering_Bld");
+            notification.setLocation("Engineering South Building, Room 321");
+            notification.setMessage("Room currently unavailable. Experiment gone wild.");
+            timestamp = new Notification.Timestamp();
+            gc = new GregorianCalendar();
+            xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
+            timestamp.setDate(xmlGC);
+            timestamp.setTime(xmlGC);
+            notification.setTimestamp(timestamp);
+            notification.setSeverity("caution");
+            notification.setUpdate(false);
+            notification.setMessageId(0);
+    
+            on = new OrderedNotification();
+            on.setSequenceNumber(4);
+            on.setNotification(notification); 
+    
+            System.out.print("Adding notification to caution list...");
+            cautionList.add(on);
+            System.out.println("SUCCESS");
+            System.out.println("Size of caution list is " + cautionList.size());
+
+
 
             while (true) {
                 // System.out.println(clientsList.size());

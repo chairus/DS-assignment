@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
 import java.io.StringWriter;
+import java.util.concurrent.TimeUnit;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 
@@ -30,6 +31,7 @@ public class Sender {
      * This method sends the notifications to the client.
      */
     public void send() {
+        System.out.println("There are " + queue.size() + " notifications to be sent.");
         while (!queue.isEmpty()) {
             Notification notification = queue.popHead().getNotification();
 
@@ -43,13 +45,15 @@ public class Sender {
                 Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
                 StringWriter dataWriter = new StringWriter();
                 
-                System.out.println("Sending marshalled notification to the client...");
+                System.out.print("Sending marshalled notification to the client...");
                 /* marshalling of java objects in xml (send to client) */
                 jaxbMarshaller.marshal(notification, dataWriter);
                 buffWriter = new BufferedWriter(writer);
                 buffWriter.write(dataWriter.toString());
                 buffWriter.newLine();
                 buffWriter.flush();
+                System.out.println("SENT");
+                TimeUnit.MILLISECONDS.sleep(15);    // For throttling the output stream. This is to make sure that no overwritting of notifications will occur.
             } catch (Exception e) {
                 // Releasing all resources related to the disconnected client
                 System.out.println("Connection lost.");

@@ -29,17 +29,20 @@ public class NotificationAssembler extends TimerTask {
        they where added to the list. */
     public List<OrderedNotification> deletedNotifications;
     public Subscription currentSub;
+    public boolean newConnection;
 
     public NotificationAssembler(FilteredNotificationList notificationsToBeSent, 
                                  Socket clientSocket,
                                  List<OrderedNotification> deletedNotifications,
-                                 ClientThread clientThread) {
+                                 ClientThread clientThread,
+                                 boolean newConnection) {
         this.notificationsToBeSent = notificationsToBeSent;
         this.deletedNotifications = deletedNotifications;
         this.clientSocket = clientSocket;
         this.clientThread = clientThread;
         this.notificationSequenceNumbers = Arrays.asList(Long.parseLong("0"),Long.parseLong("0"),Long.parseLong("0"));
         this.timer = 0;
+        this.newConnection = newConnection;
     }
 
     public void setFilter(Filter f) {
@@ -54,7 +57,6 @@ public class NotificationAssembler extends TimerTask {
      * guarantees the order of the notifications sent to client to be 'urgent then caution then notice'.
      */
     public void run() {
-        /* !!!!!!!!!! NOTE: PROVIDE SYNCHRONIZATION LATER !!!!!!!!! */
 
         // Check urgent notification first
         addDeletedNotifications("urgent", notificationSequenceNumbers.get(URGENT));
@@ -87,7 +89,7 @@ public class NotificationAssembler extends TimerTask {
         timer += 1;
         // Check caution notification second
         addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
-        if (timer % 1000 == 0) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
+        if (timer % 1000 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             do {    // Check if there are writers that are ready or already writing
                 synchronized (MitterServer.writerCount) {
                     count = MitterServer.writerCount.intValue();
@@ -97,7 +99,7 @@ public class NotificationAssembler extends TimerTask {
             try {
                 MitterServer.cautionListReadWriteSemaphore.acquire();   // Acquire a Semaphore for caution list
             } catch (InterruptedException e) {
-                //TODO: handle exception
+                System.err.println("Interrupted Thread.");
             }
 
             for (OrderedNotification on: MitterServer.cautionList) {    // Perform read operation on the list
@@ -121,10 +123,11 @@ public class NotificationAssembler extends TimerTask {
                     count = MitterServer.writerCount.intValue();
                 }
             } while (count > 0);
+            
             try {
                 MitterServer.noticeListReadWriteSemaphore.acquire();    // Acquire a Semaphore for notice list
             } catch (InterruptedException e) {
-                //TODO: handle exception
+                System.err.println("Interrupted Thread.");
             }
 
             for (OrderedNotification on: MitterServer.noticeList) { // Perform read operation on the list
@@ -138,6 +141,10 @@ public class NotificationAssembler extends TimerTask {
             }
 
             MitterServer.noticeListReadWriteSemaphore.release();    // Release a Semaphore for notice list
+        }
+
+        if (newConnection) {    // Update new client connection to old client connection
+            newConnection = !newConnection;
         }
 
         // Send notifications to clients
