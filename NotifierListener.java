@@ -3,6 +3,7 @@ package uni.mitter;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -13,6 +14,7 @@ import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
 import javax.xml.bind.JAXBContext;
@@ -101,7 +103,8 @@ public class NotifierListener extends Thread {
             connection.register(selector, SelectionKey.OP_READ);
         } else if (key.isReadable()) {  // New notifications from a notifier
             SocketChannel notifier = (SocketChannel) key.channel();
-            storeNotification(notifier.socket());
+            // storeNotification(notifier.socket());
+            storeNotification(notifier);
         }
     }
 
@@ -109,24 +112,56 @@ public class NotifierListener extends Thread {
      * This method stores the received notification into the notification list for the MitterServer to
      * associate sequence number to it.
      */
-    public void storeNotification(Socket notifierSocket) throws IOException, 
+    public void storeNotification(SocketChannel notifierSocket) throws IOException, 
                                                                 JAXBException,
                                                                 InterruptedException {
         // Get stream for reading notification
-        InputStream in = notifierSocket.getInputStream();
-        Reader reader = new InputStreamReader(in, "UTF-8");
-        BufferedReader buffReader = new BufferedReader(reader);
+        // InputStream in = notifierSocket.getInputStream();
+        // Reader reader = new InputStreamReader(in, "UTF-8");
+        // BufferedReader buffReader = new BufferedReader(reader);
 
         // Initialize unmarshaller(notification)
         JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
         Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
-        // Read and unmarshall client notification
-        System.out.println("Reading notification from notifier...");
-        StringReader dataReader = new StringReader(buffReader.readLine());
-        Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+        // data is available for read
+        // buffer for reading
+        ByteBuffer buffer = ByteBuffer.allocate(2000);
+        SocketChannel clientChannel = notifierSocket;
+        int bytesRead = 0;
+        String v = null;
+        // the channel is non blocking so keep it open till the
+        // count is >=0
+        if ((bytesRead = clientChannel.read(buffer)) > 0) {
+            buffer.flip();
+            v = new String( buffer.array(), "UTF-8" );
+            buffer.clear();
 
-        put(notification);
+            // Read and unmarshall client notification
+            System.out.println("Reading notification from notifier...");
+            // StringReader dataReader = new StringReader(buffReader.readLine());
+            System.out.println("Data received: ");
+            System.out.println(v);
+            StringReader dataReader = new StringReader(v);
+            System.out.print("Unmarshalling...");
+            Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+            System.out.println("SUCCESS");
+            put(notification);
+        }
+        if (bytesRead < 0) {
+            // the key is automatically invalidated once the
+            // channel is closed
+            clientChannel.close();
+        }
+
+
+        // // Read and unmarshall client notification
+        // System.out.println("Reading notification from notifier...");
+        // // StringReader dataReader = new StringReader(buffReader.readLine());
+        // StringReader dataReader = new StringReader(v);
+        // Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+
+        // put(notification);
     }
 
     /**
@@ -143,5 +178,7 @@ public class NotifierListener extends Thread {
         MitterServer.notificationListCount += 1;
         MitterServer.notificationListNotEmptyCondition.signal();    // Signal waiting threads
         MitterServer.notificationListLock.unlock(); // Release lock
+
+        System.out.println("SUCCESS");
     }
 }

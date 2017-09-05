@@ -82,6 +82,7 @@ public class MitterServer {
         // urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
         // cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
         // noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
+        readWriteSemaphores = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             readWriteSemaphores.add(new Semaphore(MAX_NUM_READERS, true));
         }
@@ -143,6 +144,7 @@ public class MitterServer {
     /**
      * This method assign a sequence number to a notification and store it into the correct list.
      * This method will eventually run PAXOS algorithm to obtain a sequence number.
+     * @param notification - Notification received from one of the notifiers
      */
     public void assignSequenceNumberAndStore(Notification notification) throws InterruptedException {
         OrderedNotification orderedNotification = new OrderedNotification();
