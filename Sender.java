@@ -63,7 +63,9 @@ public class Sender {
                     System.out.println("Stopping all threads related to this client...");
                     MitterServer.clientsList.remove(clientThread);
                     notificationAssembler.cancel();
+                    System.out.println("SUCCESS");
                 }
+                break;  // Stop sending the rest of the notifications
             }
         }
     }
