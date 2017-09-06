@@ -16,6 +16,7 @@ import java.io.BufferedWriter;
 import java.net.Socket;
 
 /* JAVAX */
+import java.util.concurrent.TimeUnit;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -29,6 +30,8 @@ import javax.xml.datatype.DatatypeFactory;
 public class MitterClient2 {
     public static void main(String[] args) throws Exception {
         Socket socket;
+        int updateSubscription = 1;
+
         try {
             // Create object subscription
             Subscription subscription = new Subscription();
@@ -54,13 +57,6 @@ public class MitterClient2 {
             buffWriter.write(dataWriter.toString());
             buffWriter.newLine();
             buffWriter.flush();
-
-            // InputStreamReader reader = new InputStreamReader(in, "UTF-8");
-            // BufferedReader buffReader = new BufferedReader(reader);
-            // StringReader dataReader;
-
-            // JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-            // Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
             
             while (true) {
                 try {
@@ -85,6 +81,22 @@ public class MitterClient2 {
                                         notification.getTimestamp().getDate() + 
                                         " " + notification.getTimestamp().getTime());
 
+                    if (updateSubscription == 1) {
+                        TimeUnit.MILLISECONDS.sleep(4000);
+                        subscription.setSender("all");
+
+                        dataWriter = new StringWriter();
+                        
+                        System.out.println("Sending marshalled subscription to the server...");
+                        /* marshalling of java objects in xml (send to sever) */
+                        jaxbMarshaller.marshal(subscription, dataWriter);
+                        buffWriter = new BufferedWriter(writer);
+                        buffWriter.write(dataWriter.toString());
+                        buffWriter.newLine();
+                        buffWriter.flush();
+
+                        updateSubscription = 0;
+                    }
                 } catch (Exception e) {
                     // ignore
                     // System.out.println("Stream was closed\nExiting...");

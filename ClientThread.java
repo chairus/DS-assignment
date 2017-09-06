@@ -34,6 +34,7 @@ public class ClientThread extends Thread {
     public FilteredNotificationList notificationsToBeSent;
     public List<OrderedNotification> deletedNotifications;
     public Filter filter;
+    public BufferedReader buffReader;
 
     public ClientThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -54,7 +55,8 @@ public class ClientThread extends Thread {
             // Get stream for reading subscriptions
             InputStream in = clientSocket.getInputStream();
             Reader reader = new InputStreamReader(in, "UTF-8");
-            BufferedReader buffReader = new BufferedReader(reader);
+            // BufferedReader buffReader = new BufferedReader(reader);
+            buffReader = new BufferedReader(reader);
 
             // Initialize unmarshaller(subscription)
             JAXBContext jaxbContextSubs = JAXBContext.newInstance(Subscription.class);
@@ -90,7 +92,21 @@ public class ClientThread extends Thread {
 
             while (true) {
                 try {
-                    buffReader.ready();
+                    if (buffReader.ready()) {   // Client wants to update it's subscription
+                        System.out.println("Reading subscription from client...");
+                        dataReader = new StringReader(buffReader.readLine());
+                        subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
+
+                        /* ======== FOR DEBUGGING PURPOSES ======== */
+                        System.out.println("Received client subscription...printing");
+                        System.out.println("Sender subscription: " + subs.getSender());
+                        System.out.println("Location subscription: " + subs.getLocation());
+
+
+                        // Update subscription
+                        filter.setSubscription(subs);
+                        na.setFilter(filter);
+                    }
                 } catch (IOException e) {
                     System.err.println("Stopping Thread due to connection lost...");
                     break;

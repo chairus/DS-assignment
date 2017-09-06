@@ -2,6 +2,7 @@ package uni.mitter;
 
 import generated.nonstandard.notification.*;
 import java.net.Socket;
+import java.io.IOException;
 import java.io.Writer;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -32,6 +33,16 @@ public class Sender {
      */
     public void send() {
         System.out.println("There are " + queue.size() + " notifications to be sent.");
+
+        try {
+            if (clientThread.buffReader.ready()) {  // Check if client wants to update their subscription
+                return; // Cancel the transmission of notifications
+            }
+        } catch (IOException e) {
+            System.err.println("Something went wrong in the sender.");
+            e.printStackTrace();
+        }
+
         while (!queue.isEmpty()) {
             Notification notification = queue.popHead().getNotification();
 
