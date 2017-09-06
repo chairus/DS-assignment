@@ -241,6 +241,7 @@ public class MitterServer {
         if (setOfNotificationList.get(listNumber).size() == MAX_NUM_OF_NOTIFICATIONS[listNumber]) {
             OrderedNotification on = setOfNotificationList.get(listNumber).get(0);  // Get the oldest notification
             storeDeletedNotificationToAllClientThreadCache(on);
+            setOfNotificationList.get(listNumber).remove(0);    // Remove the oldest notification from the list
         }
     }
 

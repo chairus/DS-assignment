@@ -96,7 +96,7 @@ public class NotificationAssembler extends TimerTask {
         timer += 1;
         // Check caution notification second
         addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
-        if (timer % 1500 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
+        if (timer % 2000 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             
             do {    // Check if there are writers that are ready or already writing
                 synchronized (MitterServer.writerCount[CAUTION]) {

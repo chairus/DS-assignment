@@ -63,7 +63,7 @@ public class MitterNotifier2 {
                 buffWriter.newLine();
                 buffWriter.flush();
 
-                TimeUnit.MILLISECONDS.sleep(5000);
+                TimeUnit.MILLISECONDS.sleep(1000);
 
                 System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Engineering_Bld",
