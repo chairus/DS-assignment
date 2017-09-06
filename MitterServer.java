@@ -14,6 +14,7 @@ import java.net.Socket;
 import java.io.File;
 import java.io.IOException;
 import java.util.GregorianCalendar;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Timer;
@@ -38,14 +39,20 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
+    // Maximum number of notifications maintained by the server at all times for each severity.
+    // public static final int MAX_URGENT = 1000;
+    // public static final int MAX_CAUTION = 500;
+    // public static final int MAX_NOTICE = 100;
+    public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 500, 100}; // [urgent, caution, notice]
     public static final int MAX_NUM_READERS = 100;
     public static final int MAX_NOTIFICATIONS_LIST = 1000;
     // Locks for the MitterServer and the Notifier threads(PRODUCER-CONSUMER)
     public static final Lock notificationListLock = new ReentrantLock();
     public static final Condition notificationListNotFullCondition = notificationListLock.newCondition();
     public static final Condition notificationListNotEmptyCondition = notificationListLock.newCondition();
-    // Lists that stores all received notifications
-    public static List<OrderedNotification> urgentList, cautionList, noticeList;
+    // A list that maintains the lists that stores all received notifications
+    public static List<List<OrderedNotification>> setOfNotificationList;    // [0 - urgent, 1 - caution, 2 - notice]
+    // public static List<OrderedNotification> urgentList, cautionList, noticeList;
     public static List<Thread> clientsList; // A list that stores active clients
     private ServerSocket serverSocket;
     private int clientPort;
@@ -57,9 +64,6 @@ public class MitterServer {
     public static Integer[] writerCount = {0,0,0};  // [urgent, caution, notice]
     // Semaphores that synchronizes the readers and writers. This semaphore allows 100 readers to read at the same time.
     public static List<Semaphore> readWriteSemaphores;    // [urgent, caution, notice]
-    // public static Semaphore urgentListReadWriteSemaphore;
-    // public static Semaphore cautionListReadWriteSemaphore;
-    // public static Semaphore noticeListReadWriteSemaphore;
     public static List<Notification> notificationList;
     public Thread notifierListenerThread;
     public Thread clientListenerThread;
@@ -72,18 +76,16 @@ public class MitterServer {
     public MitterServer(int clientPort, int notifierPort) {
         this.clientPort = clientPort;
         this.notifierPort = notifierPort;
-        urgentList = new ArrayList<>();
-        cautionList = new ArrayList<>();
-        noticeList = new ArrayList<>();
+        // urgentList = new ArrayList<>();
+        // cautionList = new ArrayList<>();
+        // noticeList = new ArrayList<>();
         clientsList = new ArrayList<>();
-        // writerCount = 0;
         notificationListCount = 0;
-        // urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
-        // cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
-        // noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
         readWriteSemaphores = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
+        setOfNotificationList = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {   // Initialize the lists and their associated Semaphores
             readWriteSemaphores.add(new Semaphore(MAX_NUM_READERS, true));
+            setOfNotificationList.add(new ArrayList<OrderedNotification>());
         }
         notificationList = new ArrayList<>();
     }
@@ -112,7 +114,7 @@ public class MitterServer {
                 notificationListLock.lock();    // Obtain the lock for the notification list
                 if (!notificationList.isEmpty()) {
                     System.err.println("Notification list is not empty. Taking one out...");
-                    Notification notification = takeFromNotificationList();
+                    Notification notification = takeOneFromNotificationList();
                     assignSequenceNumberAndStore(notification);
                     System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                 } else {
@@ -129,19 +131,19 @@ public class MitterServer {
      * Take notifications from the notification list and stores it into one of the lists.
      * This method does not wait if the notification list is empty.
      */
-    public Notification takeFromNotificationList() throws InterruptedException {
+    public Notification takeOneFromNotificationList() throws InterruptedException {
         Notification notification = null;
         System.err.println("Taking notification from the list...");
         // notificationListLock.lock();    // Obtain the lock for the notification list
 
-        if (notificationListCount != 0) { 
+        // if (notificationListCount != 0) { 
             notification = notificationList.get(0);
             notificationList.remove(0);
             notificationListCount -= 1;
-        }
+        // }
 
         notificationListNotFullCondition.signal();  // Signal waiting notifier thread
-        notificationListLock.unlock();  // Release lock
+        notificationListLock.unlock();  // Release lock for notification list
         System.err.println("Taking notification from the list...SUCCESS");
         return notification;
     }
@@ -222,19 +224,21 @@ public class MitterServer {
         }
 
         readWriteSemaphores.get(listNumber).acquire(MAX_NUM_READERS);   // Obtain lock
-        switch (listNumber) {
-            case 0:
-                urgentList.add(orderedNotification);
-                break;
-            case 1:
-                cautionList.add(orderedNotification);
-                break;
-            case 2:
-                noticeList.add(orderedNotification);
-                break;
-            default:
-                break;
-        }
+        checkNotificationLimit(orderedNotification, listNumber);
+        setOfNotificationList.get(listNumber).add(orderedNotification);
+        // switch (listNumber) {
+        //     case 0:
+        //         urgentList.add(orderedNotification);
+        //         break;
+        //     case 1:
+        //         cautionList.add(orderedNotification);
+        //         break;
+        //     case 2:
+        //         noticeList.add(orderedNotification);
+        //         break;
+        //     default:
+        //         break;
+        // }
 
         synchronized (writerCount) {    // Tell the readers that the server has finished writing
             writerCount[listNumber] -= 1;
@@ -245,7 +249,35 @@ public class MitterServer {
     }
 
     /**
-     * Main
+     * This method checks if the maximum limit for stored notifications has been reached,if it
+     * is then this calls a method that stores the notification that is about to be deleted to
+     * all client thread's maintained list.
+     * @param listNumber - The associated number to one of the three lists(0 - urgent, 1 - caution, 2 - notice).
+     */
+    public void checkNotificationLimit(OrderedNotification on, int listNumber) {
+        if (setOfNotificationList.get(listNumber).size() == MAX_NUM_OF_NOTIFICATIONS[listNumber]) {
+            storeDeletedNotificationToAllClientThreadCache(on);
+        }
+    }
+
+    /**
+     * This method stores the notification that is about to be deleted into the list that each 
+     * client thread maintains.
+     * @param on - An ordered notification.
+     */
+    public void storeDeletedNotificationToAllClientThreadCache(OrderedNotification on) {
+        Iterator it = clientsList.iterator();
+
+        while (it.hasNext()) {  // Loop through all active clients
+            ClientThread t = (ClientThread) it.next();
+            synchronized (t.deletedNotifications) { // Obtain lock for the deleted notifications list
+                t.deletedNotifications.add(on);
+            }
+        }
+    }
+
+    /**
+     * MAIN
      */
     public static void main(String[] args) {
         MitterServer mServer = new MitterServer(3000,3001);

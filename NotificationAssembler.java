@@ -79,7 +79,7 @@ public class NotificationAssembler extends TimerTask {
         }
         
         // System.err.println("Taking out urgent notification...");
-        for (OrderedNotification on: MitterServer.urgentList) { // Perform read operation on the list
+        for (OrderedNotification on: MitterServer.setOfNotificationList.get(URGENT)) { // Perform read operation on the list
             long seqNum = on.getSequenceNumber();
 
             if (seqNum > notificationSequenceNumbers.get(URGENT).longValue()) {
@@ -110,7 +110,7 @@ public class NotificationAssembler extends TimerTask {
                 System.err.println("Interrupted Thread.");
             }
 
-            for (OrderedNotification on: MitterServer.cautionList) {    // Perform read operation on the list
+            for (OrderedNotification on: MitterServer.setOfNotificationList.get(CAUTION)) {    // Perform read operation on the list
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(CAUTION).longValue()) {
                     boolean hasAdded = notificationsToBeSent.add(on);
@@ -138,7 +138,7 @@ public class NotificationAssembler extends TimerTask {
                 System.err.println("Interrupted Thread.");
             }
 
-            for (OrderedNotification on: MitterServer.noticeList) { // Perform read operation on the list
+            for (OrderedNotification on: MitterServer.setOfNotificationList.get(NOTICE)) { // Perform read operation on the list
                 long seqNum = on.getSequenceNumber();
                 if (seqNum > notificationSequenceNumbers.get(NOTICE).longValue()) {
                     boolean hasAdded = notificationsToBeSent.add(on);
@@ -179,7 +179,7 @@ public class NotificationAssembler extends TimerTask {
      * This method checks the severity type of the given ordered notification. This method returns true
      * if the ordered notification has the same severity type as the given severity parameter.
      */
-    private boolean isOfSeverityType(OrderedNotification on, String severityType) {
+    private boolean isOfTheSameSeverity(OrderedNotification on, String severityType) {
         String severity = on.getNotification().getSeverity();   // Get the severity of the notification
         if (severity.compareToIgnoreCase(severityType) == 0) {
             return true;
@@ -198,8 +198,8 @@ public class NotificationAssembler extends TimerTask {
                 OrderedNotification on;
                 while (i < deletedNotifications.size()) {
                     on = deletedNotifications.get(i);
-                    if (isOfSeverityType(on, severityType)) {
-                        if (isLargerSeqNum(on, on.getSequenceNumber())) {
+                    if (isOfTheSameSeverity(on, severityType)) {   // This is to ensure that the notifications will always be sent in the order "urgent then caution then notice"
+                        if (isLargerSeqNum(on, currentSeqNum)) {    // Check if this notification has already been sent
                             boolean hasAdded = notificationsToBeSent.add(on);
                             if (hasAdded) { // If it is the notification that the client has subscribed to.
                                 switch (severityType.toLowerCase()) {   // Update current sequence number

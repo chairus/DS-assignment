@@ -117,7 +117,7 @@ public class NotifierListener extends Thread {
         ByteBuffer buffer = ByteBuffer.allocate(5000);
         SocketChannel notifierChannel = notifierSocket;
         int bytesRead = 0;
-        String v = null;
+        String n = null;
         try {
             // Initialize unmarshaller(notification)
             JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
@@ -127,15 +127,15 @@ public class NotifierListener extends Thread {
             // count is >=0
             if ((bytesRead = notifierChannel.read(buffer)) > 0) {
                 buffer.flip();
-                v = new String( buffer.array(), "UTF-8" );
+                n = new String( buffer.array(), "UTF-8" );
                 buffer.clear();
 
                 // Read and unmarshall client notification
                 System.out.println("Reading notification from notifier...");
                 // StringReader dataReader = new StringReader(buffReader.readLine());
                 System.out.println("Notification received: ");
-                System.out.println(v);
-                StringReader dataReader = new StringReader(v.trim());
+                System.out.println(n);
+                StringReader dataReader = new StringReader(n.trim());
                 System.out.println("Unmarshalling...");
                 Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
                 System.out.println("Unmarshalling...SUCCESS");
