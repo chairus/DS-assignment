@@ -40,10 +40,7 @@ import javax.xml.datatype.DatatypeFactory;
 
 public class MitterServer {
     // Maximum number of notifications maintained by the server at all times for each severity.
-    // public static final int MAX_URGENT = 1000;
-    // public static final int MAX_CAUTION = 500;
-    // public static final int MAX_NOTICE = 100;
-    public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 500, 100}; // [urgent, caution, notice]
+    public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 2, 100}; // [urgent, caution, notice]
     public static final int MAX_NUM_READERS = 100;
     public static final int MAX_NOTIFICATIONS_LIST = 1000;
     // Locks for the MitterServer and the Notifier threads(PRODUCER-CONSUMER)
@@ -52,7 +49,6 @@ public class MitterServer {
     public static final Condition notificationListNotEmptyCondition = notificationListLock.newCondition();
     // A list that maintains the lists that stores all received notifications
     public static List<List<OrderedNotification>> setOfNotificationList;    // [0 - urgent, 1 - caution, 2 - notice]
-    // public static List<OrderedNotification> urgentList, cautionList, noticeList;
     public static List<Thread> clientsList; // A list that stores active clients
     private ServerSocket serverSocket;
     private int clientPort;
@@ -224,21 +220,8 @@ public class MitterServer {
         }
 
         readWriteSemaphores.get(listNumber).acquire(MAX_NUM_READERS);   // Obtain lock
-        checkNotificationLimit(orderedNotification, listNumber);
+        checkNotificationLimit(listNumber);
         setOfNotificationList.get(listNumber).add(orderedNotification);
-        // switch (listNumber) {
-        //     case 0:
-        //         urgentList.add(orderedNotification);
-        //         break;
-        //     case 1:
-        //         cautionList.add(orderedNotification);
-        //         break;
-        //     case 2:
-        //         noticeList.add(orderedNotification);
-        //         break;
-        //     default:
-        //         break;
-        // }
 
         synchronized (writerCount) {    // Tell the readers that the server has finished writing
             writerCount[listNumber] -= 1;
@@ -254,8 +237,9 @@ public class MitterServer {
      * all client thread's maintained list.
      * @param listNumber - The associated number to one of the three lists(0 - urgent, 1 - caution, 2 - notice).
      */
-    public void checkNotificationLimit(OrderedNotification on, int listNumber) {
+    public void checkNotificationLimit(int listNumber) {
         if (setOfNotificationList.get(listNumber).size() == MAX_NUM_OF_NOTIFICATIONS[listNumber]) {
+            OrderedNotification on = setOfNotificationList.get(listNumber).get(0);  // Get the oldest notification
             storeDeletedNotificationToAllClientThreadCache(on);
         }
     }
@@ -266,14 +250,18 @@ public class MitterServer {
      * @param on - An ordered notification.
      */
     public void storeDeletedNotificationToAllClientThreadCache(OrderedNotification on) {
+        System.err.println("Storing deleted notification...");
         Iterator it = clientsList.iterator();
 
         while (it.hasNext()) {  // Loop through all active clients
             ClientThread t = (ClientThread) it.next();
             synchronized (t.deletedNotifications) { // Obtain lock for the deleted notifications list
                 t.deletedNotifications.add(on);
+                System.err.println("Size of deletedNotifications " + t.deletedNotifications.size());
             }
         }
+
+        System.err.println("Storing deleted notification...SUCCESS");
     }
 
     /**

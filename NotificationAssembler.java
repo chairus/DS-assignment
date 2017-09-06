@@ -96,7 +96,7 @@ public class NotificationAssembler extends TimerTask {
         timer += 1;
         // Check caution notification second
         addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
-        if (timer % 1000 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
+        if (timer % 1500 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
             
             do {    // Check if there are writers that are ready or already writing
                 synchronized (MitterServer.writerCount[CAUTION]) {
@@ -125,7 +125,7 @@ public class NotificationAssembler extends TimerTask {
 
         // Check notice notification third
         addDeletedNotifications("notice", notificationSequenceNumbers.get(NOTICE));
-        if (timer % 2000 == 0 || newConnection) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
+        if (timer % 2500 == 0 || newConnection) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
             do {    // Check if there are writers that are ready or already writing
                 synchronized (MitterServer.writerCount[NOTICE]) {
                     count = MitterServer.writerCount[NOTICE].intValue();
@@ -180,7 +180,7 @@ public class NotificationAssembler extends TimerTask {
      * if the ordered notification has the same severity type as the given severity parameter.
      */
     private boolean isOfTheSameSeverity(OrderedNotification on, String severityType) {
-        String severity = on.getNotification().getSeverity();   // Get the severity of the notification
+        String severity = on.getNotification().getSeverity();
         if (severity.compareToIgnoreCase(severityType) == 0) {
             return true;
         }
@@ -202,6 +202,10 @@ public class NotificationAssembler extends TimerTask {
                         if (isLargerSeqNum(on, currentSeqNum)) {    // Check if this notification has already been sent
                             boolean hasAdded = notificationsToBeSent.add(on);
                             if (hasAdded) { // If it is the notification that the client has subscribed to.
+                                System.err.println("=====================================================");
+                                System.err.println("Added notification from: " + on.getNotification().getSender());
+                                System.err.println("=====================================================");
+
                                 switch (severityType.toLowerCase()) {   // Update current sequence number
                                     case "urgent":
                                         notificationSequenceNumbers.set(URGENT, on.getSequenceNumber());                                 
