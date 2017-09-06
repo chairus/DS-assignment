@@ -35,6 +35,11 @@ public class ClientThread extends Thread {
     public List<OrderedNotification> deletedNotifications;
     public Filter filter;
     public BufferedReader buffReader;
+    public StringReader dataReader;
+    private JAXBContext jaxbContextSubs;
+    private Unmarshaller jaxbUnmarshallerSubs;
+    private Subscription subs;
+    private NotificationAssembler na;
 
     public ClientThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -54,36 +59,22 @@ public class ClientThread extends Thread {
         try {
             // Get stream for reading subscriptions
             InputStream in = clientSocket.getInputStream();
-            Reader reader = new InputStreamReader(in, "UTF-8");
+            InputStreamReader reader = new InputStreamReader(in, "UTF-8");
             // BufferedReader buffReader = new BufferedReader(reader);
             buffReader = new BufferedReader(reader);
 
             // Initialize unmarshaller(subscription)
-            JAXBContext jaxbContextSubs = JAXBContext.newInstance(Subscription.class);
-            Unmarshaller jaxbUnmarshallerSubs = jaxbContextSubs.createUnmarshaller();
-
-            // Read and unmarshall client subscription
-            System.out.println("Reading subscription from client...");
-            StringReader dataReader = new StringReader(buffReader.readLine());
-            Subscription subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
-
-            /* ======== FOR DEBUGGING PURPOSES ======== */
-            System.out.println("Received client subscription...printing");
-            System.out.println("Sender subscription: " + subs.getSender());
-            System.out.println("Location subscription: " + subs.getLocation());
+            jaxbContextSubs = JAXBContext.newInstance(Subscription.class);
+            jaxbUnmarshallerSubs = jaxbContextSubs.createUnmarshaller();
 
             Timer t = new Timer();
-            NotificationAssembler na = new NotificationAssembler(notificationsToBeSent, 
+            na = new NotificationAssembler(notificationsToBeSent, 
                                                                  clientSocket,
                                                                  deletedNotifications,
                                                                  this,
                                                                  true);
 
-            System.out.println("Setting filter...");
-            // Set the filter
-            filter.setSubscription(subs);
-            na.setFilter(filter);
-            System.out.println("Setting filter...SUCCESS");
+            updateSubscription();
 
             System.out.println("Starting notification assembler...");
             // Execute the run() method in the NotificationAssembler every 10 milliseconds
@@ -93,19 +84,7 @@ public class ClientThread extends Thread {
             while (true) {
                 try {
                     if (buffReader.ready()) {   // Client wants to update it's subscription
-                        System.out.println("Reading subscription from client...");
-                        dataReader = new StringReader(buffReader.readLine());
-                        subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
-
-                        /* ======== FOR DEBUGGING PURPOSES ======== */
-                        System.out.println("Received client subscription...printing");
-                        System.out.println("Sender subscription: " + subs.getSender());
-                        System.out.println("Location subscription: " + subs.getLocation());
-
-
-                        // Update subscription
-                        filter.setSubscription(subs);
-                        na.setFilter(filter);
+                        updateSubscription();
                     }
                 } catch (IOException e) {
                     System.err.println("Stopping Thread due to connection lost...");
@@ -117,5 +96,23 @@ public class ClientThread extends Thread {
         } catch (JAXBException e) {
             e.printStackTrace();
         }
+    }
+
+    private void updateSubscription() throws JAXBException, IOException {
+        // Read and unmarshall client subscription
+        System.out.println("Reading subscription from client...");
+        dataReader = new StringReader(buffReader.readLine());
+        subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
+
+        /* ======== FOR DEBUGGING PURPOSES ======== */
+        System.out.println("Received client subscription...printing");
+        System.out.println("Sender subscription: " + subs.getSender());
+        System.out.println("Location subscription: " + subs.getLocation());
+
+        System.out.println("Setting filter...");
+        // Set the filter
+        filter.setSubscription(subs);
+        na.setFilter(filter);
+        System.out.println("Setting filter...SUCCESS");
     }
 }
