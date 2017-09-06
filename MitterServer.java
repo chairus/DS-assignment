@@ -13,19 +13,16 @@ import java.net.Socket;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
-/* JAVAX */
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -40,7 +37,7 @@ import javax.xml.datatype.DatatypeFactory;
 
 public class MitterServer {
     // Maximum number of notifications maintained by the server at all times for each severity.
-    public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 2, 100}; // [urgent, caution, notice]
+    public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 500, 100}; // [urgent, caution, notice]
     public static final int MAX_NUM_READERS = 100;
     public static final int MAX_NOTIFICATIONS_LIST = 1000;
     // Locks for the MitterServer and the Notifier threads(PRODUCER-CONSUMER)
@@ -72,9 +69,6 @@ public class MitterServer {
     public MitterServer(int clientPort, int notifierPort) {
         this.clientPort = clientPort;
         this.notifierPort = notifierPort;
-        // urgentList = new ArrayList<>();
-        // cautionList = new ArrayList<>();
-        // noticeList = new ArrayList<>();
         clientsList = new ArrayList<>();
         notificationListCount = 0;
         readWriteSemaphores = new ArrayList<>();

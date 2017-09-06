@@ -77,23 +77,24 @@ public class ClientThread extends Thread {
                                                                  this,
                                                                  true);
 
-            System.out.print("Setting filter...");
+            System.out.println("Setting filter...");
             // Set the filter
             filter.setSubscription(subs);
             na.setFilter(filter);
-            System.out.println("SUCCESS");
+            System.out.println("Setting filter...SUCCESS");
 
-            System.out.print("Starting notification assembler...");
-            // Execute the task in the NotificationAssembler every 10 milliseconds
+            System.out.println("Starting notification assembler...");
+            // Execute the run() method in the NotificationAssembler every 10 milliseconds
             t.scheduleAtFixedRate(na, 0, 10);
-            System.out.println("SUCCESS");
+            System.out.println("Starting notification assembler...SUCCESS");
 
             while (true) {
-                // try {
-                //     subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
-                // } catch (JAXBException e) {
-                //     System.out.println("There is an IOException. That is the client has disconnected");
-                // }
+                try {
+                    buffReader.ready();
+                } catch (IOException e) {
+                    System.err.println("Stopping Thread due to connection lost...");
+                    break;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
