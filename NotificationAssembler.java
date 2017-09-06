@@ -61,15 +61,12 @@ public class NotificationAssembler extends TimerTask {
     public void run() {
         // Check urgent notification first
         addDeletedNotifications("urgent", notificationSequenceNumbers.get(URGENT));
-        // System.err.println("Checking for deleted notifications...SUCCESS");
 
         int count;
         do {    // Check if there are writers that are ready or already writing
-            // System.err.println("Obtaining writerCount for URGENT...");
             synchronized (MitterServer.writerCount[URGENT]) {
                 count = MitterServer.writerCount[URGENT].intValue();
             }
-            // System.err.println("Obtaining writerCount for URGENT...SUCCESS");
         } while (count > 0);
         
         try {
@@ -78,7 +75,6 @@ public class NotificationAssembler extends TimerTask {
             System.err.println("Interrupted Thread.");
         }
         
-        // System.err.println("Taking out urgent notification...");
         for (OrderedNotification on: MitterServer.setOfNotificationList.get(URGENT)) { // Perform read operation on the list
             long seqNum = on.getSequenceNumber();
 
@@ -89,7 +85,6 @@ public class NotificationAssembler extends TimerTask {
                 }
             }
         }
-        // System.err.println("Taking out urgent notification...SUCCESS");
         
         MitterServer.readWriteSemaphores.get(URGENT).release();    // Release a Semaphore for urgent list
 

@@ -17,6 +17,8 @@ import generated.nonstandard.subscription.Subscription;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
@@ -40,20 +42,25 @@ public class ClientThread extends Thread {
     private Unmarshaller jaxbUnmarshallerSubs;
     private Subscription subs;
     private NotificationAssembler na;
+    private long currentTime;
+    public boolean clientStateConnectivity;
+    public Boolean postponeNotificationTransmission;
 
     public ClientThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        notificationsToBeSent = new FilteredNotificationList();
-        deletedNotifications = new ArrayList<>();
+        this.notificationsToBeSent = new FilteredNotificationList();
+        this.deletedNotifications = new ArrayList<>();
         this.filter = new Filter();
+        this.currentTime = System.currentTimeMillis();
+        this.clientStateConnectivity = true;
+        this.postponeNotificationTransmission = false;
     }
 
     /**
      * This method reads XML subscription sent by the client and sets the filter with it. It also creates
      * a task that will be executed in a 10ms interval. Furthermore this method also monitors the state
-     * of the connection of the client, that is it constantly sends a heart beat message to check if
-     * the client is still connected.
-     * @author cyrusvillacampa
+     * of the connection of the client, that is it checks if an update of subscription is initiated by the
+     * client.
      */
     public void run() {
         try {
@@ -69,10 +76,10 @@ public class ClientThread extends Thread {
 
             Timer t = new Timer();
             na = new NotificationAssembler(notificationsToBeSent, 
-                                                                 clientSocket,
-                                                                 deletedNotifications,
-                                                                 this,
-                                                                 true);
+                                           clientSocket,
+                                           deletedNotifications,
+                                           this,
+                                           true);
 
             updateSubscription();
 
@@ -84,11 +91,24 @@ public class ClientThread extends Thread {
             while (true) {
                 try {
                     if (buffReader.ready()) {   // Client wants to update it's subscription
+                        synchronized (postponeNotificationTransmission) {
+                            postponeNotificationTransmission = true;
+                        }
+
                         updateSubscription();
+
+                        synchronized (postponeNotificationTransmission) {
+                            postponeNotificationTransmission = false;
+                        }
+                    }
+
+                    if (!clientStateConnectivity) {
+                        System.err.println("Stopping Thread due to connection lost...");
+                        break;
                     }
                 } catch (IOException e) {
-                    System.err.println("Stopping Thread due to connection lost...");
-                    break;
+                    System.err.println("Something happend to the input reader in ClientThread");
+                    e.printStackTrace();
                 }
             }
         } catch (IOException e) {
@@ -98,6 +118,10 @@ public class ClientThread extends Thread {
         }
     }
 
+    /**
+     * This method updates the subscription of the client by setting the filter associated to the
+     * client's thread.
+     */
     private void updateSubscription() throws JAXBException, IOException {
         // Read and unmarshall client subscription
         System.out.println("Reading subscription from client...");

@@ -23,8 +23,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeFactory;
-
-// import generated.nonstandard.notification.Notification;
  
 public class MitterClient {
     public static void main(String[] args) throws Exception {
@@ -54,13 +52,6 @@ public class MitterClient {
             buffWriter.write(dataWriter.toString());
             buffWriter.newLine();
             buffWriter.flush();
-
-            // InputStreamReader reader = new InputStreamReader(in, "UTF-8");
-            // BufferedReader buffReader = new BufferedReader(reader);
-            // StringReader dataReader;
-
-            // JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-            // Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
             
             while (true) {
                 try {
@@ -86,9 +77,6 @@ public class MitterClient {
                                         " " + notification.getTimestamp().getTime());
 
                 } catch (Exception e) {
-                    // ignore
-                    // System.out.println("Stream was closed\nExiting...");
-                    // System.exit(1);
                     e.printStackTrace();
                 }
                 
@@ -97,13 +85,5 @@ public class MitterClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        // if (socket != null) {
-        //     try {
-        //         socket.close();
-        //     } catch (IOException e) {
-        //         // ignore
-        //     }
-        // }
     }
 }

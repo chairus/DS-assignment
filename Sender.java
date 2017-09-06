@@ -34,12 +34,21 @@ public class Sender {
     public void send() {
         System.out.println("There are " + queue.size() + " notifications to be sent.");
 
+        // boolean temp;
+        // // Check if client wants to update their subscription
+        // do {
+        //     synchronized (clientThread.postponeNotificationTransmission) {
+        //         temp = clientThread.postponeNotificationTransmission.booleanValue();
+        //     }
+        //     // wait until client has finished sending the subscription
+        // } while (temp);
+
         try {
-            if (clientThread.buffReader.ready()) {  // Check if client wants to update their subscription
-                return; // Cancel the transmission of notifications
+            while (clientThread.buffReader.ready()) {
+                // wait until client has finished sending the subscription
             }
-        } catch (IOException e) {
-            System.err.println("Something went wrong in the sender.");
+        } catch (Exception e) {
+            System.err.println("Something went wrong in the Sender.");
             e.printStackTrace();
         }
 
@@ -64,7 +73,7 @@ public class Sender {
                 buffWriter.newLine();
                 buffWriter.flush();
                 System.out.println("SENT");
-                TimeUnit.MILLISECONDS.sleep(15);    // For throttling the output stream. This is to make sure that no overwritting of notifications will occur.
+                TimeUnit.MILLISECONDS.sleep(20);    // For throttling the output stream. This is to make sure that no overwritting of notifications will occur.
             } catch (Exception e) {
                 // Releasing all resources related to the disconnected client
                 System.out.println("Connection lost.");
@@ -78,6 +87,7 @@ public class Sender {
                     System.out.println("Stopping all threads related to this client...");
                     MitterServer.clientsList.remove(clientThread);
                     notificationAssembler.cancel();
+                    clientThread.clientStateConnectivity = false;
                     System.out.println("Stopping all threads related to this client...SUCCESS");
                 }
                 break;  // Stop sending the rest of the notifications
