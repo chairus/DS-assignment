@@ -64,7 +64,7 @@ public class MitterServer {
     public Thread notifierListenerThread;
     public Thread clientListenerThread;
     public static long notificationListCount;
-    private long totalOrderSequenceNumber;
+    private long[] totalOrderSequenceNumbers = {1,1,1}; // [urgent, caution, notice]
 
     /**
      * Constructor
@@ -78,7 +78,6 @@ public class MitterServer {
         clientsList = new ArrayList<>();
         // writerCount = 0;
         notificationListCount = 0;
-        totalOrderSequenceNumber = 0;
         // urgentListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for urgent notifications
         // cautionListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for caution notifications
         // noticeListReadWriteSemaphore = new Semaphore(MAX_NUM_READERS, true);  // max 100 readers for notice notifications
@@ -110,9 +109,14 @@ public class MitterServer {
             System.out.println("MitterServer is running...");
 
             while (true) {
+                notificationListLock.lock();    // Obtain the lock for the notification list
                 if (!notificationList.isEmpty()) {
+                    System.err.println("Notification list is not empty. Taking one out...");
                     Notification notification = takeFromNotificationList();
                     assignSequenceNumberAndStore(notification);
+                    System.err.println("Notification list is not empty. Taking one out...SUCCESS");
+                } else {
+                    notificationListLock.unlock();  // Release lock for notification list
                 }
             }
             
@@ -123,36 +127,66 @@ public class MitterServer {
 
     /**
      * Take notifications from the notification list and stores it into one of the lists.
-     * This method waits if the notification list is empty.
+     * This method does not wait if the notification list is empty.
      */
     public Notification takeFromNotificationList() throws InterruptedException {
         Notification notification = null;
-        
-        notificationListLock.lock();    // Obtain the lock for the notification list
+        System.err.println("Taking notification from the list...");
+        // notificationListLock.lock();    // Obtain the lock for the notification list
 
         if (notificationListCount != 0) { 
             notification = notificationList.get(0);
+            notificationList.remove(0);
             notificationListCount -= 1;
         }
 
         notificationListNotFullCondition.signal();  // Signal waiting notifier thread
         notificationListLock.unlock();  // Release lock
-
+        System.err.println("Taking notification from the list...SUCCESS");
         return notification;
     }
 
     /**
      * This method assign a sequence number to a notification and store it into the correct list.
-     * This method will eventually run PAXOS algorithm to obtain a sequence number.
      * @param notification - Notification received from one of the notifiers
      */
     public void assignSequenceNumberAndStore(Notification notification) throws InterruptedException {
+        System.err.println("Assigning sequence number on a notification...");
         OrderedNotification orderedNotification = new OrderedNotification();
 
-        orderedNotification.setNotification(notification);
-        orderedNotification.setSequenceNumber(totalOrderSequenceNumber);
-        totalOrderSequenceNumber += 1;
+        switch (notification.getSeverity().toLowerCase()) {
+            case "urgent":
+                orderedNotification = assignSequenceNumber(notification, 0);
+                break;
+            case "caution":
+                orderedNotification = assignSequenceNumber(notification, 1);
+                break;
+            case "notice":
+                orderedNotification = assignSequenceNumber(notification, 2);
+                break;
+            default:
+                break;
+        }
+        System.err.println("Assigning sequence number on a notification...SUCCESS");
         putOrderedNotificationToList(orderedNotification);
+    }
+
+    /**
+     * This assigns the sequence number to the notification.
+     * This method will eventually run PAXOS algorithm to obtain a sequence number.
+     * @param notification - Notification taken from the notification list
+     * @param severity - The encoded severity number[0 - urgent, 1 - caution, 2 - notice]
+     */
+    public OrderedNotification assignSequenceNumber(Notification notification, int severity) {
+        OrderedNotification on = new OrderedNotification();
+        long currSeqNum = totalOrderSequenceNumbers[severity];; // The current sequence number
+
+        on.setNotification(notification);
+        on.setSequenceNumber(currSeqNum);
+
+        totalOrderSequenceNumbers[severity] += 1;   // Update the current sequence number
+
+        return on;
     }
 
     /**
@@ -182,6 +216,7 @@ public class MitterServer {
      * @param listNumber - 0 for urgent, 1 for caution and 2 for notice
      */
     public void put(OrderedNotification orderedNotification, int listNumber) throws InterruptedException {
+        System.err.println("Putting ordered notification into the appropriate list...");
         synchronized (writerCount) {    // Tell the reader that the server is ready to write
             writerCount[listNumber] += 1;
         }
@@ -202,10 +237,11 @@ public class MitterServer {
         }
 
         synchronized (writerCount) {    // Tell the readers that the server has finished writing
-            writerCount[listNumber] += 1;
+            writerCount[listNumber] -= 1;
         }
 
-        readWriteSemaphores.get(listNumber).release();  // Release lock
+        readWriteSemaphores.get(listNumber).release(MAX_NUM_READERS);  // Release lock
+        System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
     }
 
     /**

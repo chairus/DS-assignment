@@ -20,9 +20,6 @@ public class MitterNotifier {
         Socket socket;
 
         try {
-            // Create object notification
-            Notification notification = new Notification();
-
             socket = new Socket("localhost", 3001);
             OutputStream out = socket.getOutputStream();
 
@@ -34,6 +31,8 @@ public class MitterNotifier {
             StringWriter dataWriter = new StringWriter();
             
             try {
+                // Create object notification
+                Notification notification = new Notification();
                 System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("IW_building",
                                                   "Ingkarni Wardli Building",
@@ -56,6 +55,7 @@ public class MitterNotifier {
                                                   "urgent",
                                                   0);
 
+                dataWriter = new StringWriter();
                 /* marshalling of java objects in xml (send to sever) */
                 jaxbMarshaller.marshal(notification, dataWriter);
                 buffWriter = new BufferedWriter(writer);
@@ -82,20 +82,20 @@ public class MitterNotifier {
                                                   String message,
                                                   String severity,
                                                   long messageId) throws DatatypeConfigurationException {
-        Notification notification = new Notification();
+        Notification n = new Notification();
 
-        notification.setSender(sender);
-        notification.setLocation(location);
-        notification.setMessage(message);
+        n.setSender(sender);
+        n.setLocation(location);
+        n.setMessage(message);
         Notification.Timestamp timestamp = new Notification.Timestamp();
         GregorianCalendar gc = new GregorianCalendar();
         XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
         timestamp.setDate(xmlGC);
         timestamp.setTime(xmlGC);
-        notification.setTimestamp(timestamp);
-        notification.setSeverity(severity);
-        notification.setMessageId(messageId);
+        n.setTimestamp(timestamp);
+        n.setSeverity(severity);
+        n.setMessageId(messageId);
 
-        return notification;
+        return n;
     }
 }

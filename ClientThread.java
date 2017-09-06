@@ -88,13 +88,13 @@ public class ClientThread extends Thread {
             t.scheduleAtFixedRate(na, 0, 10);
             System.out.println("SUCCESS");
 
-            // while (true) {
-            //     try {
-            //         subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
-            //     } catch (JAXBException e) {
-            //         System.out.println("There is an IOException. That is the client has disconnected");
-            //     }
-            // }
+            while (true) {
+                // try {
+                //     subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
+                // } catch (JAXBException e) {
+                //     System.out.println("There is an IOException. That is the client has disconnected");
+                // }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (JAXBException e) {

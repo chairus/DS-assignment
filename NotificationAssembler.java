@@ -40,7 +40,9 @@ public class NotificationAssembler extends TimerTask {
         this.deletedNotifications = deletedNotifications;
         this.clientSocket = clientSocket;
         this.clientThread = clientThread;
-        this.notificationSequenceNumbers = Arrays.asList(Long.parseLong("0"),Long.parseLong("0"),Long.parseLong("0"));
+        this.notificationSequenceNumbers = Arrays.asList(Long.parseLong("0"),
+                                                         Long.parseLong("0"),
+                                                         Long.parseLong("0"));
         this.timer = 0;
         this.newConnection = newConnection;
     }
@@ -57,32 +59,37 @@ public class NotificationAssembler extends TimerTask {
      * guarantees the order of the notifications sent to client to be 'urgent then caution then notice'.
      */
     public void run() {
-
         // Check urgent notification first
         addDeletedNotifications("urgent", notificationSequenceNumbers.get(URGENT));
+        // System.err.println("Checking for deleted notifications...SUCCESS");
+
         int count;
         do {    // Check if there are writers that are ready or already writing
-            synchronized (MitterServer.writerCount) {
+            // System.err.println("Obtaining writerCount for URGENT...");
+            synchronized (MitterServer.writerCount[URGENT]) {
                 count = MitterServer.writerCount[URGENT].intValue();
             }
+            // System.err.println("Obtaining writerCount for URGENT...SUCCESS");
         } while (count > 0);
         
         try {
             MitterServer.readWriteSemaphores.get(URGENT).acquire();    // Acquire a Semaphore for urgent list
         } catch (InterruptedException e) {
-            //TODO: handle exception
+            System.err.println("Interrupted Thread.");
         }
-
+        
+        // System.err.println("Taking out urgent notification...");
         for (OrderedNotification on: MitterServer.urgentList) { // Perform read operation on the list
             long seqNum = on.getSequenceNumber();
 
-            if (seqNum > notificationSequenceNumbers.get(URGENT)) {
+            if (seqNum > notificationSequenceNumbers.get(URGENT).longValue()) {
                 boolean hasAdded = notificationsToBeSent.add(on);
                 if (hasAdded) { // Update the sequence number for "urgent" notifications
                     notificationSequenceNumbers.set(URGENT, seqNum);
                 }
             }
         }
+        // System.err.println("Taking out urgent notification...SUCCESS");
         
         MitterServer.readWriteSemaphores.get(URGENT).release();    // Release a Semaphore for urgent list
 
@@ -90,8 +97,9 @@ public class NotificationAssembler extends TimerTask {
         // Check caution notification second
         addDeletedNotifications("caution", notificationSequenceNumbers.get(CAUTION));
         if (timer % 1000 == 0 || newConnection) {    // 10 seconds has passed(CHANGE THIS TO 1 min. or 6000)
+            
             do {    // Check if there are writers that are ready or already writing
-                synchronized (MitterServer.writerCount) {
+                synchronized (MitterServer.writerCount[CAUTION]) {
                     count = MitterServer.writerCount[CAUTION].intValue();
                 }
             } while (count > 0);
@@ -104,7 +112,7 @@ public class NotificationAssembler extends TimerTask {
 
             for (OrderedNotification on: MitterServer.cautionList) {    // Perform read operation on the list
                 long seqNum = on.getSequenceNumber();
-                if (seqNum > notificationSequenceNumbers.get(CAUTION)) {
+                if (seqNum > notificationSequenceNumbers.get(CAUTION).longValue()) {
                     boolean hasAdded = notificationsToBeSent.add(on);
                     if (hasAdded) { // Update the sequence number for "caution" notifications
                         notificationSequenceNumbers.set(CAUTION,seqNum);
@@ -117,9 +125,9 @@ public class NotificationAssembler extends TimerTask {
 
         // Check notice notification third
         addDeletedNotifications("notice", notificationSequenceNumbers.get(NOTICE));
-        if (timer % 2000 == 0) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
+        if (timer % 2000 == 0 || newConnection) {    // 20 seconds has passed(CHANGE THIS TO 30 mins. or 180000)
             do {    // Check if there are writers that are ready or already writing
-                synchronized (MitterServer.writerCount) {
+                synchronized (MitterServer.writerCount[NOTICE]) {
                     count = MitterServer.writerCount[NOTICE].intValue();
                 }
             } while (count > 0);
@@ -132,7 +140,7 @@ public class NotificationAssembler extends TimerTask {
 
             for (OrderedNotification on: MitterServer.noticeList) { // Perform read operation on the list
                 long seqNum = on.getSequenceNumber();
-                if (seqNum > notificationSequenceNumbers.get(NOTICE)) {
+                if (seqNum > notificationSequenceNumbers.get(NOTICE).longValue()) {
                     boolean hasAdded = notificationsToBeSent.add(on);
                     if (hasAdded) { // Update the sequence number for "notice" notifications
                         notificationSequenceNumbers.set(NOTICE, seqNum);
