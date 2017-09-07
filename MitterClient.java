@@ -16,6 +16,8 @@ import java.io.BufferedWriter;
 import java.net.Socket;
 
 /* JAVAX */
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -27,6 +29,8 @@ import javax.xml.datatype.DatatypeFactory;
 public class MitterClient {
     public static void main(String[] args) throws Exception {
         Socket socket;
+        List<String> receivedNotification = new ArrayList<>();
+
         try {
             // Create object subscription
             Subscription subscription = new Subscription();
@@ -53,29 +57,37 @@ public class MitterClient {
             buffWriter.newLine();
             buffWriter.flush();
             
+            InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+            BufferedReader buffReader = new BufferedReader(reader);
+
+            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+            StringReader dataReader = null;
+
             while (true) {
                 try {
-                    InputStreamReader reader = new InputStreamReader(in, "UTF-8");
-                    BufferedReader buffReader = new BufferedReader(reader);
-
-                    JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-                    Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-                    
-                    System.out.println("Trying to read XML data...");
-                    StringReader dataReader = new StringReader(buffReader.readLine());
-                    System.out.println("Unmarshalling read XML data...");
-                    Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
-                    System.out.println("===================================================");
-                    System.out.println("Received notification!!!");
-                    System.out.println("Sender: " + notification.getSender());
-                    System.out.println("Location: " + notification.getLocation());
-                    System.out.println("Message: " + notification.getMessage());
-                    System.out.println("Severity: " + notification.getSeverity());
-                    System.out.println("Update: " + notification.isUpdate());
-                    System.out.println("Timestamp: " + 
-                                        notification.getTimestamp().getDate() + 
-                                        " " + notification.getTimestamp().getTime());
-
+                    if (buffReader.ready()) {
+                        System.out.print("Trying to read XML data...");
+                        receivedNotification.add(buffReader.readLine());
+                        System.out.println("SUCCESS");
+                    } else {
+                        if (!receivedNotification.isEmpty()) {
+                            dataReader = new StringReader(receivedNotification.get(0));
+                            receivedNotification.remove(0);
+                            System.out.println("Unmarshalling read XML data...");
+                            Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                            System.out.println("===================================================");
+                            System.out.println("Received notification!!!");
+                            System.out.println("Sender: " + notification.getSender());
+                            System.out.println("Location: " + notification.getLocation());
+                            System.out.println("Message: " + notification.getMessage());
+                            System.out.println("Severity: " + notification.getSeverity());
+                            System.out.println("Update: " + notification.isUpdate());
+                            System.out.println("Timestamp: " + 
+                                                notification.getTimestamp().getDate() + 
+                                                " " + notification.getTimestamp().getTime());
+                        }
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

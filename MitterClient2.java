@@ -16,6 +16,8 @@ import java.io.BufferedWriter;
 import java.net.Socket;
 
 /* JAVAX */
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
@@ -30,6 +32,7 @@ import javax.xml.datatype.DatatypeFactory;
 public class MitterClient2 {
     public static void main(String[] args) throws Exception {
         Socket socket;
+        List<String> receivedNotification = new ArrayList<>();
         int updateSubscription = 1;
 
         try {
@@ -58,29 +61,40 @@ public class MitterClient2 {
             buffWriter.newLine();
             buffWriter.flush();
             
+            InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+            BufferedReader buffReader = new BufferedReader(reader);
+
+            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+
+            StringReader dataReader = null;
+
             while (true) {
                 try {
-                    InputStreamReader reader = new InputStreamReader(in, "UTF-8");
-                    BufferedReader buffReader = new BufferedReader(reader);
-
-                    JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
-                    Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+                    if (buffReader.ready()) {
+                        System.out.println("Trying to read XML data...");
+                        receivedNotification.add(buffReader.readLine());
+                        System.out.println("SUCCESS");
+                    } else {
+                        if (!receivedNotification.isEmpty()) {
+                            dataReader = new StringReader(receivedNotification.get(0));
+                            receivedNotification.remove(0);
+                            System.out.println("Unmarshalling read XML data...");
+                            Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                            System.out.println("===================================================");
+                            System.out.println("Received notification!!!");
+                            System.out.println("Sender: " + notification.getSender());
+                            System.out.println("Location: " + notification.getLocation());
+                            System.out.println("Message: " + notification.getMessage());
+                            System.out.println("Severity: " + notification.getSeverity());
+                            System.out.println("Update: " + notification.isUpdate());
+                            System.out.println("Timestamp: " + 
+                                                notification.getTimestamp().getDate() + 
+                                                " " + notification.getTimestamp().getTime());
+                        }
+                    }
                     
-                    System.out.println("Trying to read XML data...");
-                    StringReader dataReader = new StringReader(buffReader.readLine());
-                    System.out.println("Unmarshalling read XML data...");
-                    Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
-                    System.out.println("===================================================");
-                    System.out.println("Received notification!!!");
-                    System.out.println("Sender: " + notification.getSender());
-                    System.out.println("Location: " + notification.getLocation());
-                    System.out.println("Message: " + notification.getMessage());
-                    System.out.println("Severity: " + notification.getSeverity());
-                    System.out.println("Update: " + notification.isUpdate());
-                    System.out.println("Timestamp: " + 
-                                        notification.getTimestamp().getDate() + 
-                                        " " + notification.getTimestamp().getTime());
-
+                    // Update subscription
                     if (updateSubscription == 1) {
                         TimeUnit.MILLISECONDS.sleep(4000);
                         subscription.setSender("all");
@@ -98,9 +112,6 @@ public class MitterClient2 {
                         updateSubscription = 0;
                     }
                 } catch (Exception e) {
-                    // ignore
-                    // System.out.println("Stream was closed\nExiting...");
-                    // System.exit(1);
                     e.printStackTrace();
                 }
                 
@@ -109,13 +120,5 @@ public class MitterClient2 {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        // if (socket != null) {
-        //     try {
-        //         socket.close();
-        //     } catch (IOException e) {
-        //         // ignore
-        //     }
-        // }
     }
 }
