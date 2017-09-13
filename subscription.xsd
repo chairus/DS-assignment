@@ -3,7 +3,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
            elementFormDefault="qualified"
            xmlns="urn:nonstandard:subscription"
-           targetNamespace="urn:nonstandard:subscription">
+           targetNamespace="urn:generated:nonstandard:subscription">
     <xsd:element name="subscription">
         <xsd:complexType>
             <xsd:sequence>

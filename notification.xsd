@@ -3,7 +3,7 @@
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
            elementFormDefault="qualified"
            xmlns="urn:nonstandard:notification"
-           targetNamespace="urn:nonstandard:notification">
+           targetNamespace="urn:generated:nonstandard:notification">
     <xsd:element name="notification">
         <xsd:complexType>
             <xsd:sequence>

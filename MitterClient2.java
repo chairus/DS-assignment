@@ -72,7 +72,7 @@ public class MitterClient2 {
             while (true) {
                 try {
                     if (buffReader.ready()) {
-                        System.out.println("Trying to read XML data...");
+                        System.out.print("Trying to read XML data...");
                         receivedNotification.add(buffReader.readLine());
                         System.out.println("SUCCESS");
                     } else {
