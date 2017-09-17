@@ -37,10 +37,11 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
-    // A list of the ports of each individual server in the network
+    // A list of the ports of each individual server in the network.
+    // The index is the server id.
     public static List<Integer> serverPorts;
     // Server ID of this server
-    private int serverId;
+    public static int serverId;
     // A list that stores active servers, each entry in the list stores the socket of the server.
     public static List<ServerPeers.ServerIdentity> serversList;
     // Default ports for clients, notifiers and servers
@@ -84,7 +85,7 @@ public class MitterServer {
         this.notifierPort = notifierPort;
         this.serverPort = serverPort;
         this.serverId = serverId;
-        serverPorts = new ArrayList<>(Arrays.asList(4002, 4003));
+        serverPorts = new ArrayList<>(Arrays.asList(3002, 3005, 3008));
         serversList = new ArrayList<>();
         clientsList = new ArrayList<>();
         notificationListCount = 0;

@@ -9,27 +9,44 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import uni.mitter.ServerPeers.ServerIdentity;
 import generated.nonstandard.heartbeat.Heartbeat;
 
 public class ServerPeers extends Thread {
-    ServerSocket serverSocket;
-    List<Socket> sockets;
-    int serverPort;
+    public ServerSocket serverSocket;
+    public int serverPort;
+
 
     // Constructor
     public ServerPeers (int serverPort) {
         this.serverPort = serverPort;
-        this.sockets = new ArrayList<>();
+        init();
+    }
+
+    public void init () {
+        try {
+            // Open a socket for other servers to connect to.
+            serverSocket = new ServerSocket(serverPort);
+            serverSocket.setSoTimeout(500); // Set the accept() method to wait/block for about 300ms
+        } catch (Exception e) {
+            System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage() + "\n", MitterServer.serverId);
+            e.printStackTrace();
+        }
+
+        // Start a thread that attempts to establish a connection between this server and the others
+        Thread scThread = new ServerConnector();
+        scThread.start();
     }
 
     /**
@@ -38,40 +55,29 @@ public class ServerPeers extends Thread {
      */
     @Override
     public void run() {
-        try {
-            JAXBContext jaxbContextHeartbeat = JAXBContext.newInstance(Heartbeat.class);
-            Unmarshaller jaxbUnmarshallerHeartbeat = jaxbContextHeartbeat.createUnmarshaller();
-            // Open a socket for other servers to connect to.
-            serverSocket = new ServerSocket(serverPort);
-            serverSocket.setSoTimeout(500); // Set the accept() method to wait/block for about 300ms
-
-            // Start a thread that attempts to establish a connection between this server and the others
-            Thread scThread = new ServerConnector();
-            scThread.start();
-
-            while (true) {
-                if (MitterServer.serversList.size() < 3) {
-                    try {
+        while (true) {
+            try {
+                synchronized (MitterServer.serversList) {
+                    if (MitterServer.serversList.size() < 3) {
                         Socket s = serverSocket.accept();
-                        InputStream in = s.getInputStream();
-                        InputStreamReader reader = new InputStreamReader(in, "UTF-8");
-                        BufferedReader buffReader = new BufferedReader(reader);
-                        StringReader dataReader = new StringReader(buffReader.readLine());
-                        Heartbeat hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(dataReader);
-                        MitterServer.serversList.add(new ServerIdentity(s,hb));  
-                    } catch (SocketException e) {
-                        //ignore
+                        int remotePort = s.getPort();
+                        int serverId = 0;
+                        // Find the id of the newly connected server using the remote port
+                        for (int port: MitterServer.serverPorts) {
+                            if (port == remotePort) {
+                                serverId = MitterServer.serverPorts.indexOf(port);
+                            }
+                        }
+                        System.out.format("Obtained port number of server %d\n", serverId);
+                        MitterServer.serversList.add(new ServerIdentity(s,serverId));
+                        System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
                     }
                 }
+            } catch (IOException e) {
+                // IGNORE
+                // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+                // e.printStackTrace();
             }
-            
-
-        } catch (IOException e) {
-            System.err.println("[ INFO ] Error: ServerListener, " + e.getMessage());
-            e.printStackTrace();
-        } catch (JAXBException e) {
-            System.err.println("[ INFO ] Error: ServerListener, " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -79,13 +85,39 @@ public class ServerPeers extends Thread {
      * This class attempts to establish a connection between this server and other servers.
      */
     private class ServerConnector extends Thread {
-        public ServerConnector () {
-
-        }
+        public ServerConnector () { }
 
         @Override
         public void run () {
+            System.out.println("ServerConnector has started");
+            Socket s = new Socket();
+            int serverPort = 0;
 
+            while (true) {
+                synchronized (MitterServer.serversList) {
+                    if (MitterServer.serversList.size() < 3) {
+                        try {
+                            int serverId = 0;
+                            // Find a server that is still unconnected using the server id.
+                            for (ServerIdentity sId: MitterServer.serversList) {
+                                if (sId.getId() != MitterServer.serverId && sId.getId() != serverId) {
+                                    serverPort = MitterServer.serverPorts.get(serverId);
+                                    break;
+                                }
+                                serverId += 1;
+                            }
+                            System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
+                            InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
+                            s.connect(endpoint);
+                            MitterServer.serversList.add(new ServerIdentity(s,serverId));
+                            System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                        } catch (IOException e) {
+                            // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+                            // e.printStackTrace();
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -95,10 +127,10 @@ public class ServerPeers extends Thread {
      */
     public static class ServerIdentity {
         Socket socket;
-        Heartbeat hb;
-        public ServerIdentity (Socket socket, Heartbeat hb) {
+        int id;
+        public ServerIdentity (Socket socket, int id) {
             this.socket = socket;
-            this.hb = hb;
+            this.id = id;
         }
 
         public Socket getSocket () {
@@ -106,7 +138,7 @@ public class ServerPeers extends Thread {
         }
 
         public int getId () {
-            return this.hb.getServerId();
+            return this.id;
         }
     }
 }
