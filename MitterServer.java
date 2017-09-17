@@ -36,6 +36,12 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
+    // Server ID
+    private int serverId;
+    // Default ports for clients, notifiers and servers
+    private static final int DEFAULT_CLIENT_PORT = 3000;
+    private static final int DEFAULT_NOTIFIER_PORT = 3001;
+    private static final int DEFAULT_SERVER_PORT = 3002;
     // Maximum number of notifications maintained by the server at all times for each severity.
     public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 500, 100}; // [urgent, caution, notice]
     public static final int MAX_NUM_READERS = 100;
@@ -50,6 +56,7 @@ public class MitterServer {
     private ServerSocket serverSocket;
     private int clientPort;
     private int notifierPort;
+    private int serverPort;
     private Writer writer;
     private Notification notification;
     private BufferedWriter buffWriter;
@@ -66,9 +73,11 @@ public class MitterServer {
     /**
      * Constructor
      */
-    public MitterServer(int clientPort, int notifierPort) {
+    public MitterServer(int clientPort, int notifierPort, int serverPort, int serverId) {
         this.clientPort = clientPort;
         this.notifierPort = notifierPort;
+        this.serverPort = serverPort;
+        this.serverId = serverId;
         clientsList = new ArrayList<>();
         notificationListCount = 0;
         readWriteSemaphores = new ArrayList<>();
@@ -81,7 +90,7 @@ public class MitterServer {
     }
 
     /**
-     * This method starts the server listens for connection from clients and notifiers.
+     * This method starts the server and listens for connection from clients, notifiers and servers.
      */
     public void start() {
         boolean sent = false;
@@ -89,24 +98,26 @@ public class MitterServer {
         try {
             // Open up port for clients to connect
             serverSocket = new ServerSocket(clientPort);
-            // serverSocket.setSoTimeout(30000); // block for no more than 30 seconds
             
             // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
             notifierListenerThread = new NotifierListener(notifierPort);
             notifierListenerThread.start();
-
+            // Create and start a client listener thread to open a port and listen for incoming client connections
             clientListenerThread = new ClientListener(serverSocket);
             clientListenerThread.start();
 
             System.out.println("MitterServer is running...");
+            System.out.format("[\tSERVER %d\t] Listening to incoming clients on port %d\n",serverId,clientPort);
+            System.out.format("[\tSERVER %d\t] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
+            System.out.format("[\tSERVER %d\t] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             while (true) {
                 notificationListLock.lock();    // Obtain the lock for the notification list
                 if (!notificationList.isEmpty()) {
-                    System.err.println("Notification list is not empty. Taking one out...");
+                    // System.err.println("Notification list is not empty. Taking one out...");
                     Notification notification = takeOneFromNotificationList();
                     assignSequenceNumberAndStore(notification);
-                    System.err.println("Notification list is not empty. Taking one out...SUCCESS");
+                    // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                 } else {
                     notificationListLock.unlock();  // Release lock for notification list
                 }
@@ -123,7 +134,7 @@ public class MitterServer {
      */
     public Notification takeOneFromNotificationList() throws InterruptedException {
         Notification notification = null;
-        System.err.println("Taking notification from the list...");
+        // System.err.println("Taking notification from the list...");
         // notificationListLock.lock();    // Obtain the lock for the notification list
 
         // if (notificationListCount != 0) { 
@@ -134,16 +145,16 @@ public class MitterServer {
 
         notificationListNotFullCondition.signal();  // Signal waiting notifier thread
         notificationListLock.unlock();  // Release lock for notification list
-        System.err.println("Taking notification from the list...SUCCESS");
+        // System.err.println("Taking notification from the list...SUCCESS");
         return notification;
     }
 
     /**
      * This method assign a sequence number to a notification and store it into the correct list.
-     * @param notification - Notification received from one of the notifiers
+     * @param notification - Notification received from one of the notifiers or server
      */
     public void assignSequenceNumberAndStore(Notification notification) throws InterruptedException {
-        System.err.println("Assigning sequence number on a notification...");
+        // System.err.println("Assigning sequence number on a notification...");
         OrderedNotification orderedNotification = new OrderedNotification();
 
         switch (notification.getSeverity().toLowerCase()) {
@@ -159,7 +170,7 @@ public class MitterServer {
             default:
                 break;
         }
-        System.err.println("Assigning sequence number on a notification...SUCCESS");
+        // System.err.println("Assigning sequence number on a notification...SUCCESS");
         putOrderedNotificationToList(orderedNotification);
     }
 
@@ -208,7 +219,7 @@ public class MitterServer {
      * @param listNumber - 0 for urgent, 1 for caution and 2 for notice
      */
     public void put(OrderedNotification orderedNotification, int listNumber) throws InterruptedException {
-        System.err.println("Putting ordered notification into the appropriate list...");
+        // System.err.println("Putting ordered notification into the appropriate list...");
         synchronized (writerCount) {    // Tell the reader that the server is ready to write
             writerCount[listNumber] += 1;
         }
@@ -222,7 +233,7 @@ public class MitterServer {
         }
 
         readWriteSemaphores.get(listNumber).release(MAX_NUM_READERS);  // Release lock
-        System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
+        // System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
     }
 
     /**
@@ -245,25 +256,47 @@ public class MitterServer {
      * @param on - An ordered notification.
      */
     public void storeDeletedNotificationToAllClientThreadCache(OrderedNotification on) {
-        System.err.println("Storing deleted notification...");
+        // System.err.println("Storing deleted notification...");
         Iterator it = clientsList.iterator();
 
         while (it.hasNext()) {  // Loop through all active clients
             ClientThread t = (ClientThread) it.next();
             synchronized (t.deletedNotifications) { // Obtain lock for the deleted notifications list
                 t.deletedNotifications.add(on);
-                System.err.println("Size of deletedNotifications " + t.deletedNotifications.size());
+                // System.err.println("Size of deletedNotifications " + t.deletedNotifications.size());
             }
         }
 
-        System.err.println("Storing deleted notification...SUCCESS");
+        // System.err.println("Storing deleted notification...SUCCESS");
     }
 
     /**
-     * MAIN
+     *  ========
+     * |  MAIN  |
+     *  ========
      */
     public static void main(String[] args) {
-        MitterServer mServer = new MitterServer(3000,3001);
+        int cPort = DEFAULT_CLIENT_PORT, 
+            nPort = DEFAULT_NOTIFIER_PORT, 
+            sPort = DEFAULT_SERVER_PORT,
+            serverID = 1;
+
+        if (args.length != 4) {
+            System.err.println("[\t USAGE \t]: MitterServer [client_port] [notifier_port] [server_port] [server_id]");
+            System.exit(1);
+        }
+
+        try {
+            cPort = Integer.parseInt(args[0]);
+            nPort = Integer.parseInt(args[1]);
+            sPort = Integer.parseInt(args[2]);
+            serverID = Integer.parseInt(args[3]);
+        } catch (Exception e) {
+            System.err.println("[\t ERROR \t]: Arguments must be an integer.");
+            System.exit(1);
+        }
+            
+        MitterServer mServer = new MitterServer(cPort,nPort,sPort,serverID);
         mServer.start();
     }
 }

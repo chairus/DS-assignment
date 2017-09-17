@@ -19,7 +19,9 @@ public class Filter {
     }
 
     /**
-     * This method returns true if a given notification satisfies the subscription.
+     * This method checks if a given notification is what the client has subscribed to.
+     * @param n - The notification to be checked
+     * @return boolean - True if a given notification satisfies the subscription
      */
     public boolean filterNotification(Notification n) {
         boolean isSubscribedTo = false;
