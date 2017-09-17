@@ -12,16 +12,28 @@ import java.util.List;
  */
 public class ClientListener extends Thread {
     private ServerSocket serverSocket;
-    public Socket clientSocket;    
+    public Socket clientSocket;
+    private int clientPort;  
 
-    public ClientListener(ServerSocket serverSocket) {
-        this.serverSocket = serverSocket;
+    // public ClientListener(ServerSocket serverSocket) {
+    //     this.serverSocket = serverSocket;
+    // }
+
+    public ClientListener(int clientPort) {
+        this.clientPort = clientPort;
     }
 
     /**
      * This method accept client connection and create's a thread that manages each connected client.
      */
     public void run() {
+        try {
+            serverSocket = new ServerSocket(clientPort);    
+        } catch (IOException e) {
+            System.err.println("[\tERROR\t]: ClientListener, " + e.getMessage());
+            e.printStackTrace();
+        }
+        
         // System.out.println("Listening for client connection...");
         while (true) {
             try {

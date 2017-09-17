@@ -97,13 +97,14 @@ public class MitterServer {
 
         try {
             // Open up port for clients to connect
-            serverSocket = new ServerSocket(clientPort);
+            // serverSocket = new ServerSocket(clientPort);
             
             // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
             notifierListenerThread = new NotifierListener(notifierPort);
             notifierListenerThread.start();
             // Create and start a client listener thread to open a port and listen for incoming client connections
-            clientListenerThread = new ClientListener(serverSocket);
+            // clientListenerThread = new ClientListener(serverSocket);
+            clientListenerThread = new ClientListener(clientPort);
             clientListenerThread.start();
 
             System.out.println("MitterServer is running...");
