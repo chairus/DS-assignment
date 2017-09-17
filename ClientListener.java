@@ -22,7 +22,7 @@ public class ClientListener extends Thread {
      * This method accept client connection and create's a thread that manages each connected client.
      */
     public void run() {
-        System.out.println("Listening for client connection...");
+        // System.out.println("Listening for client connection...");
         while (true) {
             try {
                 clientSocket = serverSocket.accept();

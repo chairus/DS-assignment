@@ -45,7 +45,7 @@ public class NotifierListener extends Thread {
             init();
 
             while (true) {
-                System.out.println("Checking if there are connections ready to be acted on...");
+                // System.out.println("Checking if there are connections ready to be acted on...");
                 selector.select(); // Check whether anything is ready to be acted upon.
 
                 Set<SelectionKey> readyKeys = selector.selectedKeys();
@@ -76,9 +76,9 @@ public class NotifierListener extends Thread {
         
         /* NOTE: FOR JAVA 7 and LATER */
         serverChannel.bind(new InetSocketAddress(NOTIFIER_PORT));   // Bind socket to a port
-        System.out.print("Listening for incoming notifier connections...");
+        // System.out.print("Listening for incoming notifier connections...");
         notifierChannel = serverChannel.accept(); // Accept a connection from a notifier
-        System.out.println("ACCEPTED ONE");
+        // System.out.println("ACCEPTED ONE");
         notifierChannel.configureBlocking(false);   // Make the notifier channel non-blocking
         serverChannel.configureBlocking(false); // Also make the server channel non-blocking so that calls to accept() method will immediately return if no incoming connections
 
@@ -131,15 +131,14 @@ public class NotifierListener extends Thread {
                 buffer.clear();
 
                 // Read and unmarshall client notification
-                System.out.println("Reading notification from notifier...");
-                // StringReader dataReader = new StringReader(buffReader.readLine());
-                System.out.println("Notification received: ");
-                System.out.println(n);
+                // System.out.println("Reading notification from notifier...");
+                // System.out.println("Notification received: ");
+                // System.out.println(n);
                 StringReader dataReader = new StringReader(n.trim());
-                System.out.println("Unmarshalling...");
+                // System.out.println("Unmarshalling...");
                 Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
-                System.out.println("Unmarshalling...SUCCESS");
-                System.err.println("Putting notification into the list...");
+                // System.out.println("Unmarshalling...SUCCESS");
+                // System.err.println("Putting notification into the list...");
                 put(notification);
             }    
         } catch (JAXBException e) {
@@ -170,9 +169,9 @@ public class NotifierListener extends Thread {
         MitterServer.notificationList.add(notification);
         MitterServer.notificationListCount += 1;
         // MitterServer.notificationListNotEmptyCondition.signal();    // Signal waiting threads
-        System.err.println("Size of notification list: " + MitterServer.notificationList.size());
+        // System.err.println("Size of notification list: " + MitterServer.notificationList.size());
         MitterServer.notificationListLock.unlock(); // Release lock
 
-        System.out.println("Putting notification into the list...SUCCESS");
+        // System.out.println("Putting notification into the list...SUCCESS");
     }
 }

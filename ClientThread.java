@@ -83,10 +83,10 @@ public class ClientThread extends Thread {
 
             updateSubscription();
 
-            System.out.println("Starting notification assembler...");
+            // System.out.println("Starting notification assembler...");
             // Execute the run() method in the NotificationAssembler every 10 milliseconds
             t.scheduleAtFixedRate(na, 0, 10);
-            System.out.println("Starting notification assembler...SUCCESS");
+            // System.out.println("Starting notification assembler...SUCCESS");
 
             while (true) {
                 try {
@@ -124,19 +124,19 @@ public class ClientThread extends Thread {
      */
     private void updateSubscription() throws JAXBException, IOException {
         // Read and unmarshall client subscription
-        System.out.println("Reading subscription from client...");
+        // System.out.println("Reading subscription from client...");
         dataReader = new StringReader(buffReader.readLine());
         subs = (Subscription) jaxbUnmarshallerSubs.unmarshal(dataReader);
 
         /* ======== FOR DEBUGGING PURPOSES ======== */
-        System.out.println("Received client subscription...printing");
-        System.out.println("Sender subscription: " + subs.getSender());
-        System.out.println("Location subscription: " + subs.getLocation());
+        // System.out.println("Received client subscription...printing");
+        // System.out.println("Sender subscription: " + subs.getSender());
+        // System.out.println("Location subscription: " + subs.getLocation());
 
-        System.out.println("Setting filter...");
+        // System.out.println("Setting filter...");
         // Set the filter
         filter.setSubscription(subs);
         na.setFilter(filter);
-        System.out.println("Setting filter...SUCCESS");
+        // System.out.println("Setting filter...SUCCESS");
     }
 }

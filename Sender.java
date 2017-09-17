@@ -32,7 +32,7 @@ public class Sender {
      * This method sends the notifications to the client.
      */
     public void send() {
-        System.out.println("There are " + queue.size() + " notifications to be sent.");
+        // System.out.println("There are " + queue.size() + " notifications to be sent.");
 
         // boolean temp;
         // // Check if client wants to update their subscription
@@ -65,14 +65,14 @@ public class Sender {
                 Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
                 StringWriter dataWriter = new StringWriter();
                 
-                System.out.print("Sending marshalled notification to the client...");
+                // System.out.print("Sending marshalled notification to the client...");
                 /* marshalling of java objects in xml (send to client) */
                 jaxbMarshaller.marshal(notification, dataWriter);
                 buffWriter = new BufferedWriter(writer);
                 buffWriter.write(dataWriter.toString());
                 buffWriter.newLine();
                 buffWriter.flush();
-                System.out.println("SENT");
+                // System.out.println("SENT");
                 TimeUnit.MILLISECONDS.sleep(20);    // For throttling the output stream. This is to make sure that no overwritting of notifications will occur.
             } catch (Exception e) {
                 // Releasing all resources related to the disconnected client
