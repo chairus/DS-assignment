@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
@@ -36,8 +37,12 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
-    // Server ID
+    // A list of the ports of each individual server in the network
+    public static List<Integer> serverPorts;
+    // Server ID of this server
     private int serverId;
+    // A list that stores active servers, each entry in the list stores the socket of the server.
+    public static List<ServerPeers.ServerIdentity> serversList;
     // Default ports for clients, notifiers and servers
     private static final int DEFAULT_CLIENT_PORT = 3000;
     private static final int DEFAULT_NOTIFIER_PORT = 3001;
@@ -65,6 +70,7 @@ public class MitterServer {
     // Semaphores that synchronizes the readers and writers. This semaphore allows 100 readers to read at the same time.
     public static List<Semaphore> readWriteSemaphores;    // [urgent, caution, notice]
     public static List<Notification> notificationList;
+    public Thread serverListenerThread;
     public Thread notifierListenerThread;
     public Thread clientListenerThread;
     public static long notificationListCount;
@@ -78,6 +84,8 @@ public class MitterServer {
         this.notifierPort = notifierPort;
         this.serverPort = serverPort;
         this.serverId = serverId;
+        serverPorts = new ArrayList<>(Arrays.asList(4002, 4003));
+        serversList = new ArrayList<>();
         clientsList = new ArrayList<>();
         notificationListCount = 0;
         readWriteSemaphores = new ArrayList<>();
@@ -96,21 +104,21 @@ public class MitterServer {
         boolean sent = false;
 
         try {
-            // Open up port for clients to connect
-            // serverSocket = new ServerSocket(clientPort);
-            
             // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
             notifierListenerThread = new NotifierListener(notifierPort);
             notifierListenerThread.start();
             // Create and start a client listener thread to open a port and listen for incoming client connections
-            // clientListenerThread = new ClientListener(serverSocket);
             clientListenerThread = new ClientListener(clientPort);
             clientListenerThread.start();
+            // Create and start a server listener thread to open a port and listen for incoming server connections
+            serverListenerThread = new ServerPeers(serverPort);
+            serverListenerThread.start();
 
             System.out.println("MitterServer is running...");
-            System.out.format("[\tSERVER %d\t] Listening to incoming clients on port %d\n",serverId,clientPort);
-            System.out.format("[\tSERVER %d\t] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
-            System.out.format("[\tSERVER %d\t] Listening to incoming servers on port %d\n",serverId,serverPort);
+            System.out.format("[ SERVER %d ] Listening to incoming clients on port %d\n",serverId,clientPort);
+            System.out.format("[ SERVER %d ] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
+            System.out.format("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
+            
 
             while (true) {
                 notificationListLock.lock();    // Obtain the lock for the notification list
@@ -283,7 +291,7 @@ public class MitterServer {
             serverID = 1;
 
         if (args.length != 4) {
-            System.err.println("[\t USAGE \t]: MitterServer [client_port] [notifier_port] [server_port] [server_id]");
+            System.err.println("[ INFO ] Usage: MitterServer [client_port] [notifier_port] [server_port] [server_id]");
             System.exit(1);
         }
 
@@ -293,7 +301,7 @@ public class MitterServer {
             sPort = Integer.parseInt(args[2]);
             serverID = Integer.parseInt(args[3]);
         } catch (Exception e) {
-            System.err.println("[\t ERROR \t]: Arguments must be an integer.");
+            System.err.println("[ INFO ] Error: Arguments must be an integer.");
             System.exit(1);
         }
             

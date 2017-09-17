@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           xmlns="urn:nonstandard:notification"
+           targetNamespace="urn:generated:nonstandard:heartbeat">
+    <xsd:element name="heartbeat">
+        <xsd:complexType>
+            <xsd:sequence>
+                <!-- SENDER -->
+                <xsd:element name="serverId" type="xsd:int" />
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>
