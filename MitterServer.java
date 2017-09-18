@@ -121,7 +121,7 @@ public class MitterServer {
             clientListenerThread = new ClientListener(clientPort);
             clientListenerThread.start();
             // Create and start a server listener thread to open a port and listen for incoming server connections
-            serverListenerThread = new ServerPeers(serverPort, serverId);
+            serverListenerThread = new ServerPeers(serverPort);
             serverListenerThread.start();
 
             System.out.println("MitterServer is running...");
