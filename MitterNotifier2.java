@@ -20,7 +20,7 @@ public class MitterNotifier2 {
         Socket socket;
 
         try {
-            socket = new Socket("localhost", 3001);
+            socket = new Socket("localhost", 3007);
             OutputStream out = socket.getOutputStream();
 
             Writer writer = new OutputStreamWriter(out, "UTF-8");
