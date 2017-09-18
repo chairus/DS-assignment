@@ -62,18 +62,31 @@ public class ServerPeers extends Thread {
 
         while (true) {
             try {
-                Socket s = serverSocket.accept();
-                int remotePort = s.getPort();
-                int serverId = 0;
-                // Find the id of the newly connected server using the remote port
-                for (List<Integer> list: MitterServer.serverPorts) {
-                    if (list.get(1) == remotePort) {
-                        serverId = list.get(0);
+                if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
+                    Socket s = serverSocket.accept();
+                    int remotePort = s.getPort();
+                    int serverId = 0;
+                    // Find the id of the newly connected server using the remote port
+                    for (List<Integer> list: MitterServer.serverPorts) {
+                        if (list.get(1) == remotePort) {
+                            serverId = list.get(0);
+                        }
+                    }
+                    
+                    // Check if the accepted server connection is already connected
+                    boolean isConnected = false;
+                    for (ServerIdentity sId: MitterServer.serversList) {
+                        if (sId.getId() == serverId) {
+                            isConnected = true;
+                        }
+                    }
+                    
+                    if (!isConnected) {
+                        System.out.format("Obtained port number of server %d\n", serverId);
+                        MitterServer.serversList.add(new ServerIdentity(s,serverId));
+                        System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
                     }
                 }
-                System.out.format("Obtained port number of server %d\n", serverId);
-                MitterServer.serversList.add(new ServerIdentity(s,serverId));
-                System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
             } catch (IOException e) {
                 Socket s = new Socket();
                 int serverPort = 0, serverId = 0;
