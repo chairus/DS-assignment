@@ -30,52 +30,83 @@ public class ServerPeers extends Thread {
     // Constructor
     public ServerPeers (int serverPort) {
         this.serverPort = serverPort;
-        init();
-    }
-
-    public void init () {
-        try {
-            // Open a socket for other servers to connect to.
-            serverSocket = new ServerSocket(serverPort);
-            serverSocket.setSoTimeout(500); // Set the accept() method to wait/block for about 300ms
-        } catch (Exception e) {
-            System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage() + "\n", MitterServer.serverId);
-            e.printStackTrace();
-        }
-
-        // Start a thread that attempts to establish a connection between this server and the others
-        Thread scThread = new ServerConnector();
-        scThread.start();
     }
 
     /**
      * This method opens up a port for other servers to connect to and also starts a thread that attempts
      * to establish a connection to other servers.
      */
+    public void init () {
+        try {
+            // Open a socket for other servers to connect to.
+            serverSocket = new ServerSocket(serverPort);
+            // Set the accept() method to wait/block for a random amount of time in ms.
+            double socketTimeout = 500 + Math.random() * 500;
+            serverSocket.setSoTimeout((int) socketTimeout);
+        } catch (Exception e) {
+            System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage() + "\n", MitterServer.serverId);
+            e.printStackTrace();
+        }
+
+        // Start a thread that attempts to establish a connection between this server and the others
+        // Thread scThread = new ServerConnector();
+        // scThread.start();
+    }
+
+    /**
+     * This method listens for incoming server connections.
+     */
     @Override
     public void run() {
+        init();
+
         while (true) {
             try {
-                synchronized (MitterServer.serverPorts) {
-                    if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
-                        Socket s = serverSocket.accept();
-                        int remotePort = s.getPort();
-                        int serverId = 0;
-                        // Find the id of the newly connected server using the remote port
-                        for (List<Integer> list: MitterServer.serverPorts) {
-                            if (list.get(1) == remotePort) {
-                                serverId = list.get(0);
-                            }
-                        }
-                        System.out.format("Obtained port number of server %d\n", serverId);
-                        MitterServer.serversList.add(new ServerIdentity(s,serverId));
-                        System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                Socket s = serverSocket.accept();
+                int remotePort = s.getPort();
+                int serverId = 0;
+                // Find the id of the newly connected server using the remote port
+                for (List<Integer> list: MitterServer.serverPorts) {
+                    if (list.get(1) == remotePort) {
+                        serverId = list.get(0);
                     }
                 }
+                System.out.format("Obtained port number of server %d\n", serverId);
+                MitterServer.serversList.add(new ServerIdentity(s,serverId));
+                System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
             } catch (IOException e) {
-                // IGNORE
-                // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
-                // e.printStackTrace();
+                Socket s = new Socket();
+                int serverPort = 0, serverId = 0;
+
+                if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
+                    try {
+                        // Find a server that is still unconnected using the server id.
+                        for (List<Integer> list: MitterServer.serverPorts) {
+                            boolean haveSeen = false;
+                            for (ServerIdentity sId: MitterServer.serversList) {
+                                if (sId.getId() == list.get(0)) {
+                                    haveSeen = true;
+                                    break;
+                                }
+                            }
+
+                            if (!haveSeen) {
+                                serverPort = list.get(1);
+                                serverId = list.get(0);
+                            }
+                            System.out.println(list.get(1));
+                        }
+
+                        System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
+                        InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
+                        s.connect(endpoint);
+                        MitterServer.serversList.add(new ServerIdentity(s,serverId));
+                        System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                    } catch (IOException ex) {
+                        // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+                        // e.printStackTrace();
+                    }
+                }
             }
         }
     }
@@ -83,49 +114,49 @@ public class ServerPeers extends Thread {
     /**
      * This class attempts to establish a connection between this server and other servers.
      */
-    private class ServerConnector extends Thread {
-        public ServerConnector () { }
+    // private class ServerConnector extends Thread {
+    //     public ServerConnector () { }
 
-        @Override
-        public void run () {
-            System.out.println("ServerConnector has started");
-            Socket s = new Socket();
-            int serverPort = 0, serverId = 0;
+    //     @Override
+    //     public void run () {
+    //         System.out.println("ServerConnector has started");
+    //         Socket s = new Socket();
+    //         int serverPort = 0, serverId = 0;
 
-            while (true) {
-                synchronized (MitterServer.serverPorts) {
-                    if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
-                        try {
-                            // Find a server that is still unconnected using the server id.
-                            for (List<Integer> list: MitterServer.serverPorts) {
-                                boolean haveSeen = false;
-                                for (ServerIdentity sId: MitterServer.serversList) {
-                                    if (sId.getId() == list.get(0)) {
-                                        haveSeen = true;
-                                        break;
-                                    }
-                                }
+    //         while (true) {
+    //             // synchronized (MitterServer.serverPorts) {
+    //                 if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
+    //                     try {
+    //                         // Find a server that is still unconnected using the server id.
+    //                         for (List<Integer> list: MitterServer.serverPorts) {
+    //                             boolean haveSeen = false;
+    //                             for (ServerIdentity sId: MitterServer.serversList) {
+    //                                 if (sId.getId() == list.get(0)) {
+    //                                     haveSeen = true;
+    //                                     break;
+    //                                 }
+    //                             }
 
-                                if (!haveSeen) {
-                                    serverPort = list.get(1);
-                                    serverId = list.get(0);
-                                }
-                            }
-                            
-                            System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
-                            InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
-                            s.connect(endpoint);
-                            MitterServer.serversList.add(new ServerIdentity(s,serverId));
-                            System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
-                        } catch (IOException e) {
-                            // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
-                            // e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        }
-    }
+    //                             if (!haveSeen) {
+    //                                 serverPort = list.get(1);
+    //                                 serverId = list.get(0);
+    //                             }
+    //                         }
+
+    //                         System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
+    //                         InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
+    //                         s.connect(endpoint);
+    //                         MitterServer.serversList.add(new ServerIdentity(s,serverId));
+    //                         System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+    //                     } catch (IOException e) {
+    //                         // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+    //                         // e.printStackTrace();
+    //                     }
+    //                 }
+    //             // }
+    //         }
+    //     }
+    // }
 
     /**
      * This class is a wrapper class that contains the socket of the active server and its server id. This

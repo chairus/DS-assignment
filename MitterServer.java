@@ -81,7 +81,7 @@ public class MitterServer {
      */
     public MitterServer() {
         serverPorts = new ArrayList<>();
-        // serversList = new ArrayList<>();
+        serversList = new ArrayList<>();
         clientsList = new ArrayList<>();
         notificationListCount = 0;
         readWriteSemaphores = new ArrayList<>();
