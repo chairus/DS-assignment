@@ -10,17 +10,91 @@
     <xsd:element name="message">
         <xsd:complexType>
             <xsd:sequence>
+                <!-- PREPARE REQUEST -->
                 <xsd:element name="prepare">
                     <xsd:complexType>
                         <xsd:sequence>
-                            <!-- PROPOSAL NUMBER -->
-                            <xsd:element name="proposalNumber" type="xsd:int" />
-                            <!-- VALUE -->
-                            <xsd:element name="value" type="ntf:notificationInfo" />
+                            <xsd:element name="request">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <!-- PROPOSAL NUMBER -->
+                                        <xsd:element name="proposalNumber" type="xsd:decimal" />
+                                        <!-- INDEX -->
+                                        <xsd:element name="index" type="xsd:int" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                            <xsd:element name="response">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <!-- ACCEPTED PROPOSAL NUMBER -->
+                                        <xsd:element name="acceptedProposal" type="xsd:decimal" />
+                                        <!-- ACCEPTED VALUE -->
+                                        <xsd:element name="acceptedValue" type="ntf:notificationInfo" />
+                                        <!-- NO MORE ACCEPTED -->
+                                        <xsd:element name="noMoreAccepted" type="xsd:boolean" default="false" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
                         </xsd:sequence>
                     </xsd:complexType>
                 </xsd:element>
-                
+                <!-- ACCEPT REQUEST -->
+                <xsd:element name="accept">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="request">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <!-- PROPOSAL NUMBER -->
+                                        <xsd:element name="proposalNumber" type="xsd:decimal" />
+                                        <!-- INDEX -->
+                                        <xsd:element name="index" type="xsd:int" />
+                                        <!-- VALUE -->
+                                        <xsd:element name="value" type="ntf:notificationInfo" />
+                                        <!-- FIRST UNCHOSEN INDEX -->
+                                        <xsd:element name="firstUnchosenIndex" type="xsd:int" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                            <xsd:element name="response">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <!-- ACCEPTORS MIN PROPOSAL NUMBER -->
+                                        <xsd:element name="acceptorMinproposalNumber" type="xsd:decimal" />
+                                        <!-- ACCEPTORS FIRST UNCHOSEN INDEX -->
+                                        <xsd:element name="acceptorsFirstUnchosenIndex" type="xsd:int" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+                <!-- SUCCESS -->
+                <xsd:element name="success">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="request">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <!-- INDEX -->
+                                        <xsd:element name="index" type="xsd:int" />
+                                        <!-- VALUE -->
+                                        <xsd:element name="value" type="ntf:notificationInfo" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                            <xsd:element name="response">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <!-- ACCEPTORS FIRST UNCHOSEN INDEX -->
+                                        <xsd:element name="acceptorsFirstUnchosenIndex" type="xsd:int" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
             </xsd:sequence>
         </xsd:complexType>
     </xsd:element>
