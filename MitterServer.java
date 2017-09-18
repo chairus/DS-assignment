@@ -41,6 +41,21 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
+    // The number of the smallest proposal this server will accept for any log entry, or 0 if it
+    // has never received a Prepare request.
+    public static int minProposal;
+    // The largest entry for which this server has accepted a proposal
+    public static int lastLogIndex;
+    // The smallest log index where a proposal has not been accepted, that is 
+    // acceptedProposal[firstUnchosenIndex] < inf.
+    public static int firstUnchosenIndex;
+    // The largest round number that the proposer has seen or used.
+    public static int maxRound;
+    // This variable indicates that there is no need to issue Prepare requests because a majority 
+    // of acceptors has responded to Prepare requests with noMoreAccepted set to true; initially false
+    public static boolean prepared;
+    // A list that stores the replicated log entries
+    List<LogEntry> log;
     // A list of the ports and the server id of each individual server in the network.
     public static List<List<Integer>> serverPorts;
     // Server ID of this server
@@ -91,6 +106,9 @@ public class MitterServer {
             setOfNotificationList.add(new ArrayList<OrderedNotification>());
         }
         notificationList = new ArrayList<>();
+        minProposal = 0;
+        lastLogIndex = 0;
+        maxRound = 0;
     }
 
     /**
