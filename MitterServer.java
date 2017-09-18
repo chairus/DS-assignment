@@ -3,6 +3,7 @@ package uni.mitter;
 import generated.nonstandard.notification.Notification;
 
 import generated.nonstandard.notification.Notification.Timestamp;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -12,6 +13,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -37,17 +41,12 @@ import javax.xml.datatype.DatatypeFactory;
  */
 
 public class MitterServer {
-    // A list of the ports of each individual server in the network.
-    // The index is the server id.
-    public static List<Integer> serverPorts;
+    // A list of the ports and the server id of each individual server in the network.
+    public static List<List<Integer>> serverPorts;
     // Server ID of this server
     public static int serverId;
     // A list that stores active servers, each entry in the list stores the socket of the server.
     public static List<ServerPeers.ServerIdentity> serversList;
-    // Default ports for clients, notifiers and servers
-    private static final int DEFAULT_CLIENT_PORT = 3000;
-    private static final int DEFAULT_NOTIFIER_PORT = 3001;
-    private static final int DEFAULT_SERVER_PORT = 3002;
     // Maximum number of notifications maintained by the server at all times for each severity.
     public static final int[] MAX_NUM_OF_NOTIFICATIONS = {1000, 500, 100}; // [urgent, caution, notice]
     public static final int MAX_NUM_READERS = 100;
@@ -80,13 +79,9 @@ public class MitterServer {
     /**
      * Constructor
      */
-    public MitterServer(int clientPort, int notifierPort, int serverPort, int serverId) {
-        this.clientPort = clientPort;
-        this.notifierPort = notifierPort;
-        this.serverPort = serverPort;
-        this.serverId = serverId;
-        serverPorts = new ArrayList<>(Arrays.asList(3002, 3005, 3008));
-        serversList = new ArrayList<>();
+    public MitterServer() {
+        serverPorts = new ArrayList<>();
+        // serversList = new ArrayList<>();
         clientsList = new ArrayList<>();
         notificationListCount = 0;
         readWriteSemaphores = new ArrayList<>();
@@ -96,6 +91,20 @@ public class MitterServer {
             setOfNotificationList.add(new ArrayList<OrderedNotification>());
         }
         notificationList = new ArrayList<>();
+    }
+
+    /**
+     * This method setup the ports(client, notifier, server) and the ID of the server.
+     * @param clientPort
+     * @param notifierPort
+     * @param serverPort
+     * @param serverId
+     */
+    public void setUp(int clientPort, int notifierPort, int serverPort, int serverId) {
+        this.clientPort = clientPort;
+        this.notifierPort = notifierPort;
+        this.serverPort = serverPort;
+        this.serverId = serverId;
     }
 
     /**
@@ -286,27 +295,60 @@ public class MitterServer {
      *  ========
      */
     public static void main(String[] args) {
-        int cPort = DEFAULT_CLIENT_PORT, 
-            nPort = DEFAULT_NOTIFIER_PORT, 
-            sPort = DEFAULT_SERVER_PORT,
-            serverID = 1;
+        MitterServer mServer = new MitterServer();
+        int cPort = 0, 
+            nPort = 0, 
+            sPort = 0,
+            serverID = 0;
 
-        if (args.length != 4) {
-            System.err.println("[ INFO ] Usage: MitterServer [client_port] [notifier_port] [server_port] [server_id]");
+        if (args.length != 1) {
+            System.err.println("[ INFO ] Usage: MitterServer [server_id]");
             System.exit(1);
         }
 
         try {
-            cPort = Integer.parseInt(args[0]);
-            nPort = Integer.parseInt(args[1]);
-            sPort = Integer.parseInt(args[2]);
-            serverID = Integer.parseInt(args[3]);
-        } catch (Exception e) {
-            System.err.println("[ INFO ] Error: Arguments must be an integer.");
+            FileReader fReader = new FileReader("config.txt");
+            BufferedReader bReader = new BufferedReader(fReader);
+            String line;
+            String regex = "\\s+";
+            while ((line = bReader.readLine()) != null) {
+                String[] lineArr = line.trim().split(regex);
+                if (lineArr.length != 4) {
+                    System.err.println("[ INFO ] Error: Missing port number or server id.");
+                    System.exit(1);
+                }
+
+                serverID = Integer.parseInt(args[0]);
+                int configServerId = Integer.parseInt(lineArr[0]);
+
+                if (serverID == configServerId) {
+                    cPort = Integer.parseInt(lineArr[1]);
+                    nPort = Integer.parseInt(lineArr[2]);
+                    sPort = Integer.parseInt(lineArr[3]);
+                } else {
+                    serverPorts.add(new ArrayList<>());
+                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[0]));   // Server ID
+                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[3]));   // Server port                    
+                }
+            }
+
+            if (cPort == 0 || nPort == 0 || sPort == 0) {
+                System.err.println("[ INFO ] Error: The given server id argument must be one in the config file.");
+                System.exit(1);
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("[ INFO ] Error: Ports and server id must be an integer.");
+            System.exit(1);
+        } catch (FileNotFoundException e) {
+            System.err.println("[ INFO ] Error: File 'config.txt' could not be found.");
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("[ INFO ] Error: " + e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
-            
-        MitterServer mServer = new MitterServer(cPort,nPort,sPort,serverID);
+
+        mServer.setUp(cPort,nPort,sPort,serverID);
         mServer.start();
     }
 }

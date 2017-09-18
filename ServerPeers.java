@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import uni.mitter.ServerPeers.ServerIdentity;
 import generated.nonstandard.heartbeat.Heartbeat;
 
 public class ServerPeers extends Thread {
@@ -57,15 +56,15 @@ public class ServerPeers extends Thread {
     public void run() {
         while (true) {
             try {
-                synchronized (MitterServer.serversList) {
-                    if (MitterServer.serversList.size() < 3) {
+                synchronized (MitterServer.serverPorts) {
+                    if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
                         Socket s = serverSocket.accept();
                         int remotePort = s.getPort();
                         int serverId = 0;
                         // Find the id of the newly connected server using the remote port
-                        for (int port: MitterServer.serverPorts) {
-                            if (port == remotePort) {
-                                serverId = MitterServer.serverPorts.indexOf(port);
+                        for (List<Integer> list: MitterServer.serverPorts) {
+                            if (list.get(1) == remotePort) {
+                                serverId = list.get(0);
                             }
                         }
                         System.out.format("Obtained port number of server %d\n", serverId);
@@ -91,21 +90,28 @@ public class ServerPeers extends Thread {
         public void run () {
             System.out.println("ServerConnector has started");
             Socket s = new Socket();
-            int serverPort = 0;
+            int serverPort = 0, serverId = 0;
 
             while (true) {
-                synchronized (MitterServer.serversList) {
-                    if (MitterServer.serversList.size() < 3) {
+                synchronized (MitterServer.serverPorts) {
+                    if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
                         try {
-                            int serverId = 0;
                             // Find a server that is still unconnected using the server id.
-                            for (ServerIdentity sId: MitterServer.serversList) {
-                                if (sId.getId() != MitterServer.serverId && sId.getId() != serverId) {
-                                    serverPort = MitterServer.serverPorts.get(serverId);
-                                    break;
+                            for (List<Integer> list: MitterServer.serverPorts) {
+                                boolean haveSeen = false;
+                                for (ServerIdentity sId: MitterServer.serversList) {
+                                    if (sId.getId() == list.get(0)) {
+                                        haveSeen = true;
+                                        break;
+                                    }
                                 }
-                                serverId += 1;
+
+                                if (!haveSeen) {
+                                    serverPort = list.get(1);
+                                    serverId = list.get(0);
+                                }
                             }
+                            
                             System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
                             InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
                             s.connect(endpoint);
