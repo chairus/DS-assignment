@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           xmlns="urn:generated:nonstandard:message"
+           targetNamespace="urn:generated:nonstandard:message"
+           xmlns:ntf="urn:generated:nonstandard:notification">
+<xsd:import namespace="urn:generated:nonstandard:notification"
+            schemaLocation="notification.xsd" />
+    <xsd:element name="message">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="prepare">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <!-- PROPOSAL NUMBER -->
+                            <xsd:element name="proposalNumber" type="xsd:int" />
+                            <!-- VALUE -->
+                            <xsd:element name="value" type="ntf:notificationInfo" />
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+                
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>

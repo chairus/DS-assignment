@@ -5,5 +5,5 @@
 // Generated on: 2017.09.18 at 10:07:55 PM ACST 
 //
 
-@javax.xml.bind.annotation.XmlSchema(namespace = "urn:generated:nonstandard:notification", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
-package generated.nonstandard.notification;
+@javax.xml.bind.annotation.XmlSchema(namespace = "urn:generated:nonstandard:message", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+package generated.nonstandard.message;
