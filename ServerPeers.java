@@ -79,32 +79,31 @@ public class ServerPeers extends Thread {
                 int serverPort = 0, serverId = 0;
 
                 if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
-                    try {
-                        // Find a server that is still unconnected using the server id.
-                        for (List<Integer> list: MitterServer.serverPorts) {
-                            boolean haveSeen = false;
-                            for (ServerIdentity sId: MitterServer.serversList) {
-                                if (sId.getId() == list.get(0)) {
-                                    haveSeen = true;
-                                    break;
-                                }
+                    // Find a server that is still unconnected using the server id.
+                    for (List<Integer> list: MitterServer.serverPorts) {
+                        boolean haveSeen = false;
+                        for (ServerIdentity sId: MitterServer.serversList) {
+                            if (sId.getId() == list.get(0)) {
+                                haveSeen = true;
+                                break;
                             }
+                        }
 
+                        try {
                             if (!haveSeen) {
                                 serverPort = list.get(1);
                                 serverId = list.get(0);
-                            }
-                            System.out.println(list.get(1));
-                        }
 
-                        System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
-                        InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
-                        s.connect(endpoint);
-                        MitterServer.serversList.add(new ServerIdentity(s,serverId));
-                        System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
-                    } catch (IOException ex) {
-                        // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
-                        // e.printStackTrace();
+                                System.out.format("Trying to establish connection to %d with port %d\n", serverId,serverPort);
+                                InetSocketAddress endpoint = new InetSocketAddress("localhost", serverPort);
+                                s.connect(endpoint);
+                                MitterServer.serversList.add(new ServerIdentity(s,serverId));
+                                System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                            }
+                        } catch (IOException ex) {
+                            // System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+                            // e.printStackTrace();
+                        }
                     }
                 }
             }
