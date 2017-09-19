@@ -144,11 +144,10 @@ public class MitterServer {
     }
 
     /**
-     * This method starts the server and listens for connection from clients, notifiers and servers.
+     * This method starts the server and starts threads that listens for connection from clients, 
+     * notifiers and servers.
      */
     public void start() {
-        // boolean sent = false;
-
         try {
             // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
             notifierListenerThread = new NotifierListener(notifierPort);
@@ -160,10 +159,10 @@ public class MitterServer {
             serverListenerThread = new ServerPeers(serverPort);
             serverListenerThread.start();
 
-            System.out.println("MitterServer is running...");
-            System.out.format("[ SERVER %d ] Listening to incoming clients on port %d\n",serverId,clientPort);
-            System.out.format("[ SERVER %d ] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
-            System.out.format("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
+            System.out.printf("[ SERVER %d ] MitterServer is running.\n", serverId);
+            System.out.printf("[ SERVER %d ] Listening to incoming clients on port %d\n",serverId,clientPort);
+            System.out.printf("[ SERVER %d ] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
+            System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             int serverSize = 0;
             while (serverSize < 1) {
@@ -171,12 +170,12 @@ public class MitterServer {
                     serverSize = serversList.size();
                 }
             }
-            System.out.format("[ SERVER %d ] All servers connected.\n", serverId);
+            System.out.printf("[ SERVER %d ] All servers connected.\n", serverId);
 
             // Elect a leader
-            System.out.println("Electing a leader...");
+            System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
             while (!electLeader()) { }
-            System.out.format("[ SERVER %d ] A leader has been elected.\n", serverId);
+            System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
 
             if (currentLeader.getId() == serverId) {
                 System.out.println("I AM THE LEADER!");
