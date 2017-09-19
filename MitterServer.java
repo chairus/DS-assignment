@@ -165,7 +165,7 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             int serverSize = 0;
-            while (serverSize < 1) {
+            while (serverSize < 4) {
                 synchronized (serversList) {
                     serverSize = serversList.size();
                 }
@@ -201,7 +201,7 @@ public class MitterServer {
     }
 
     /**
-     * This method performs a single leader election. Returns true if a leader has been elected.
+     * This method performs a single round of electing a leader. Returns true if a leader has been elected.
      * @return True if a leader has been elected, false otherwise.
      */
     public boolean electLeader() {
@@ -231,23 +231,33 @@ public class MitterServer {
             long startTime = System.currentTimeMillis();
             long currentTime;
             do {
-                BufferedReader buffReader = new BufferedReader(new InputStreamReader(highestId.getSocket().getInputStream()));
-                StringReader sReader;
-                Heartbeat hb;
-                if (buffReader.ready()) {
-                    sReader = new StringReader(buffReader.readLine());
-                    hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+                // BufferedReader buffReader = new BufferedReader(new InputStreamReader(highestId.getSocket().getInputStream()));
+                // StringReader sReader;
+                // Heartbeat hb;
+                // if (buffReader.ready()) {
+                //     sReader = new StringReader(buffReader.readLine());
+                //     hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+                //     if (hb.getServerId() == highestId.getId()) {
+                //         currentLeader = highestId;
+                //         return true;
+                //     }
+                // }
+
+                Heartbeat hb = readHeartbeatMessage(highestId.getSocket());
+                if (hb != null) {
                     if (hb.getServerId() == highestId.getId()) {
                         currentLeader = highestId;
                         return true;
                     }
-                } 
+                }
                 currentTime = System.currentTimeMillis();
             } while ((currentTime-startTime) < 300);
         } catch (JAXBException e) {
             System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
             e.printStackTrace();
         } catch (IOException e) {
+            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
+            e.printStackTrace();
             return false;
         }
 
@@ -259,7 +269,6 @@ public class MitterServer {
      * @param s - A socket on where to send a heartbeat message to
      */
     public static void sendHeartbeatMessage(Socket s) throws JAXBException, IOException {
-        // Send a heartbeat to the server that has the highest id.
         BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
         StringWriter sWriter = new StringWriter();
         Heartbeat hb = new Heartbeat();

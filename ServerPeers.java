@@ -63,18 +63,23 @@ public class ServerPeers extends Thread {
     public void run() {
         init();
 
+        int numberOfServersConnected = 0;
         while (true) {
-            synchronized (MitterServer.serversList) {
-                if (MitterServer.serversList.size() < MitterServer.serverPorts.size()) {
-                    try {
-                        Socket s = MitterServer.serverSocket.accept();
-    
-                        // Find the id of the newly connected server by exchanging heartbeat message
-                        Heartbeat hb = MitterServer.readHeartbeatMessage(s);
-    
-                        // Check if the accepted server connection is already connected
-                        boolean isConnected = false;
-                        int serverId = hb.getServerId();
+            synchronized (MitterServer.serversList) { 
+                numberOfServersConnected = MitterServer.serversList.size();
+            }
+            if (numberOfServersConnected < MitterServer.serverPorts.size()) {
+                try {
+                    Socket s = MitterServer.serverSocket.accept();
+
+                    // Find the id of the newly connected server by exchanging heartbeat message
+                    Heartbeat hb = MitterServer.readHeartbeatMessage(s);
+
+                    // Check if the accepted server connection is already connected
+                    boolean isConnected = false;
+                    int serverId = hb.getServerId();
+
+                    synchronized (MitterServer.serversList) {
                         for (ServerIdentity sId: MitterServer.serversList) {
                             if (sId.getId() == serverId) {
                                 isConnected = true;
@@ -85,48 +90,52 @@ public class ServerPeers extends Thread {
                             MitterServer.serversList.add(new ServerIdentity(s,serverId));
                             System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
                         }
-                    } catch (IOException e) {
-                        int remotePort      = 0; 
-                        int remoteServerId  = 0;
-    
-                        // Find a server that is still unconnected using the server id.
-                        for (List<Integer> list: MitterServer.serverPorts) {
-                            Socket s = new Socket();
-                            boolean haveSeen = false;
+                    }
+                } catch (IOException e) {
+                    int remotePort      = 0; 
+                    int remoteServerId  = 0;
+
+                    // Find a server that is still unconnected using the server id.
+                    for (List<Integer> list: MitterServer.serverPorts) {
+                        Socket s = new Socket();
+                        boolean haveSeen = false;
+                        synchronized (MitterServer.serversList) {
                             for (ServerIdentity sId: MitterServer.serversList) {
                                 if (sId.getId() == list.get(0)) {
                                     haveSeen = true;
                                     break;
                                 }
                             }
-    
-                            try {
-                                if (!haveSeen) {
-                                    remotePort = list.get(1);
-                                    remoteServerId = list.get(0);
-    
-                                    InetSocketAddress endpoint = new InetSocketAddress("127.0.0.1", remotePort);
-                                    s.connect(endpoint);
-    
-                                    // Send a heartbeat message to identify itself
-                                    MitterServer.sendHeartbeatMessage(s);
-                                    
-                                    MitterServer.serversList.add(new ServerIdentity(s,remoteServerId));
-                                    System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
-                                }
-                            } catch (IOException ex) {
-                                // IGNORE
-                            } catch (JAXBException ex) {
-                                System.err.format("[ SERVER %d ] Error: ServerPeers, " + ex.getMessage(), MitterServer.serverId);
-                                ex.printStackTrace();
-                                System.exit(1);
-                            }
                         }
-                    } catch (JAXBException e) {
-                        System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
-                        e.printStackTrace();
-                        System.exit(1);
+
+                        try {
+                            if (!haveSeen) {
+                                remotePort = list.get(1);
+                                remoteServerId = list.get(0);
+
+                                InetSocketAddress endpoint = new InetSocketAddress("127.0.0.1", remotePort);
+                                s.connect(endpoint);
+
+                                // Send a heartbeat message to identify itself
+                                MitterServer.sendHeartbeatMessage(s);
+
+                                synchronized (MitterServer.serversList) {
+                                    MitterServer.serversList.add(new ServerIdentity(s,remoteServerId));
+                                }
+                                System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
+                            }
+                        } catch (IOException ex) {
+                            // IGNORE
+                        } catch (JAXBException ex) {
+                            System.err.format("[ SERVER %d ] Error: ServerPeers, " + ex.getMessage(), MitterServer.serverId);
+                            ex.printStackTrace();
+                            System.exit(1);
+                        }
                     }
+                } catch (JAXBException e) {
+                    System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+                    e.printStackTrace();
+                    System.exit(1);
                 }
             }
 
