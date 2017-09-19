@@ -246,7 +246,6 @@ public class MitterServer {
         } catch (IOException e) {
             System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
             e.printStackTrace();
-            return false;
         }
 
         return false;
