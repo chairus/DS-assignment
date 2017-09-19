@@ -231,18 +231,6 @@ public class MitterServer {
             long startTime = System.currentTimeMillis();
             long currentTime;
             do {
-                // BufferedReader buffReader = new BufferedReader(new InputStreamReader(highestId.getSocket().getInputStream()));
-                // StringReader sReader;
-                // Heartbeat hb;
-                // if (buffReader.ready()) {
-                //     sReader = new StringReader(buffReader.readLine());
-                //     hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
-                //     if (hb.getServerId() == highestId.getId()) {
-                //         currentLeader = highestId;
-                //         return true;
-                //     }
-                // }
-
                 Heartbeat hb = readHeartbeatMessage(highestId.getSocket());
                 if (hb != null) {
                     if (hb.getServerId() == highestId.getId()) {
