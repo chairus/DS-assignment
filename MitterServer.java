@@ -1,12 +1,14 @@
 package uni.mitter;
 
 import generated.nonstandard.notification.Notification;
-
+import generated.nonstandard.heartbeat.Heartbeat;
 import generated.nonstandard.notification.Notification.Timestamp;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.ServerSocket;
@@ -58,6 +60,8 @@ public class MitterServer {
     List<LogEntry> log;
     // A list of the ports and the server id of each individual server in the network.
     public static List<List<Integer>> serverPorts;
+    // A variable that stores the server id of the current leader
+    public static ServerPeers.ServerIdentity currentLeader;
     // Server ID of this server
     public static int serverId;
     // A list that stores active servers, each entry in the list stores the socket of the server.
@@ -73,7 +77,7 @@ public class MitterServer {
     // A list that maintains the lists that stores all received notifications
     public static List<List<OrderedNotification>> setOfNotificationList;    // [0 - urgent, 1 - caution, 2 - notice]
     public static List<Thread> clientsList; // A list that stores active clients
-    private ServerSocket serverSocket;
+    public static ServerSocket serverSocket;
     private int clientPort;
     private int notifierPort;
     private int serverPort;
@@ -90,6 +94,10 @@ public class MitterServer {
     public Thread clientListenerThread;
     public static long notificationListCount;
     private long[] totalOrderSequenceNumbers = {1,1,1}; // [urgent, caution, notice]
+    // Marshaller and unmarshaller of the heartbeat message
+    public static JAXBContext jaxbContextHeartbeat;
+    public static Unmarshaller jaxbUnmarshallerHeartbeat;
+    public static Marshaller jaxbMarshallerHeartbeat;
 
     /**
      * Constructor
@@ -109,6 +117,7 @@ public class MitterServer {
         minProposal = 0;
         lastLogIndex = 0;
         maxRound = 0;
+        currentLeader = null;
     }
 
     /**
@@ -122,14 +131,23 @@ public class MitterServer {
         this.clientPort = clientPort;
         this.notifierPort = notifierPort;
         this.serverPort = serverPort;
-        this.serverId = serverId;
+        MitterServer.serverId = serverId;
+        try {
+            // Create marshaller and unmarshaller for the heartbeat message
+            MitterServer.jaxbContextHeartbeat = JAXBContext.newInstance(Heartbeat.class);
+            MitterServer.jaxbUnmarshallerHeartbeat = jaxbContextHeartbeat.createUnmarshaller();
+            MitterServer.jaxbMarshallerHeartbeat = jaxbContextHeartbeat.createMarshaller();
+        } catch (JAXBException e) {
+            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
+            e.printStackTrace();
+        }
     }
 
     /**
      * This method starts the server and listens for connection from clients, notifiers and servers.
      */
     public void start() {
-        boolean sent = false;
+        // boolean sent = false;
 
         try {
             // Create and start a notifier listener thread to open a port and listen for incoming notifier connections
@@ -146,7 +164,23 @@ public class MitterServer {
             System.out.format("[ SERVER %d ] Listening to incoming clients on port %d\n",serverId,clientPort);
             System.out.format("[ SERVER %d ] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
             System.out.format("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
-            
+
+            // Elect a leader
+            while (!electLeader()) {
+                System.out.println("Electing a leader...");
+                synchronized (serversList) {
+                    if (serversList.size() == 1) {
+                        System.out.println("Connected servers: " + serversList);
+                    }
+                }
+            }
+            System.out.format("[ SERVER %d ] A leader has been elected.\n", serverId);
+
+            if (currentLeader.getId() == serverId) {
+                System.out.println("I AM THE LEADER!");
+            } else {
+                System.out.println("I AM A SERVANT!");
+            }
 
             while (true) {
                 notificationListLock.lock();    // Obtain the lock for the notification list
@@ -163,6 +197,112 @@ public class MitterServer {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * This method performs a single leader election. Returns true if a leader has been elected.
+     * @return True if a leader has been elected, false otherwise.
+     */
+    public boolean electLeader() {
+        ServerPeers.ServerIdentity highestId = findHighestServerId(); 
+
+        try {
+            if (highestId.getId() == serverId) {
+                synchronized (serversList) {
+                    // Reply to all heartbeat messages
+                    for (ServerPeers.ServerIdentity sId: serversList) {
+                        sendHeartbeatMessage(sId.getSocket());
+                    }
+                    // Read all received heartbeat messages
+                    for (ServerPeers.ServerIdentity sId: serversList) {
+                        readHeartbeatMessage(sId.getSocket());
+                    }
+                }
+                
+                currentLeader = highestId;
+                return true;
+            }
+
+            // Send heartbeat message to server with highest id
+            sendHeartbeatMessage(highestId.getSocket());
+
+            // Read the received heartbeat with a 300ms time limit
+            long startTime = System.currentTimeMillis();
+            long currentTime;
+            do {
+                BufferedReader buffReader = new BufferedReader(new InputStreamReader(highestId.getSocket().getInputStream()));
+                StringReader sReader;
+                Heartbeat hb;
+                if (buffReader.ready()) {
+                    sReader = new StringReader(buffReader.readLine());
+                    hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+                    if (hb.getServerId() == highestId.getId()) {
+                        currentLeader = highestId;
+                        return true;
+                    }
+                } 
+                currentTime = System.currentTimeMillis();
+            } while ((currentTime-startTime) < 300);
+        } catch (JAXBException e) {
+            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
+            e.printStackTrace();
+        } catch (IOException e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * This method sends a heartbeat message to a server using the given socket.
+     * @param s - A socket on where to send a heartbeat message to
+     */
+    public static void sendHeartbeatMessage(Socket s) throws JAXBException, IOException {
+        // Send a heartbeat to the server that has the highest id.
+        BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
+        StringWriter sWriter = new StringWriter();
+        Heartbeat hb = new Heartbeat();
+        hb.setServerId(serverId);
+        jaxbMarshallerHeartbeat.marshal(hb, sWriter);
+        buffWriter.write(sWriter.toString());
+        buffWriter.newLine();
+        buffWriter.flush();
+    }
+
+    /**
+     * This method reads a heartbeat message from a given server using the given socket.
+     * @param s - A socket on where to listen for a heartbeat message
+     * @return - The heartbeat message, null if none is read
+     */
+    public static Heartbeat readHeartbeatMessage(Socket s) throws JAXBException, IOException {
+        BufferedReader buffReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        StringReader sReader;
+        Heartbeat hb = null;
+
+        sReader = new StringReader(buffReader.readLine());
+        hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+
+        return hb;
+    }
+
+    /**
+     * This method searches for an active server including this server that has the 
+     * highest server id.
+     * @return - The server's id together with the socket associated to it.
+     */
+    public ServerPeers.ServerIdentity findHighestServerId() {
+        // Server assumes that it is the current leader
+        ServerPeers.ServerIdentity highestId = new ServerPeers.ServerIdentity(null, serverId);
+
+        synchronized (serversList) {
+            for (ServerPeers.ServerIdentity sId: serversList) {
+                if (highestId.getId() < sId.getId()) {
+                    highestId = sId;
+                }
+            }
+        }
+
+        return highestId;
     }
 
     /**

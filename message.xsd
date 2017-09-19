@@ -61,7 +61,7 @@
                                 <xsd:complexType>
                                     <xsd:sequence>
                                         <!-- ACCEPTORS MIN PROPOSAL NUMBER -->
-                                        <xsd:element name="acceptorMinproposalNumber" type="xsd:decimal" />
+                                        <xsd:element name="acceptorMinProposalNumber" type="xsd:decimal" />
                                         <!-- ACCEPTORS FIRST UNCHOSEN INDEX -->
                                         <xsd:element name="acceptorsFirstUnchosenIndex" type="xsd:int" />
                                     </xsd:sequence>
