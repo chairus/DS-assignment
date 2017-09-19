@@ -74,6 +74,9 @@ public class ServerPeers extends Thread {
 
                     // Find the id of the newly connected server by exchanging heartbeat message
                     Heartbeat hb = MitterServer.readHeartbeatMessage(s);
+                    while (hb == null) {
+                        hb = MitterServer.readHeartbeatMessage(s);
+                    }
 
                     // Check if the accepted server connection is already connected
                     boolean isConnected = false;

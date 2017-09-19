@@ -210,9 +210,16 @@ public class MitterServer {
         try {
             if (highestId.getId() == serverId) {
                 synchronized (serversList) {
-                    // Reply to all heartbeat messages
+                    // Send heartbeat message to all servers
                     for (ServerPeers.ServerIdentity sId: serversList) {
                         sendHeartbeatMessage(sId.getSocket());
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(20);
+                        } catch (InterruptedException e) {
+                            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
+                            e.printStackTrace();
+                        }
+                        
                     }
                     // Read all received heartbeat messages
                     for (ServerPeers.ServerIdentity sId: serversList) {
@@ -276,8 +283,12 @@ public class MitterServer {
         StringReader sReader;
         Heartbeat hb = null;
 
-        sReader = new StringReader(buffReader.readLine());
-        hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+        String line = buffReader.readLine();
+        System.out.printf("[ SERVER %d ] Received heartbeat message.\n", serverId);
+        if (line != null) {
+            sReader = new StringReader(line);
+            hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+        }
 
         return hb;
     }
