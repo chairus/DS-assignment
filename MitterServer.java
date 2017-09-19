@@ -283,11 +283,14 @@ public class MitterServer {
         StringReader sReader;
         Heartbeat hb = null;
 
-        String line = buffReader.readLine();
-        System.out.printf("[ SERVER %d ] Received heartbeat message.\n", serverId);
-        if (line != null) {
-            sReader = new StringReader(line);
-            hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+        if (buffReader.ready()) {
+            // System.out.printf("[ SERVER %d ] Reading heartbeat message.\n", serverId);
+            String line = buffReader.readLine();
+            // System.out.printf("[ SERVER %d ] Received heartbeat message.\n", serverId);
+            if (line != null) {
+                sReader = new StringReader(line);
+                hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+            }
         }
 
         return hb;
