@@ -165,15 +165,17 @@ public class MitterServer {
             System.out.format("[ SERVER %d ] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
             System.out.format("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
-            // Elect a leader
-            while (!electLeader()) {
-                System.out.println("Electing a leader...");
+            int serverSize = 0;
+            while (serverSize < 1) {
                 synchronized (serversList) {
-                    if (serversList.size() == 1) {
-                        System.out.println("Connected servers: " + serversList);
-                    }
+                    serverSize = serversList.size();
                 }
             }
+            System.out.format("[ SERVER %d ] All servers connected.\n", serverId);
+
+            // Elect a leader
+            System.out.println("Electing a leader...");
+            while (!electLeader()) { }
             System.out.format("[ SERVER %d ] A leader has been elected.\n", serverId);
 
             if (currentLeader.getId() == serverId) {

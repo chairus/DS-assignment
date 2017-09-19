@@ -21,6 +21,7 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -127,6 +128,12 @@ public class ServerPeers extends Thread {
                         System.exit(1);
                     }
                 }
+            }
+
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);   
+            } catch (Exception e) {
+                //IGNORE
             }
         }
     }
