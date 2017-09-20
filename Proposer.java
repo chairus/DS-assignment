@@ -37,7 +37,17 @@ public class Proposer {
 
        } else { // Start with prepare phase then accept phase
             /* ========== PREPARE PHASE ========== */
+            // Send a prepare request to all acceptors
             prepareRequest(value);
+            // Listen for the responses from all acceptors for a certain time limit
+            long startTime = System.currentTimeMillis();
+            long currentTime;
+            
+            do {
+                
+                currentTime = System.currentTimeMillis();
+            } while ((currentTime-startTime) < 500);    // Wait for about 500ms
+
        }
 
        return false;
