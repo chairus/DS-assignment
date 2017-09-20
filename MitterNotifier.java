@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import java.net.Socket;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -26,13 +26,13 @@ public class MitterNotifier {
             Writer writer = new OutputStreamWriter(out, "UTF-8");
             BufferedWriter buffWriter = new BufferedWriter(writer);
             
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
             Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
             try {
                 // Create object notification
-                Notification notification = new Notification();
+                NotificationInfo notification = new NotificationInfo();
                 System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("IW_building",
                                                   "Ingkarni Wardli Building",
@@ -77,17 +77,17 @@ public class MitterNotifier {
         }
     }
 
-    public static Notification createNotification(String sender,
+    public static NotificationInfo createNotification(String sender,
                                                   String location,
                                                   String message,
                                                   String severity,
                                                   long messageId) throws DatatypeConfigurationException {
-        Notification n = new Notification();
+        NotificationInfo n = new NotificationInfo();
 
         n.setSender(sender);
         n.setLocation(location);
         n.setMessage(message);
-        Notification.Timestamp timestamp = new Notification.Timestamp();
+        NotificationInfo.Timestamp timestamp = new NotificationInfo.Timestamp();
         GregorianCalendar gc = new GregorianCalendar();
         XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
         timestamp.setDate(xmlGC);

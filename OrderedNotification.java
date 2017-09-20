@@ -1,17 +1,17 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.*;
+import generated.nonstandard.notification.NotificationInfo;
 
 /**
  * This class is a wrapper class that holds the notification and it's sequence number for total ordering
  */
 public class OrderedNotification {
-    private Notification n;
+    private NotificationInfo n;
     private long seqNum;
 
     public OrderedNotification() { }
 
-    public void setNotification(Notification n) {
+    public void setNotification(NotificationInfo n) {
         this.n = n;
     }
 
@@ -19,7 +19,7 @@ public class OrderedNotification {
         this.seqNum = seq;
     }
 
-    public Notification getNotification() {
+    public NotificationInfo getNotification() {
         return this.n;
     }
 

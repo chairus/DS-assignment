@@ -9,16 +9,21 @@
 
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.message.Message;
+import java.util.List;
+import java.util.ArrayList;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
 import java.io.StringWriter;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
+import java.io.InputStreamReader;
 import java.net.Socket;
 
 public class Proposer {
@@ -32,25 +37,37 @@ public class Proposer {
      * This will return a boolean value to indicate if the value was successfully chosen.
      * @param value - The notification to be written to each log on each server
      */
-    public boolean write(Notification value) {
+    public boolean write(NotificationInfo value) {
        if (MitterServer.prepared) { // Skip the prepare phase and go straight to accept phase
 
        } else { // Start with prepare phase then accept phase
             /* ========== PREPARE PHASE ========== */
             // Send a prepare request to all acceptors
             prepareRequest(value);
-            // Listen for the responses from all acceptors for a certain time limit
-            long startTime = System.currentTimeMillis();
-            long currentTime;
-            
-            do {
-                
-                currentTime = System.currentTimeMillis();
-            } while ((currentTime-startTime) < 500);    // Wait for about 500ms
+            // Listen for the responses from all acceptors until a majority of reponses has
+            // been received
+            List<String> receivedResponses = receivePrepareResponse();
 
+            // Check if the majority of the reponses has a status set to true, that is the proposal
+            // has been accepted by the majority of acceptors, if it has received the majority of
+            // the responses then set the hasMajority flag.
+            List<Message> unmarshalledReceivedResponses = new ArrayList<>();
+            boolean hasMajority = true;
+            hasMajority = checkMajority(unmarshalledReceivedResponses, receivedResponses);
+
+            if (!hasMajority) {
+                return false;
+            }
+
+            NotificationInfo acceptedValue = checkIfAcceptedValueExist(unmarshalledReceivedResponses);
+            if (acceptedValue == null) {    // Pick a value
+                acceptRequest(value);
+            } else {                        // Use the accepted value
+                acceptRequest(acceptedValue);
+            }
        }
 
-       return false;
+       return true;
     }
 
     /**
@@ -58,7 +75,7 @@ public class Proposer {
      * which is composed of the sender's server id and the round number.
      * @param value - The notification to be written to each log on each server
      */
-    private void prepareRequest(Notification value) {
+    private void prepareRequest(NotificationInfo value) {
         Message prepareReq = setupPrepareRequest();
         // Send the prepare request to all acceptors
         int index = 0;
@@ -68,7 +85,7 @@ public class Proposer {
                 try {
                     sendPrepareRequest(prepareReq, acceptor.getSocket());    
                 } catch (IOException e) {
-                    if (MitterServer.serversList.remove(acceptor)) {
+                    if (updateActiveServers(acceptor)) {
                         index -= 1;
                     }
                 } catch (JAXBException e) {
@@ -82,11 +99,88 @@ public class Proposer {
     }
 
     /**
+     * This method listens for the responses from the acceptors for the prepare request.
+     */
+    public List<String> receivePrepareResponse() {
+        List<String> receivedResponses = new ArrayList<>();
+        synchronized (MitterServer.serversList) {
+            int numOfActiveServers = MitterServer.serversList.size();
+            int index = 0;
+            ServerPeers.ServerIdentity acceptor;
+            while (index < numOfActiveServers) {
+                acceptor = MitterServer.serversList.get(index);
+                try {
+                    String response = acceptPrepareResponse(acceptor.getSocket());
+                    if (response != null) {
+                        receivedResponses.add(response);
+                    }
+                } catch (IOException e) {
+                    if (updateActiveServers(acceptor)) {
+                        index -= 1;
+                    }
+                }
+
+                // Check if a majority of responses has been received
+                if (receivedResponses.size() >= ((numOfActiveServers/2) + 1)) {
+                    break;
+                }
+
+                index += 1;
+            }
+        }
+
+        return receivedResponses;
+    }
+
+    public NotificationInfo checkIfAcceptedValueExist(List<Message> responses) {
+        NotificationInfo acceptedValue = null;
+        float previouslySeenAcceptedProposal = 0.0f;
+
+        for (Message response: responses) {
+            int hasAcceptedProposal = Float.compare(Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal()), -1f);
+            float acceptedProposal = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
+            int greaterThanSeenAcceptedProposal = Float.compare(acceptedProposal, previouslySeenAcceptedProposal);
+
+            if (hasAcceptedProposal > 0 && greaterThanSeenAcceptedProposal > 0) {
+                acceptedValue = response.getPrepare().getResponse().getAcceptedValue();
+            }
+        }
+
+        return acceptedValue;
+    }
+
+    /**
+     * This method checks if the majority of received prepare responses has their status set to true,
+     * if it is then return true, else false.
+     * @param responses - Stores the unmarshalled received prepare responses
+     * @param receivedResponses - The received prepare responses
+     * @return - True if the majority of responses has their status set to true 
+     */
+    public boolean checkMajority(List<Message> responses, List<String> receivedResponses) {
+        for (String response: receivedResponses) {
+            StringReader sReader = new StringReader(response);
+            try {
+                Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
+                if (!res.getPrepare().getResponse().isStatus()) {
+                    return false;
+                }
+                responses.add(res);
+            } catch (JAXBException e) {
+                System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * This method sends an accept request to all Acceptors and in that request is a proposal number
      * and a value, which is either picked by the Proposer or a value that has already been accepted
      * by the majority of the Acceptors
      */
-    private void accepRequest() {
+    private void acceptRequest(NotificationInfo value) {
 
     }
 
@@ -124,5 +218,28 @@ public class Proposer {
         buffWriter.newLine();
         buffWriter.flush();
         
+    }
+
+    public String acceptPrepareResponse(Socket s) throws IOException {
+        BufferedReader buffReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        String line = null;
+
+        if (buffReader.ready()) {
+            line = buffReader.readLine();
+        }
+
+        return line;
+    }
+
+    public boolean updateActiveServers(ServerPeers.ServerIdentity sId) {
+        try {
+            sId.getSocket().close();    
+        } catch (IOException ex) {
+            System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
+            ex.printStackTrace();
+            System.exit(1);
+        }
+        
+        return MitterServer.serversList.remove(sId);
     }
 }

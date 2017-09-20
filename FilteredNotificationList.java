@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.subscription.Subscription;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -48,7 +48,7 @@ public class FilteredNotificationList {
      * This method adds a notification into the list if the filter returns true
      */
     public boolean add(OrderedNotification on) {
-        Notification n = on.getNotification();
+        NotificationInfo n = on.getNotification();
 
         if (filter.filterNotification(n)) {
             notificationsToBeSent.add(on);
@@ -84,7 +84,7 @@ public class FilteredNotificationList {
     /**
      * This method returns true if both notification has the same sender and messageId
      */
-    public boolean isTheSame(Notification n1, Notification n2) {
+    public boolean isTheSame(NotificationInfo n1, NotificationInfo n2) {
         if (n1.getSender().compareToIgnoreCase(n2.getSender()) == 0 &&
                 n1.getMessageId() == n2.getMessageId()) {
             return true;
