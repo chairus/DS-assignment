@@ -11,11 +11,14 @@
 
 import generated.nonstandard.notification.NotificationInfo;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.StringReader;
 
+import java.io.StringWriter;
 import javax.xml.bind.JAXBException;
 
 import generated.nonstandard.message.Message;
@@ -78,23 +81,86 @@ import generated.nonstandard.message.Message;
       * @param request - The prepare request
       */
     public void responsePrepareRequest(Message request) {
-        float requestProposalNumber = Float.parseFloat(request.getPrepare().getRequest().getProposalNumber());
+        float prepareRequestProposalNumber = Float.parseFloat(request.getPrepare().getRequest().getProposalNumber());
+        boolean status = false;
+        NotificationInfo acceptedValue = null;
+        float acceptedProposal = -1.0f;
+        boolean noMoreAccepted = false;
 
         // Check if the current proposal has larger number than the previous seen proposal. If it is
-        // then assign it to minProposal.
-        if (Float.compare(requestProposalNumber, MitterServer.minProposal) > 0) {
-            MitterServer.minProposal = requestProposalNumber;
+        // then assign it to minProposal and accept the prepare request by setting the status field to
+        // true.
+        if (Float.compare(prepareRequestProposalNumber, MitterServer.minProposal) > 0) {
+            MitterServer.minProposal = prepareRequestProposalNumber;
+            status = true;
         }
 
         int requestIndex = request.getPrepare().getRequest().getIndex();
-        if (MitterServer.log.size() > requestIndex) {
-            
+        if (requestIndex <= MitterServer.log.size()-1) {
+            acceptedValue = MitterServer.log.get(requestIndex).getAcceptedValue();
+            acceptedProposal = MitterServer.log.get(requestIndex).getAcceptedProposal();
+
+            // Check if there are more unchosen log entries aside from the firstUnchosenIndex. If there are
+            // and is less than the index in the prepare request then set the noMoreAccepted field of the
+            // response 
+            int maxUnchosenIndex = findMaxUnchosenIndex();
+            if (maxUnchosenIndex < requestIndex) {
+                noMoreAccepted = true;
+            }
         }
 
-        
+        Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
+        sendPrepareRequestResponse(response);
     }
 
-    public Message setupPrepareResponse(boolean status, NotificationInfo acceptedValue, float requestProposalNumber) {
+    /**
+     * This method sends the response of the prepare request to the proposer/leader
+     * @param response - The response to be sent to the proposer or leader
+     */
+    public void sendPrepareRequestResponse(Message response) {
+        // There is no leader and therefore elect one.
+        if (MitterServer.currentLeader == null) {
+            return;
+        }
+
+        try {
+            BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(MitterServer.currentLeader.getSocket().getOutputStream()));
+            StringWriter sWriter = new StringWriter();
+            MitterServer.jaxbMarshallerMessage.marshal(response, sWriter);
+            buffWriter.write(sWriter.toString());
+            buffWriter.newLine();
+            buffWriter.flush();
+        } catch (IOException e) {
+            // Leader is disconnected or has crashed and so elect a new leader
+            try {
+                MitterServer.currentLeader.getSocket().close();
+                System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
+            } catch (IOException ex) {
+                System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
+                ex.printStackTrace();
+            }
+            MitterServer.currentLeader = null;
+            System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+            e.printStackTrace();
+        } catch (JAXBException e) {
+            System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    /**
+     * This method creates a response to the prepare request.
+     * @param status - Indicates if the acceptor accepts/rejects the prepare request
+     * @param acceptedValue
+     * @param requestProposalNumber
+     * @param noMoreAccepted
+     * @return The response to the prepare request
+     */
+    public Message setupPrepareResponse(boolean status, 
+                                        NotificationInfo acceptedValue, 
+                                        float acceptedProposal,
+                                        boolean noMoreAccepted) {
         Message prepareResponse = new Message();
         prepareResponse.setAccept(null);
         prepareResponse.setSuccess(null);
@@ -103,8 +169,29 @@ import generated.nonstandard.message.Message;
         prepareResponse.getPrepare().setResponse(new Message.Prepare.Response());
 
         prepareResponse.getPrepare().getResponse().setStatus(status);
-
+        prepareResponse.getPrepare().getResponse().setAcceptedProposal(String.valueOf(acceptedProposal));
+        prepareResponse.getPrepare().getResponse().setAcceptedValue(acceptedValue);
+        prepareResponse.getPrepare().getResponse().setNoMoreAccepted(noMoreAccepted);
+        
         return prepareResponse;
+    }
+
+    /**
+     * This method finds the maximum unchosen index, that is the entry in the log that has not yet been
+     * chosen.
+     * @return - The maximum unchosen index
+     */
+    public int findMaxUnchosenIndex() {
+        int maxUnchosenIndex = MitterServer.firstUnchosenIndex;
+        int index = maxUnchosenIndex + 1;
+        while (index < MitterServer.log.size()) {
+            LogEntry entry = MitterServer.log.get(index);
+            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {
+                maxUnchosenIndex = index;
+            }
+            index += 1;
+        }
+        return maxUnchosenIndex;
     }
 
 

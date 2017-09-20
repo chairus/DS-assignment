@@ -476,6 +476,23 @@ public class MitterServer {
     }
 
     /**
+     * This method finds the first unchosen index, that is the index in the log where a value has
+     * not yet been chosen.
+     * @return - The unchosen index
+     */
+    public static int findFirstUnchosenIndex() {
+        int index = 0;
+        while (index < MitterServer.log.size()) {
+            LogEntry entry = MitterServer.log.get(index);
+            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {  // No value has been chosen for this log index
+                return index;
+            }
+            index += 1;
+        }
+        return index;
+    }
+
+    /**
      *  ========
      * |  MAIN  |
      *  ========

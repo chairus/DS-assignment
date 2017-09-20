@@ -42,17 +42,7 @@ public class Proposer {
 
        } else { // Start with prepare phase then accept phase
             // Find the firstUnchosenIndex in the log
-            if (MitterServer.log.size() > 0) {
-                int index = 0;
-                while (index < MitterServer.log.size()) {
-                    LogEntry entry = MitterServer.log.get(index);
-                    if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {
-                        MitterServer.firstUnchosenIndex = index;
-                    }
-                }
-            } else {
-                MitterServer.firstUnchosenIndex = 0;
-            }
+            MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
             MitterServer.nextIndex = MitterServer.firstUnchosenIndex + 1;
 
             /* ========== PREPARE PHASE ========== */
@@ -193,7 +183,7 @@ public class Proposer {
         for (Message response: responses) {
             // Check if the acceptedProposal field has a value of '-1', because a '-1' value means that
             // it has not accepted any proposal.
-            int hasAcceptedProposal = Float.compare(Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal()), -1f);
+            int hasAcceptedProposal = Float.compare(Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal()), -1.0f);
 
             if (hasAcceptedProposal > 0) {
                 float acceptedProposal = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
