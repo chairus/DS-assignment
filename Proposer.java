@@ -43,27 +43,17 @@ public class Proposer {
        } else { // Start with prepare phase then accept phase
             /* ========== PREPARE PHASE ========== */
             // Send a prepare request to all acceptors
-            prepareRequest(value);
-            // Listen for the responses from all acceptors until a majority of reponses has
-            // been received
-            List<String> receivedResponses = receivePrepareResponse();
+            PreparePhaseResult result = prepareRequest(value);
 
-            // Check if the majority of the reponses has a status set to true, that is the proposal
-            // has been accepted by the majority of acceptors, if it has received the majority of
-            // the responses then set the hasMajority flag.
-            List<Message> unmarshalledReceivedResponses = new ArrayList<>();
-            boolean hasMajority = true;
-            hasMajority = checkMajority(unmarshalledReceivedResponses, receivedResponses);
-
-            if (!hasMajority) {
+            if (!result.hasMajority) {
                 return false;
             }
 
-            NotificationInfo acceptedValue = checkIfAcceptedValueExist(unmarshalledReceivedResponses);
-            if (acceptedValue == null) {    // Pick a value
+            /* ========== ACCEPT PHASE ========== */
+            if (result.acceptedValue == null) {     // No accepted value therefore pick a value
                 acceptRequest(value);
-            } else {                        // Use the accepted value
-                acceptRequest(acceptedValue);
+            } else {                                // Use the accepted value
+                acceptRequest(result.acceptedValue);
             }
        }
 
@@ -75,8 +65,9 @@ public class Proposer {
      * which is composed of the sender's server id and the round number.
      * @param value - The notification to be written to each log on each server
      */
-    private void prepareRequest(NotificationInfo value) {
+    private PreparePhaseResult prepareRequest(NotificationInfo value) {
         Message prepareReq = setupPrepareRequest();
+        PreparePhaseResult result = new PreparePhaseResult();
         // Send the prepare request to all acceptors
         int index = 0;
         synchronized(MitterServer.serversList) {
@@ -96,6 +87,20 @@ public class Proposer {
                 index += 1;
             }
         }
+
+        // Listen for the responses from all acceptors until a majority of reponses has
+        // been received
+        List<String> receivedResponses = receivePrepareResponse();
+        
+        // Check if the majority of the reponses has a status set to true, that is the proposal
+        // has been accepted by the majority of acceptors, if it has received the majority of
+        // the responses then set the hasMajority flag.
+        List<Message> unmarshalledReceivedResponses = new ArrayList<>();
+
+        result.hasMajority = checkMajority(unmarshalledReceivedResponses, receivedResponses);
+        result.acceptedValue = checkIfAcceptedValueExist(unmarshalledReceivedResponses);
+
+        return result;
     }
 
     /**
@@ -241,5 +246,13 @@ public class Proposer {
         }
         
         return MitterServer.serversList.remove(sId);
+    }
+
+    private class PreparePhaseResult {
+        public boolean hasMajority;
+        public NotificationInfo acceptedValue;
+
+        // Constructoru
+        public PreparePhaseResult() { }
     }
 }
