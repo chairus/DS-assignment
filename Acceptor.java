@@ -7,6 +7,8 @@
  * @author cyrusvillacampa
  */
 
+ package uni.mitter;
+
  public class Acceptor {
      // Constructor
      public Acceptor() {

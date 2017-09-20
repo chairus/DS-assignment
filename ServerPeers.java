@@ -21,6 +21,7 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -168,6 +169,19 @@ public class ServerPeers extends Thread {
 
         public int getId () {
             return this.id;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null) return false;
+            if (o == this) return true;
+            if (!(o instanceof ServerIdentity)) return false;
+            return ((ServerIdentity)o).getId() == this.id;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id);
         }
     }
 }

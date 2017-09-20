@@ -18,7 +18,7 @@
                                 <xsd:complexType>
                                     <xsd:sequence>
                                         <!-- PROPOSAL NUMBER -->
-                                        <xsd:element name="proposalNumber" type="xsd:decimal" />
+                                        <xsd:element name="proposalNumber" type="xsd:string" />
                                         <!-- INDEX -->
                                         <xsd:element name="index" type="xsd:int" />
                                     </xsd:sequence>
@@ -28,7 +28,7 @@
                                 <xsd:complexType>
                                     <xsd:sequence>
                                         <!-- ACCEPTED PROPOSAL NUMBER -->
-                                        <xsd:element name="acceptedProposal" type="xsd:decimal" />
+                                        <xsd:element name="acceptedProposal" type="xsd:string" />
                                         <!-- ACCEPTED VALUE -->
                                         <xsd:element name="acceptedValue" type="ntf:notificationInfo" />
                                         <!-- NO MORE ACCEPTED -->
@@ -47,7 +47,7 @@
                                 <xsd:complexType>
                                     <xsd:sequence>
                                         <!-- PROPOSAL NUMBER -->
-                                        <xsd:element name="proposalNumber" type="xsd:decimal" />
+                                        <xsd:element name="proposalNumber" type="xsd:string" />
                                         <!-- INDEX -->
                                         <xsd:element name="index" type="xsd:int" />
                                         <!-- VALUE -->
@@ -61,7 +61,7 @@
                                 <xsd:complexType>
                                     <xsd:sequence>
                                         <!-- ACCEPTORS MIN PROPOSAL NUMBER -->
-                                        <xsd:element name="acceptorMinProposalNumber" type="xsd:decimal" />
+                                        <xsd:element name="acceptorMinProposalNumber" type="xsd:string" />
                                         <!-- ACCEPTORS FIRST UNCHOSEN INDEX -->
                                         <xsd:element name="acceptorsFirstUnchosenIndex" type="xsd:int" />
                                     </xsd:sequence>

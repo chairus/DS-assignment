@@ -1,5 +1,6 @@
 package uni.mitter;
 
+import generated.nonstandard.message.Message;
 import generated.nonstandard.notification.Notification;
 import generated.nonstandard.heartbeat.Heartbeat;
 import generated.nonstandard.notification.Notification.Timestamp;
@@ -11,6 +12,7 @@ import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -45,14 +47,16 @@ import javax.xml.datatype.DatatypeFactory;
 public class MitterServer {
     // The number of the smallest proposal this server will accept for any log entry, or 0 if it
     // has never received a Prepare request.
-    public static int minProposal;
+    public static float minProposal;
+    // The index to be used to write a value to each server on their log.
+    public static int nextIndex;
     // The largest entry for which this server has accepted a proposal
     public static int lastLogIndex;
     // The smallest log index where a proposal has not been accepted, that is 
     // acceptedProposal[firstUnchosenIndex] < inf.
     public static int firstUnchosenIndex;
     // The largest round number that the proposer has seen or used.
-    public static int maxRound;
+    public static long maxRound;
     // This variable indicates that there is no need to issue Prepare requests because a majority 
     // of acceptors has responded to Prepare requests with noMoreAccepted set to true; initially false
     public static boolean prepared;
@@ -98,6 +102,13 @@ public class MitterServer {
     public static JAXBContext jaxbContextHeartbeat;
     public static Unmarshaller jaxbUnmarshallerHeartbeat;
     public static Marshaller jaxbMarshallerHeartbeat;
+    // Marshaller and unmarshaller of the Prepare, Accept and Success message
+    public static JAXBContext jaxbContextMessage;
+    public static Unmarshaller jaxbUnmarshallerMessage;
+    public static Marshaller jaxbMarshallerMessage;
+    // Proposer and Acceptor objects
+    private Proposer proposer;
+    private Acceptor acceptor;
 
     /**
      * Constructor
@@ -118,6 +129,9 @@ public class MitterServer {
         lastLogIndex = 0;
         maxRound = 0;
         currentLeader = null;
+        proposer = new Proposer();
+        acceptor = new Acceptor();
+        prepared = false;
     }
 
     /**
@@ -137,6 +151,10 @@ public class MitterServer {
             MitterServer.jaxbContextHeartbeat = JAXBContext.newInstance(Heartbeat.class);
             MitterServer.jaxbUnmarshallerHeartbeat = jaxbContextHeartbeat.createUnmarshaller();
             MitterServer.jaxbMarshallerHeartbeat = jaxbContextHeartbeat.createMarshaller();
+            // Create marshaller and unmarshaller for the Prepare, Accept and Success messages
+            MitterServer.jaxbContextMessage = JAXBContext.newInstance(Message.class);
+            MitterServer.jaxbUnmarshallerMessage = jaxbContextMessage.createUnmarshaller();
+            MitterServer.jaxbMarshallerMessage = jaxbContextMessage.createMarshaller();
         } catch (JAXBException e) {
             System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
             e.printStackTrace();
@@ -165,7 +183,7 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             int serverSize = 0;
-            while (serverSize < 4) {
+            while (serverSize < 2) {
                 synchronized (serversList) {
                     serverSize = serversList.size();
                 }
@@ -178,9 +196,9 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
 
             if (currentLeader.getId() == serverId) {
-                System.out.println("I AM THE LEADER!");
+                System.out.printf("[ SERVER %d ] Proposer\n", serverId);
             } else {
-                System.out.println("I AM A SERVANT!");
+                System.out.printf("[ SERVER %d ] Acceptor\n", serverId);
             }
 
             while (true) {
@@ -284,9 +302,7 @@ public class MitterServer {
         Heartbeat hb = null;
 
         if (buffReader.ready()) {
-            // System.out.printf("[ SERVER %d ] Reading heartbeat message.\n", serverId);
             String line = buffReader.readLine();
-            // System.out.printf("[ SERVER %d ] Received heartbeat message.\n", serverId);
             if (line != null) {
                 sReader = new StringReader(line);
                 hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
@@ -482,6 +498,9 @@ public class MitterServer {
             String regex = "\\s+";
             while ((line = bReader.readLine()) != null) {
                 String[] lineArr = line.trim().split(regex);
+                
+                if (lineArr[0].charAt(0) == '#') continue; // Ignore comment lines
+                
                 if (lineArr.length != 4) {
                     System.err.println("[ INFO ] Error: Missing port number or server id.");
                     System.exit(1);
