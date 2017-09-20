@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 
 /**
  * This class represents a single entry in the replicated log.
@@ -9,7 +9,7 @@ import generated.nonstandard.notification.Notification;
 
  public class LogEntry {
     private float acceptedProposal; // The accepted proposal number for a particular entry in the log
-    private Notification acceptedValue; // The accepted value that is associated with a proposal number
+    private NotificationInfo acceptedValue; // The accepted value that is associated with a proposal number
     
     // Constructor
     public LogEntry() {
@@ -20,7 +20,7 @@ import generated.nonstandard.notification.Notification;
         this.acceptedProposal = proposalNumber;
     }
 
-    public void setAcceptedValue(Notification notification) {
+    public void setAcceptedValue(NotificationInfo notification) {
         this.acceptedValue = notification;
     }
 
@@ -28,7 +28,7 @@ import generated.nonstandard.notification.Notification;
         return this.acceptedProposal;
     }
 
-    public Notification getAcceptedValue() {
+    public NotificationInfo getAcceptedValue() {
         return this.acceptedValue;
     }
 

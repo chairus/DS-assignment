@@ -61,7 +61,7 @@ public class MitterServer {
     // of acceptors has responded to Prepare requests with noMoreAccepted set to true; initially false
     public static boolean prepared;
     // A list that stores the replicated log entries
-    List<LogEntry> log;
+    public static List<LogEntry> log;
     // A list of the ports and the server id of each individual server in the network.
     public static List<List<Integer>> serverPorts;
     // A variable that stores the server id of the current leader
@@ -132,6 +132,7 @@ public class MitterServer {
         proposer = new Proposer();
         acceptor = new Acceptor();
         prepared = false;
+        firstUnchosenIndex = 0;
     }
 
     /**
