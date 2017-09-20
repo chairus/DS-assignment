@@ -38,28 +38,31 @@ public class Proposer {
      * @param value - The notification to be written to each log on each server
      */
     public boolean writeValue(NotificationInfo value) {
-       if (MitterServer.prepared) { // Skip the prepare phase and go straight to accept phase
-
-       } else { // Start with prepare phase then accept phase
-            // Find the firstUnchosenIndex in the log
-            MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
-            MitterServer.nextIndex = MitterServer.firstUnchosenIndex + 1;
-
-            /* ========== PREPARE PHASE ========== */
-            // Send a prepare request to all acceptors
-            PreparePhaseResult result = prepareRequest(value);
-
-            if (!result.hasMajority) {
-                return false;
+        PreparePhaseResult result = new PreparePhaseResult();
+        do {
+            if (MitterServer.prepared) { // Skip the prepare phase and go straight to accept phase
+            
+            } else { // Start with prepare phase then accept phase
+                // Find the firstUnchosenIndex in the log
+                MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
+                MitterServer.nextIndex = MitterServer.firstUnchosenIndex + 1;
+    
+                /* ========== PREPARE PHASE ========== */
+                // Send a prepare request to all acceptors
+                result = prepareRequest(value);
+    
+                if (!result.hasMajority) {
+                    return false;
+                }
+    
+                /* ========== ACCEPT PHASE ========== */
+                if (result.acceptedValue == null) {     // No accepted value therefore pick a value
+                    acceptRequest(value);
+                } else {                                // Use the accepted value
+                    acceptRequest(result.acceptedValue);
+                }
             }
-
-            /* ========== ACCEPT PHASE ========== */
-            if (result.acceptedValue == null) {     // No accepted value therefore pick a value
-                acceptRequest(value);
-            } else {                                // Use the accepted value
-                acceptRequest(result.acceptedValue);
-            }
-       }
+       } while (result.acceptedValue != value);
 
        return true;
     }
@@ -192,7 +195,7 @@ public class Proposer {
         // Listen for the responses from all acceptors until a majority of reponses has
         // been received
         List<String> receivedResponses = receiveResponses();
-        
+
     }
 
     /**
@@ -346,6 +349,9 @@ public class Proposer {
         public NotificationInfo acceptedValue;
 
         // Constructor
-        public PreparePhaseResult() { }
+        public PreparePhaseResult() { 
+            this.hasMajority = false;
+            this.acceptedValue = null;
+        }
     }
 }
