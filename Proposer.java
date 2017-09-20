@@ -95,7 +95,7 @@ public class Proposer {
 
         // Listen for the responses from all acceptors until a majority of reponses has
         // been received
-        List<String> receivedResponses = receivePrepareResponse();
+        List<String> receivedResponses = receiveResponses();
         
         // Check if the majority of the reponses has a status set to true, that is the proposal
         // has been accepted by the majority of acceptors.
@@ -105,43 +105,6 @@ public class Proposer {
         setOrUnsetPrepared(unmarshalledReceivedResponses);  // Sets the prepared value if majority of the Acceptors has set the noMoreAccepted field in their reponse
 
         return result;
-    }
-
-    /**
-     * This method listens for the responses from the acceptors for the prepare request. It will stop
-     * listening once it has received the majority of the responses
-     * @return - The received XML responses from the Acceptors
-     */
-    public List<String> receivePrepareResponse() {
-        List<String> receivedResponses = new ArrayList<>();
-        synchronized (MitterServer.serversList) {
-            int numOfActiveServers = MitterServer.serversList.size();
-            int majoritySize = ((numOfActiveServers/2) + 1);
-            ServerPeers.ServerIdentity acceptor;
-            // Keep looping until a majority of responses has been received
-            while (receivedResponses.size() < majoritySize) {
-                int index = 0;
-                while (index < numOfActiveServers) {
-                    acceptor = MitterServer.serversList.get(index);
-                    try {
-                        String response = acceptPrepareResponse(acceptor.getSocket());
-                        if (response != null) {
-                            receivedResponses.add(response);
-                        }
-                    } catch (IOException e) {
-                        // A server has disconnected?
-                        if (removeFromActiveServers(acceptor)) {
-                            index -= 1;
-                        }
-                    }
-    
-                    index += 1;
-                }
-            }
-            
-        }
-
-        return receivedResponses;
     }
 
     /**
@@ -225,8 +188,17 @@ public class Proposer {
         Message acceptReq = setupAcceptRequest(value);
         
         sendAcceptRequestToAll(acceptReq);
+
+        // Listen for the responses from all acceptors until a majority of reponses has
+        // been received
+        List<String> receivedResponses = receiveResponses();
+        
     }
 
+    /**
+     * This method sends Accept request to all acceptors.
+     * @param value - The value to be broadcasted to all acceptors
+     */
     public void sendAcceptRequestToAll(Message value) {
         // Send accept request to all acceptors
         int index = 0;
@@ -248,6 +220,43 @@ public class Proposer {
                 index += 1;
             }
         }
+    }
+
+    /**
+     * This method listens for the responses from the acceptors for the prepare request. It will stop
+     * listening once it has received the majority of the responses
+     * @return - The received XML responses from the Acceptors
+     */
+    public List<String> receiveResponses() {
+        List<String> receivedResponses = new ArrayList<>();
+        synchronized (MitterServer.serversList) {
+            int numOfActiveServers = MitterServer.serversList.size();
+            int majoritySize = ((numOfActiveServers/2) + 1);
+            ServerPeers.ServerIdentity acceptor;
+            // Keep looping until a majority of responses has been received
+            while (receivedResponses.size() < majoritySize) {
+                int index = 0;
+                while (index < numOfActiveServers) {
+                    acceptor = MitterServer.serversList.get(index);
+                    try {
+                        String response = acceptResponse(acceptor.getSocket());
+                        if (response != null) {
+                            receivedResponses.add(response);
+                        }
+                    } catch (IOException e) {
+                        // A server has disconnected?
+                        if (removeFromActiveServers(acceptor)) {
+                            index -= 1;
+                        }
+                    }
+    
+                    index += 1;
+                }
+            }
+            
+        }
+
+        return receivedResponses;
     }
 
     /**
@@ -309,7 +318,7 @@ public class Proposer {
         
     }
 
-    public String acceptPrepareResponse(Socket s) throws IOException {
+    public String acceptResponse(Socket s) throws IOException {
         BufferedReader buffReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         String line = null;
 

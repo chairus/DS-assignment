@@ -127,7 +127,7 @@ public class MitterServer {
         notificationList = new ArrayList<>();
         minProposal = 0;
         lastLogIndex = 0;
-        maxRound = 0;
+        maxRound = 1;
         currentLeader = null;
         proposer = new Proposer();
         acceptor = new Acceptor();
