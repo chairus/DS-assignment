@@ -10,6 +10,7 @@
  package uni.mitter;
 
 import generated.nonstandard.notification.NotificationInfo;
+import uni.mitter.MitterServer;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
+import java.util.ArrayList;
 
 import java.io.StringWriter;
 import javax.xml.bind.JAXBException;
@@ -107,17 +109,22 @@ import generated.nonstandard.message.Message;
             if (maxUnchosenIndex < requestIndex) {
                 noMoreAccepted = true;
             }
+        } else {
+            // Increase capacity of the replicated log
+            while (MitterServer.log.size() <= requestIndex + 1) {
+                MitterServer.log.add(new LogEntry());
+            }
         }
 
         Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
-        sendPrepareRequestResponse(response);
+        sendRequestResponse(response);
     }
 
     /**
      * This method sends the response of the prepare request to the proposer/leader
      * @param response - The response to be sent to the proposer or leader
      */
-    public void sendPrepareRequestResponse(Message response) {
+    public void sendRequestResponse(Message response) {
         // There is no leader and therefore elect one.
         if (MitterServer.currentLeader == null) {
             return;
@@ -196,12 +203,48 @@ import generated.nonstandard.message.Message;
 
 
      /**
-      * This method responds to the accept request of a proposer with the acceptedProposal(i.e. the
-      * highest proposal number).
+      * This method responds to the accept request sent by a proposer/leader.
       * @param request - The accept request
       */
     public void responseAcceptRequest(Message request) {
+        float requestProposalNumber = Float.parseFloat(request.getAccept().getRequest().getProposalNumber());
+        int requestIndex = request.getAccept().getRequest().getIndex();
+        NotificationInfo requestValue = request.getAccept().getRequest().getValue();
+        int requestFirstUnchosenIndex = request.getAccept().getRequest().getFirstUnchosenIndex();
+        if (requestProposalNumber >= MitterServer.minProposal) {
+            MitterServer.log.set(requestIndex, new LogEntry(requestProposalNumber,requestValue));
+            MitterServer.minProposal = requestProposalNumber;
 
+            int index = 0;
+            while (index < requestFirstUnchosenIndex) {
+                LogEntry entry = MitterServer.log.get(index);
+                boolean setAcceptedProposalToInfinity = false;
+                if (Float.compare(requestProposalNumber, entry.getAcceptedProposal()) == 0) {
+                    setAcceptedProposalToInfinity = true;
+                }
+    
+                if (setAcceptedProposalToInfinity) {
+                    NotificationInfo logEntryValue = MitterServer.log.get(index).getAcceptedValue();
+                    MitterServer.log.set(index, new LogEntry(Float.MAX_VALUE, logEntryValue));
+                }
+                index += 1;
+            }
+        }
+        Message acceptResponse = setupAcceptResponse();
+        sendRequestResponse(acceptResponse);
+    }
+
+    public Message setupAcceptResponse() {
+        Message acceptRes = new Message();
+        acceptRes.setPrepare(null);
+        acceptRes.setSuccess(null);
+        acceptRes.setAccept(new Message.Accept());
+        acceptRes.getAccept().setRequest(null);
+        acceptRes.getAccept().setResponse(new Message.Accept.Response());
+        acceptRes.getAccept().getResponse().setAcceptorMinProposalNumber(String.valueOf(MitterServer.minProposal));
+        acceptRes.getAccept().getResponse().setAcceptorsFirstUnchosenIndex(MitterServer.firstUnchosenIndex);
+
+        return acceptRes;
     }
 
     /**

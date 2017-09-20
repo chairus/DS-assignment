@@ -78,7 +78,7 @@ public class Proposer {
             while (index < MitterServer.serversList.size()) {
                 ServerPeers.ServerIdentity acceptor = MitterServer.serversList.get(index);
                 try {
-                    sendPrepareRequest(prepareReq, acceptor.getSocket());    
+                    sendRequest(prepareReq, acceptor.getSocket());    
                 } catch (IOException e) {
                     // A server has been disconnected?
                     if (removeFromActiveServers(acceptor)) {
@@ -222,7 +222,53 @@ public class Proposer {
      * @param value - The chosen value to be written on the logs of each server
      */
     private void acceptRequest(NotificationInfo value) {
+        Message acceptReq = setupAcceptRequest(value);
+        
+        sendAcceptRequestToAll(acceptReq);
+    }
 
+    public void sendAcceptRequestToAll(Message value) {
+        // Send accept request to all acceptors
+        int index = 0;
+        synchronized(MitterServer.serversList) {
+            while (index < MitterServer.serversList.size()) {
+                ServerPeers.ServerIdentity acceptor = MitterServer.serversList.get(index);
+                try {
+                    sendRequest(value, acceptor.getSocket());    
+                } catch (IOException e) {
+                    // A server has been disconnected?
+                    if (removeFromActiveServers(acceptor)) {
+                        index -= 1;
+                    }
+                } catch (JAXBException e) {
+                    System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+                index += 1;
+            }
+        }
+    }
+
+    /**
+     * This method sets up the accept request to be sent to all acceptors.
+     * @param value - A value, either the highest numbered one from a Prepare response, or if none, 
+     *                then one from a client request
+     * @return - The accept request
+     */
+    private Message setupAcceptRequest(NotificationInfo value) {
+        Message acceptRequest = new Message();
+        String mostRecentProposalNumber = String.valueOf(MitterServer.maxRound-1) + "." + MitterServer.serverId;
+        acceptRequest.setPrepare(null);
+        acceptRequest.setSuccess(null);
+        acceptRequest.setAccept(new Message.Accept());
+        acceptRequest.getAccept().setRequest(new Message.Accept.Request());
+        acceptRequest.getAccept().getRequest().setIndex(MitterServer.nextIndex-1);
+        acceptRequest.getAccept().getRequest().setProposalNumber(mostRecentProposalNumber);
+        acceptRequest.getAccept().getRequest().setValue(value);
+        acceptRequest.getAccept().getRequest().setFirstUnchosenIndex(MitterServer.firstUnchosenIndex);
+
+        return acceptRequest;
     }
 
     /**
@@ -253,7 +299,7 @@ public class Proposer {
      * @param prepReq - The prepare request message
      * @param acceptor - The Acceptor socket
      */
-    public void sendPrepareRequest(Message prepReq, Socket acceptor) throws IOException, JAXBException {
+    public void sendRequest(Message prepReq, Socket acceptor) throws IOException, JAXBException {
         BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(acceptor.getOutputStream()));
         StringWriter sWriter = new StringWriter();
         MitterServer.jaxbMarshallerMessage.marshal(prepReq, sWriter);

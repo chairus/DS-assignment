@@ -13,7 +13,13 @@ import generated.nonstandard.notification.NotificationInfo;
     
     // Constructor
     public LogEntry() {
+        this.acceptedProposal = -1.0f;
+        this.acceptedValue = null;
+    }
 
+    public LogEntry(float acceptedProposal, NotificationInfo acceptedValue) {
+        this.acceptedProposal = acceptedProposal;
+        this.acceptedValue = acceptedValue;
     }
 
     public void setAcceptedProposal(float proposalNumber) {
