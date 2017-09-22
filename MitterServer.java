@@ -181,7 +181,7 @@ public class MitterServer {
             if (currentLeader.getId() == serverId) {
                 System.out.println("I AM THE LEADER/PROPOSER!");
             } else {
-                System.out.println("I AM An ACCEPTOR!");
+                System.out.println("I AM AN ACCEPTOR!");
             }
 
             while (true) {
