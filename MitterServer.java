@@ -109,6 +109,8 @@ public class MitterServer {
     // Proposer and Acceptor objects
     private Proposer proposer;
     private Acceptor acceptor;
+    // An assertion if this server is the current leader/proposer
+    private boolean isLeader;
 
     /**
      * Constructor
@@ -125,6 +127,7 @@ public class MitterServer {
             setOfNotificationList.add(new ArrayList<OrderedNotification>());
         }
         notificationList = new ArrayList<>();
+        log = new ArrayList<>();
         minProposal = 0;
         lastLogIndex = 0;
         maxRound = 1;
@@ -133,6 +136,7 @@ public class MitterServer {
         acceptor = new Acceptor();
         prepared = false;
         firstUnchosenIndex = 0;
+        isLeader = false;
     }
 
     /**
@@ -198,13 +202,15 @@ public class MitterServer {
 
             if (currentLeader.getId() == serverId) {
                 System.out.printf("[ SERVER %d ] Proposer\n", serverId);
+                isLeader = true;
             } else {
                 System.out.printf("[ SERVER %d ] Acceptor\n", serverId);
+                isLeader = false;
             }
 
             while (true) {
                 notificationListLock.lock();    // Obtain the lock for the notification list
-                if (!notificationList.isEmpty()) {
+                if (!notificationList.isEmpty() && isLeader) {
                     // System.err.println("Notification list is not empty. Taking one out...");
                     NotificationInfo notification = takeOneFromNotificationList();
                     assignSequenceNumberAndStore(notification);

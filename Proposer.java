@@ -27,9 +27,12 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 public class Proposer {
+    // Keeps track of the porposed index
+    int proposedIndex;
+
     // Constructor
     public Proposer() {
-
+        proposedIndex = 0;
     }
 
     /**
@@ -40,13 +43,20 @@ public class Proposer {
     public boolean writeValue(NotificationInfo value) {
         PreparePhaseResult result = new PreparePhaseResult();
         do {
+            boolean hasSuccessfullyProposed = true;
             if (MitterServer.prepared) { // Skip the prepare phase and go straight to accept phase
-            
+                proposedIndex = MitterServer.nextIndex;
+                MitterServer.nextIndex += 1;
+                hasSuccessfullyProposed = acceptRequest(value);
+                
+                if (!hasSuccessfullyProposed) {
+                    return false;
+                }
             } else { // Start with prepare phase then accept phase
-                // Find the firstUnchosenIndex in the log
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
+                proposedIndex = MitterServer.firstUnchosenIndex;
                 MitterServer.nextIndex = MitterServer.firstUnchosenIndex + 1;
-    
+                
                 /* ========== PREPARE PHASE ========== */
                 // Send a prepare request to all acceptors
                 result = prepareRequest();
@@ -56,7 +66,6 @@ public class Proposer {
                 }
     
                 /* ========== ACCEPT PHASE ========== */
-                boolean hasSuccessfullyProposed = true;
                 if (result.acceptedValue == null) {     // No accepted value therefore pick a value
                     hasSuccessfullyProposed = acceptRequest(value);
                 } else {                                // Use the accepted value
@@ -186,7 +195,7 @@ public class Proposer {
         List<String> receivedResponses = new ArrayList<>();
         synchronized (MitterServer.serversList) {
             int numOfActiveServers = MitterServer.serversList.size();
-            int majoritySize = ((numOfActiveServers/2) + 1);
+            int majoritySize = ((numOfActiveServers/2));
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
             while (receivedResponses.size() < majoritySize) {
@@ -194,7 +203,7 @@ public class Proposer {
                 while (index < numOfActiveServers) {
                     acceptor = MitterServer.serversList.get(index);
                     try {
-                        String response = acceptResponse(acceptor.getSocket());
+                        String response = receiveResponse(acceptor.getSocket());
                         Message unmarshalledResponse;
                         if (response != null) {
                             receivedResponses.add(response);
@@ -206,7 +215,7 @@ public class Proposer {
                                 return false;
                             }
 
-                            // Send success message?
+                            // Send success message
                             MitterServer.updateLastLogIndex();
                             int acceptResponseFirstUnchosenIndex = unmarshalledResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex(); 
                             if (acceptResponseFirstUnchosenIndex <= MitterServer.lastLogIndex
@@ -227,6 +236,13 @@ public class Proposer {
     
                     index += 1;
                 }
+            }
+
+            boolean hasMajority = checkMajority(responses, receivedResponses)
+
+            // Majority of votes then set the corresponding log entry
+            if (proposedIndex <= MitterServer.log.size()) {
+
             }
         }
 
@@ -283,7 +299,7 @@ public class Proposer {
         List<String> receivedResponses = new ArrayList<>();
         synchronized (MitterServer.serversList) {
             int numOfActiveServers = MitterServer.serversList.size();
-            int majoritySize = ((numOfActiveServers/2) + 1);
+            int majoritySize = ((numOfActiveServers/2));
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
             while (receivedResponses.size() < majoritySize) {
@@ -291,7 +307,7 @@ public class Proposer {
                 while (index < numOfActiveServers) {
                     acceptor = MitterServer.serversList.get(index);
                     try {
-                        String response = acceptResponse(acceptor.getSocket());
+                        String response = receiveResponse(acceptor.getSocket());
                         if (response != null) {
                             receivedResponses.add(response);
                         }
@@ -335,7 +351,7 @@ public class Proposer {
         acceptRequest.setSuccess(null);
         acceptRequest.setAccept(new Message.Accept());
         acceptRequest.getAccept().setRequest(new Message.Accept.Request());
-        acceptRequest.getAccept().getRequest().setIndex(MitterServer.nextIndex-1);
+        acceptRequest.getAccept().getRequest().setIndex(proposedIndex);
         acceptRequest.getAccept().getRequest().setProposalNumber(mostRecentProposalNumber);
         acceptRequest.getAccept().getRequest().setValue(value);
         acceptRequest.getAccept().getRequest().setFirstUnchosenIndex(MitterServer.firstUnchosenIndex);
@@ -356,7 +372,7 @@ public class Proposer {
         prepareReq.setPrepare(new Message.Prepare());
         prepareReq.getPrepare().setResponse(null);
         prepareReq.getPrepare().setRequest(new Message.Prepare.Request());
-        prepareReq.getPrepare().getRequest().setIndex(MitterServer.firstUnchosenIndex);
+        prepareReq.getPrepare().getRequest().setIndex(proposedIndex);
         // Proposal number would be of the format "[maxRound].[serverId]"
         prepareReq.getPrepare().getRequest().setProposalNumber(new String(String.valueOf(MitterServer.maxRound) + "." + MitterServer.serverId));
         
@@ -380,7 +396,7 @@ public class Proposer {
         
     }
 
-    public String acceptResponse(Socket s) throws IOException {
+    public String receiveResponse(Socket s) throws IOException {
         BufferedReader buffReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         String line = null;
 
