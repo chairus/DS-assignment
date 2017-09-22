@@ -49,8 +49,10 @@ public class MitterClientTest1 {
             Marshaller jaxbMarshaller = jaxbContextSub.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
+            System.out.println("===================================================");
             System.out.println("Subscibing to all notifications...");
             System.out.println("Sending marshalled subscription to the server...");
+            System.out.println("===================================================");
             /* marshalling of java objects in xml (send to sever) */
             jaxbMarshaller.marshal(subscription, dataWriter);
             buffWriter = new BufferedWriter(writer);

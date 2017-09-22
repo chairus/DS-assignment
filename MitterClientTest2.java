@@ -32,7 +32,7 @@ public class MitterClientTest2 {
     public static void main(String[] args) throws Exception {
         Socket socket;
         List<String> receivedNotification = new ArrayList<>();
-        int updateSubscription = 0;
+        int updateSubscription = 2;
 
         try {
             // Create object subscription
@@ -52,8 +52,10 @@ public class MitterClientTest2 {
             Marshaller jaxbMarshaller = jaxbContextSub.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
+            System.out.println("===================================================");
             System.out.println("Subscibing to notifications with sender \"bss_library\"...");
             System.out.println("Sending marshalled subscription to the server...");
+            System.out.println("===================================================");
             /* marshalling of java objects in xml (send to sever) */
             jaxbMarshaller.marshal(subscription, dataWriter);
             buffWriter = new BufferedWriter(writer);
@@ -92,7 +94,9 @@ public class MitterClientTest2 {
                             System.out.println("Timestamp: " + 
                                                 notification.getTimestamp().getDate() + 
                                                 " " + notification.getTimestamp().getTime());
-                            updateSubscription = 1;
+                            if (updateSubscription > 0) {
+                                updateSubscription -= 1;
+                            }
                         }
                     }
                     
@@ -102,10 +106,11 @@ public class MitterClientTest2 {
                         subscription.setSender("all");
 
                         dataWriter = new StringWriter();
-                        
+                        System.out.println("===================================================");
                         System.out.println("Changing subscription...");
                         System.out.println("Subscribing to all notifications...");
                         System.out.println("Sending marshalled subscription to the server...");
+                        System.out.println("===================================================");
                         /* marshalling of java objects in xml (send to sever) */
                         jaxbMarshaller.marshal(subscription, dataWriter);
                         buffWriter = new BufferedWriter(writer);
