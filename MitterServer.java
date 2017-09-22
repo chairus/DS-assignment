@@ -493,6 +493,20 @@ public class MitterServer {
     }
 
     /**
+     * This method updates the last log index
+     */
+    public static void updateLastLogIndex() {
+        int index = 0;
+        while (index < MitterServer.log.size()) {
+            LogEntry entry = MitterServer.log.get(index);
+            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) == 0) {  // A value has been chosen for this log index
+                lastLogIndex = index;
+            }
+            index += 1;
+        }
+    }
+
+    /**
      *  ========
      * |  MAIN  |
      *  ========

@@ -215,6 +215,8 @@ import generated.nonstandard.message.Message;
             MitterServer.log.set(requestIndex, new LogEntry(requestProposalNumber,requestValue));
             MitterServer.minProposal = requestProposalNumber;
 
+            // Mark entries that has an index less than the firstUnchosenIndex of the leader/proposer
+            // as chosen.
             int index = 0;
             while (index < requestFirstUnchosenIndex) {
                 LogEntry entry = MitterServer.log.get(index);
@@ -252,6 +254,6 @@ import generated.nonstandard.message.Message;
      * @param request - The success request
      */
     public void responseSuccessRequest(Message request) {
-        
+
     }
  }

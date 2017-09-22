@@ -56,10 +56,15 @@ public class Proposer {
                 }
     
                 /* ========== ACCEPT PHASE ========== */
+                boolean hasSuccessfullyProposed = true;
                 if (result.acceptedValue == null) {     // No accepted value therefore pick a value
-                    acceptRequest(value);
+                    hasSuccessfullyProposed = acceptRequest(value);
                 } else {                                // Use the accepted value
-                    acceptRequest(result.acceptedValue);
+                    hasSuccessfullyProposed = acceptRequest(result.acceptedValue);
+                }
+
+                if (!hasSuccessfullyProposed) {
+                    return false;
                 }
             }
        } while (result.acceptedValue != value);
@@ -187,15 +192,77 @@ public class Proposer {
      * by the majority of the Acceptors
      * @param value - The chosen value to be written on the logs of each server
      */
-    private void acceptRequest(NotificationInfo value) {
+    private boolean acceptRequest(NotificationInfo value) {
         Message acceptReq = setupAcceptRequest(value);
         
         sendAcceptRequestToAll(acceptReq);
 
-        // Listen for the responses from all acceptors until a majority of reponses has
-        // been received
-        List<String> receivedResponses = receiveResponses();
+        // Listen for the responses from all acceptors until a majority of reponses has been received
+        // and for each accept response received send a Success message if the firstUnchosenIndex in the
+        // accept response is less than that of this server's lastLogIndex and the accepted proposal
+        // in log[response.firstUnchosenIndex] == infinity(Float.MAX_VALUE).
+        List<String> receivedResponses = new ArrayList<>();
+        synchronized (MitterServer.serversList) {
+            int numOfActiveServers = MitterServer.serversList.size();
+            int majoritySize = ((numOfActiveServers/2) + 1);
+            ServerPeers.ServerIdentity acceptor;
+            // Keep looping until a majority of responses has been received
+            while (receivedResponses.size() < majoritySize) {
+                int index = 0;
+                while (index < numOfActiveServers) {
+                    acceptor = MitterServer.serversList.get(index);
+                    try {
+                        String response = acceptResponse(acceptor.getSocket());
+                        Message unmarshalledResponse;
+                        if (response != null) {
+                            receivedResponses.add(response);
+                            unmarshalledResponse = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(new StringReader(response));
+                            Float acceptResponseProposalNumber = Float.parseFloat(unmarshalledResponse.getAccept().getResponse().getAcceptorMinProposalNumber());
+                            // Abandon proposal
+                            if (Float.compare(acceptResponseProposalNumber, MitterServer.nextIndex-1.0f) > 0) {
+                                MitterServer.prepared = false;
+                                return false;
+                            }
 
+                            // Send success message?
+                            MitterServer.updateLastLogIndex();
+                            int acceptResponseFirstUnchosenIndex = unmarshalledResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex(); 
+                            if (acceptResponseFirstUnchosenIndex <= MitterServer.lastLogIndex
+                                && Float.compare(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) == 0) {
+                                sendSuccessRequest(acceptResponseFirstUnchosenIndex, acceptor);
+                            }
+                        }
+
+                    } catch (IOException e) {
+                        // A server has disconnected?
+                        if (removeFromActiveServers(acceptor)) {
+                            index -= 1;
+                        }
+                    } catch (JAXBException e) {
+                        System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+                        e.printStackTrace();
+                    }
+    
+                    index += 1;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public void sendSuccessRequest(int acceptResponseFirstUnchosenIndex, ServerPeers.ServerIdentity acceptor) {
+        Message successReq = setupSuccessRequest(acceptResponseFirstUnchosenIndex);
+        try {
+            sendRequest(successReq, acceptor.getSocket());    
+        } catch (IOException e) {
+            // A server has been disconnected?
+            removeFromActiveServers(acceptor);
+        } catch (JAXBException e) {
+            System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     /**
@@ -256,10 +323,21 @@ public class Proposer {
                     index += 1;
                 }
             }
-            
         }
 
         return receivedResponses;
+    }
+
+    private Message setupSuccessRequest(int acceptResponseFirstUnchosenIndex) {
+        Message success = new Message();
+        success.setAccept(null);
+        success.setPrepare(null);
+        success.setSuccess(new Message.Success());
+        success.getSuccess().setRequest(new Message.Success.Request());
+        success.getSuccess().getRequest().setIndex(acceptResponseFirstUnchosenIndex);
+        success.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
+
+        return success;
     }
 
     /**
@@ -308,13 +386,13 @@ public class Proposer {
 
     /**
      * This method will send the prepare request to an acceptor.
-     * @param prepReq - The prepare request message
+     * @param request - The prepare request message
      * @param acceptor - The Acceptor socket
      */
-    public void sendRequest(Message prepReq, Socket acceptor) throws IOException, JAXBException {
+    public void sendRequest(Message request, Socket acceptor) throws IOException, JAXBException {
         BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(acceptor.getOutputStream()));
         StringWriter sWriter = new StringWriter();
-        MitterServer.jaxbMarshallerMessage.marshal(prepReq, sWriter);
+        MitterServer.jaxbMarshallerMessage.marshal(request, sWriter);
         buffWriter.write(sWriter.toString());
         buffWriter.newLine();
         buffWriter.flush();
