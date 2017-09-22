@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.subscription.Subscription;
 import java.net.Socket;
 import java.util.ArrayList;

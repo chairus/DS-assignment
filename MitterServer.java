@@ -1,8 +1,8 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.heartbeat.Heartbeat;
-import generated.nonstandard.notification.Notification.Timestamp;
+import generated.nonstandard.notification.NotificationInfo.Timestamp;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
@@ -82,13 +82,13 @@ public class MitterServer {
     private int notifierPort;
     private int serverPort;
     private Writer writer;
-    private Notification notification;
+    private NotificationInfo notification;
     private BufferedWriter buffWriter;
     // A variable that holds if the MitterServer is ready to write or if the MitterServer is currently writing on one of the lists(urgent, caution, notice).
     public static Integer[] writerCount = {0,0,0};  // [urgent, caution, notice]
     // Semaphores that synchronizes the readers and writers. This semaphore allows 100 readers to read at the same time.
     public static List<Semaphore> readWriteSemaphores;    // [urgent, caution, notice]
-    public static List<Notification> notificationList;
+    public static List<NotificationInfo> notificationList;
     public Thread serverListenerThread;
     public Thread notifierListenerThread;
     public Thread clientListenerThread;
@@ -187,7 +187,7 @@ public class MitterServer {
                 notificationListLock.lock();    // Obtain the lock for the notification list
                 if (!notificationList.isEmpty()) {
                     // System.err.println("Notification list is not empty. Taking one out...");
-                    Notification notification = takeOneFromNotificationList();
+                    NotificationInfo notification = takeOneFromNotificationList();
                     assignSequenceNumberAndStore(notification);
                     // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                 } else {
@@ -320,8 +320,8 @@ public class MitterServer {
      * Take notifications from the notification list and stores it into one of the lists.
      * This method does not wait if the notification list is empty.
      */
-    public Notification takeOneFromNotificationList() throws InterruptedException {
-        Notification notification = null;
+    public NotificationInfo takeOneFromNotificationList() throws InterruptedException {
+        NotificationInfo notification = null;
         // System.err.println("Taking notification from the list...");
         // notificationListLock.lock();    // Obtain the lock for the notification list
 
@@ -341,7 +341,7 @@ public class MitterServer {
      * This method assign a sequence number to a notification and store it into the correct list.
      * @param notification - Notification received from one of the notifiers or server
      */
-    public void assignSequenceNumberAndStore(Notification notification) throws InterruptedException {
+    public void assignSequenceNumberAndStore(NotificationInfo notification) throws InterruptedException {
         // System.err.println("Assigning sequence number on a notification...");
         OrderedNotification orderedNotification = new OrderedNotification();
 
@@ -368,7 +368,7 @@ public class MitterServer {
      * @param notification - Notification taken from the notification list
      * @param severity - The encoded severity number[0 - urgent, 1 - caution, 2 - notice]
      */
-    public OrderedNotification assignSequenceNumber(Notification notification, int severity) {
+    public OrderedNotification assignSequenceNumber(NotificationInfo notification, int severity) {
         OrderedNotification on = new OrderedNotification();
         long currSeqNum = totalOrderSequenceNumbers[severity];; // The current sequence number
 

@@ -21,7 +21,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.UnmarshalException;
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 
 
 /**
@@ -120,7 +120,7 @@ public class NotifierListener extends Thread {
         String n = null;
         try {
             // Initialize unmarshaller(notification)
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
             // the channel is non blocking so keep it open till the
@@ -136,7 +136,7 @@ public class NotifierListener extends Thread {
                 // System.out.println(n);
                 StringReader dataReader = new StringReader(n.trim());
                 // System.out.println("Unmarshalling...");
-                Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                NotificationInfo notification = (NotificationInfo) jaxbUnmarshaller.unmarshal(dataReader);
                 // System.out.println("Unmarshalling...SUCCESS");
                 // System.err.println("Putting notification into the list...");
                 put(notification);
@@ -159,7 +159,7 @@ public class NotifierListener extends Thread {
     /**
      * This method puts the notification into the list. This method waits if the list is full.
      */
-    public void put(Notification notification) throws InterruptedException {
+    public void put(NotificationInfo notification) throws InterruptedException {
         MitterServer.notificationListLock.lock();   // Obtain lock for the notification list
 
         while (MitterServer.MAX_NOTIFICATIONS_LIST == MitterServer.notificationListCount) {

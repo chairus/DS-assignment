@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.subscription.Subscription;
 
 /**
@@ -23,7 +23,7 @@ public class Filter {
      * @param n - The notification to be checked
      * @return boolean - True if a given notification satisfies the subscription
      */
-    public boolean filterNotification(Notification n) {
+    public boolean filterNotification(NotificationInfo n) {
         boolean isSubscribedTo = false;
 
         // Has subscribed to all notifications

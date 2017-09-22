@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;

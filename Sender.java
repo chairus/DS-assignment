@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.*;
+import generated.nonstandard.notification.NotificationInfo;
 import java.net.Socket;
 import java.io.IOException;
 import java.io.Writer;
@@ -53,7 +53,7 @@ public class Sender {
         }
 
         while (!queue.isEmpty()) {
-            Notification notification = queue.popHead().getNotification();
+            NotificationInfo notification = queue.popHead().getNotification();
 
             try {
                 // Get stream for writing notifications
@@ -61,7 +61,7 @@ public class Sender {
                 Writer writer = new OutputStreamWriter(out, "UTF-8");
                 BufferedWriter buffWriter = new BufferedWriter(writer);
                 
-                JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+                JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
                 Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
                 StringWriter dataWriter = new StringWriter();
                 
