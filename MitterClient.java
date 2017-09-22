@@ -60,7 +60,8 @@ public class MitterClient {
             InputStreamReader reader = new InputStreamReader(in, "UTF-8");
             BufferedReader buffReader = new BufferedReader(reader);
 
-            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            // JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance("generated.nonstandard.notification");
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
             StringReader dataReader = null;
 
@@ -75,7 +76,8 @@ public class MitterClient {
                             dataReader = new StringReader(receivedNotification.get(0));
                             receivedNotification.remove(0);
                             System.out.println("Unmarshalling read XML data...");
-                            NotificationInfo notification = (NotificationInfo) jaxbUnmarshaller.unmarshal(dataReader);
+                            JAXBElement<NotificationInfo> notificationInfo = (JAXBElement<NotificationInfo>) jaxbUnmarshaller.unmarshal(dataReader);
+                            NotificationInfo notification = notificationInfo.getValue();
                             System.out.println("===================================================");
                             System.out.println("Received notification!!!");
                             System.out.println("Sender: " + notification.getSender());

@@ -1,6 +1,7 @@
 package uni.mitter;
 
 import generated.nonstandard.notification.NotificationInfo;
+import generated.nonstandard.notification.ObjectFactory;
 import java.net.Socket;
 import java.io.IOException;
 import java.io.Writer;
@@ -10,6 +11,7 @@ import java.io.BufferedWriter;
 import java.io.StringWriter;
 import java.util.concurrent.TimeUnit;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
 
 public class Sender {
@@ -67,7 +69,9 @@ public class Sender {
                 
                 // System.out.print("Sending marshalled notification to the client...");
                 /* marshalling of java objects in xml (send to client) */
-                jaxbMarshaller.marshal(notification, dataWriter);
+                ObjectFactory objectFactory = new ObjectFactory();
+                JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
+                jaxbMarshaller.marshal(notificationInfo, dataWriter);
                 buffWriter = new BufferedWriter(writer);
                 buffWriter.write(dataWriter.toString());
                 buffWriter.newLine();

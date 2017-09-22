@@ -18,7 +18,9 @@ import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.JAXBIntrospector;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.UnmarshalException;
 import generated.nonstandard.notification.NotificationInfo;
@@ -120,7 +122,8 @@ public class NotifierListener extends Thread {
         String n = null;
         try {
             // Initialize unmarshaller(notification)
-            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            // JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance("generated.nonstandard.notification");
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
             // the channel is non blocking so keep it open till the
@@ -136,10 +139,11 @@ public class NotifierListener extends Thread {
                 // System.out.println(n);
                 StringReader dataReader = new StringReader(n.trim());
                 // System.out.println("Unmarshalling...");
-                NotificationInfo notification = (NotificationInfo) jaxbUnmarshaller.unmarshal(dataReader);
+                JAXBElement<NotificationInfo> notificationInfo = (JAXBElement<NotificationInfo>) jaxbUnmarshaller.unmarshal(dataReader);
+                // NotificationInfo notificationInfo = (NotificationInfo) JAXBIntrospector.getValue(jaxbUnmarshaller.unmarshal(dataReader));
                 // System.out.println("Unmarshalling...SUCCESS");
                 // System.err.println("Putting notification into the list...");
-                put(notification);
+                put(notificationInfo.getValue());
             }    
         } catch (JAXBException e) {
             System.err.println(e.getMessage());

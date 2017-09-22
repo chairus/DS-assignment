@@ -1,6 +1,7 @@
 package uni.mitter;
 
 import generated.nonstandard.notification.NotificationInfo;
+import generated.nonstandard.notification.ObjectFactory;
 import generated.nonstandard.heartbeat.Heartbeat;
 import generated.nonstandard.notification.NotificationInfo.Timestamp;
 import java.io.BufferedReader;
@@ -165,7 +166,7 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             int serverSize = 0;
-            while (serverSize < 4) {
+            while (serverSize < 2) {
                 synchronized (serversList) {
                     serverSize = serversList.size();
                 }
@@ -178,9 +179,9 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
 
             if (currentLeader.getId() == serverId) {
-                System.out.println("I AM THE LEADER!");
+                System.out.println("I AM THE LEADER/PROPOSER!");
             } else {
-                System.out.println("I AM A SERVANT!");
+                System.out.println("I AM An ACCEPTOR!");
             }
 
             while (true) {
