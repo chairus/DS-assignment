@@ -49,7 +49,7 @@ public class Proposer {
     
                 /* ========== PREPARE PHASE ========== */
                 // Send a prepare request to all acceptors
-                result = prepareRequest(value);
+                result = prepareRequest();
     
                 if (!result.hasMajority) {
                     return false;
@@ -77,29 +77,11 @@ public class Proposer {
      * which is composed of the sender's server id and the round number.
      * @param value - The notification to be written to each log on each server
      */
-    private PreparePhaseResult prepareRequest(NotificationInfo value) {
+    private PreparePhaseResult prepareRequest() {
         Message prepareReq = setupPrepareRequest(); // Initialize the prepare message
         PreparePhaseResult result = new PreparePhaseResult();
-        // Send the prepare request to all acceptors
-        int index = 0;
-        synchronized(MitterServer.serversList) {
-            while (index < MitterServer.serversList.size()) {
-                ServerPeers.ServerIdentity acceptor = MitterServer.serversList.get(index);
-                try {
-                    sendRequest(prepareReq, acceptor.getSocket());    
-                } catch (IOException e) {
-                    // A server has been disconnected?
-                    if (removeFromActiveServers(acceptor)) {
-                        index -= 1;
-                    }
-                } catch (JAXBException e) {
-                    System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-                    e.printStackTrace();
-                    System.exit(1);
-                }
-                index += 1;
-            }
-        }
+
+        broadcastRequest(prepareReq);
 
         // Listen for the responses from all acceptors until a majority of reponses has
         // been received
@@ -195,7 +177,7 @@ public class Proposer {
     private boolean acceptRequest(NotificationInfo value) {
         Message acceptReq = setupAcceptRequest(value);
         
-        sendAcceptRequestToAll(acceptReq);
+        broadcastRequest(acceptReq);
 
         // Listen for the responses from all acceptors until a majority of reponses has been received
         // and for each accept response received send a Success message if the firstUnchosenIndex in the
@@ -269,7 +251,7 @@ public class Proposer {
      * This method sends Accept request to all acceptors.
      * @param value - The value to be broadcasted to all acceptors
      */
-    public void sendAcceptRequestToAll(Message value) {
+    public void broadcastRequest(Message value) {
         // Send accept request to all acceptors
         int index = 0;
         synchronized(MitterServer.serversList) {
@@ -371,14 +353,13 @@ public class Proposer {
         Message prepareReq = new Message();
         prepareReq.setAccept(null);
         prepareReq.setSuccess(null);
-        Message.Prepare prep = new Message.Prepare();
-        prep.setResponse(null);
-        Message.Prepare.Request request = new Message.Prepare.Request();
-        request.setIndex(MitterServer.firstUnchosenIndex);
+        prepareReq.setPrepare(new Message.Prepare());
+        prepareReq.getPrepare().setResponse(null);
+        prepareReq.getPrepare().setRequest(new Message.Prepare.Request());
+        prepareReq.getPrepare().getRequest().setIndex(MitterServer.firstUnchosenIndex);
         // Proposal number would be of the format "[maxRound].[serverId]"
-        request.setProposalNumber(new String(String.valueOf(MitterServer.maxRound) + "." + MitterServer.serverId));
-        prep.setRequest(request);
-        prepareReq.setPrepare(prep);
+        prepareReq.getPrepare().getRequest().setProposalNumber(new String(String.valueOf(MitterServer.maxRound) + "." + MitterServer.serverId));
+        
         MitterServer.maxRound += 1;
 
         return prepareReq;

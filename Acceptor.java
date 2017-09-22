@@ -36,12 +36,20 @@ import generated.nonstandard.message.Message;
      */
      public void readValue() {
         Message request = readARequestFromLeader();
-        if (request.getPrepare() != null) {         // Prepare request
-            responsePrepareRequest(request);
-        } else if (request.getAccept() != null) {   // Accept request
-            responseAcceptRequest(request);
-        } else {                                    // Success request
-            responseSuccessRequest(request);
+        respondToLeader(request);
+     }
+
+     public void respondToLeader(Message request) {
+        if (request != null) {
+            if (request.getPrepare() != null) {         // Prepare request
+                responsePrepareRequest(request);
+            } else if (request.getAccept() != null) {   // Accept request
+                responseAcceptRequest(request);
+            } else {                                    // Success request
+                responseSuccessRequest(request);
+            }
+        } else {
+            System.err.printf("[ SERVER %d ] A leader has not been elected.", MitterServer.serverId);
         }
      }
 
@@ -51,6 +59,7 @@ import generated.nonstandard.message.Message;
       */
      public Message readARequestFromLeader() {
         Message request = null;
+
         try {
             BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
             while (request == null) {
@@ -118,10 +127,14 @@ import generated.nonstandard.message.Message;
 
         Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
         sendRequestResponse(response);
+        
+        // Listen for request from leader
+        Message receivedReq = readARequestFromLeader();
+        respondToLeader(receivedReq);
     }
 
     /**
-     * This method sends the response of the prepare request to the proposer/leader
+     * This method sends a response(prepare/accept/success) to the proposer/leader
      * @param response - The response to be sent to the proposer or leader
      */
     public void sendRequestResponse(Message response) {
@@ -234,6 +247,9 @@ import generated.nonstandard.message.Message;
         }
         Message acceptResponse = setupAcceptResponse();
         sendRequestResponse(acceptResponse);
+        // Read another request from the leader/proposer
+        Message req = readARequestFromLeader();
+        respondToLeader(req);
     }
 
     public Message setupAcceptResponse() {
@@ -249,11 +265,44 @@ import generated.nonstandard.message.Message;
         return acceptRes;
     }
 
+    public Message setupSuccessRequest() {
+        Message successReq = new Message();
+        successReq.setAccept(null);
+        successReq.setPrepare(null);
+        successReq.setSuccess(new Message.Success());
+        successReq.getSuccess().setResponse(new Message.Success.Response());
+        successReq.getSuccess().getResponse().setAcceptorsFirstUnchosenIndex(MitterServer.firstUnchosenIndex);
+        return successReq;
+    }
+
+    public void updateLog(Message successRequest) {
+        int successRequestIndex = successRequest.getSuccess().getRequest().getIndex();
+        NotificationInfo successRequestValue = successRequest.getSuccess().getRequest().getValue();
+
+        if (successRequestIndex > MitterServer.log.size()) {
+            System.err.println("Index out of bounds.");
+            return;
+        }
+
+        LogEntry updatedEntry = MitterServer.log.get(successRequestIndex);
+        updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
+        updatedEntry.setAcceptedValue(successRequestValue);
+
+        MitterServer.log.set(successRequestIndex, updatedEntry);
+        MitterServer.firstUnchosenIndex += 1;
+    }
+
     /**
      * This method response to the success request of a proposer/leader.
      * @param request - The success request
      */
     public void responseSuccessRequest(Message request) {
+        updateLog(request);
+        Message successReq = setupSuccessRequest();
 
+        sendRequestResponse(successReq);
+
+        Message receivedRequest = readARequestFromLeader();
+        respondToLeader(receivedRequest);
     }
  }
