@@ -223,6 +223,7 @@ import generated.nonstandard.message.Message;
         }
         Message acceptResponse = setupAcceptResponse();
         sendRequestResponse(acceptResponse);
+        System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
         // Read another request from the leader/proposer
         Message req = readARequestFromLeader();
         respondToLeader(req);
@@ -233,13 +234,15 @@ import generated.nonstandard.message.Message;
      * @param request - The success request
      */
     public void respondSuccessRequest(Message request) {
-        updateLog(request);
-        // Message successReq = setupSuccessRequest();
-
-        // sendRequestResponse(successReq);
-
-        // Message receivedRequest = readARequestFromLeader();
-        // respondToLeader(receivedRequest);
+        int proposersFirstUnchosenIndex = request.getSuccess().getRequest().getIndex();
+        if (proposersFirstUnchosenIndex > -1) {
+            updateLog(request);
+            Message successReq = setupSuccessRequest();
+            sendRequestResponse(successReq);
+            System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
+            Message receivedRequest = readARequestFromLeader();
+            respondToLeader(receivedRequest);
+        }
     }
 
     /**

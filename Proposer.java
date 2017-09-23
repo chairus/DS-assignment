@@ -28,7 +28,7 @@ import java.net.Socket;
 
 public class Proposer {
     // Keeps track of the porposed index
-    int proposedIndex;
+    private int proposedIndex;
 
     // Constructor
     public Proposer() {
@@ -54,7 +54,7 @@ public class Proposer {
                     return false;
                 }
             } else { // Start with prepare phase then accept phase
-                MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
+                // MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                 proposedIndex = MitterServer.firstUnchosenIndex;
                 MitterServer.nextIndex = proposedIndex + 1;
                 
@@ -144,12 +144,22 @@ public class Proposer {
                                         numOfNoMoreAcceptedResponse += 1;
                                     }
                                     numOfVotes += 1;
-                                } 
+                                    numOfServersResponded += 1;
+                                }
+                            } else if (response.getAccept() != null) { // Received response to accept request
+                                float acceptResponseProposalNumber = Float.parseFloat(response.getAccept().getResponse().getAcceptorMinProposalNumber());
+                                int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
+                                if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
+                                    && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
+                                    sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
+                                }
                             } else if (response.getSuccess() != null) { // Received response to success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
+                            } else {                                    // Received heartbeat message
+                                MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
                     } catch (IOException e) { // A server has crashed or got disconnected
@@ -341,7 +351,7 @@ public class Proposer {
             int majoritySize = numOfActiveServers/2;
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
-            while (numOfVotes < majoritySize && numOfServersResponded < numOfActiveServers) {
+            while (/*numOfVotes < majoritySize &&*/ numOfServersResponded < numOfActiveServers) {
                 int index = 0;
                 while (index < numOfActiveServers) {
                     acceptor = MitterServer.serversList.get(index);
@@ -357,9 +367,9 @@ public class Proposer {
                                     return false;
                                 }
                                 numOfVotes += 1;
+                                numOfServersResponded += 1;
                                 // Send success message
-                                MitterServer.updateLastLogIndex();
-                                int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex(); 
+                                int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
                                     && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
@@ -395,13 +405,21 @@ public class Proposer {
                 updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
                 updatedEntry.setAcceptedValue(acceptReq.getAccept().getRequest().getValue());
                 MitterServer.log.set(proposedIndex, updatedEntry);
+                MitterServer.updateLastLogIndex();
+                System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
                 MitterServer.firstUnchosenIndex += 1;
+                System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
 
         return true;
     }
 
+    /**
+     * This method sends a success request to an acceptor.
+     * @param acceptorsFirstUnchosenIndex - The acceptor's first unchosen index
+     * @param acceptor - The acceptor's identity(i.e. its server id and socket)
+     */
     public void sendSuccessRequest(int acceptorsFirstUnchosenIndex, ServerPeers.ServerIdentity acceptor) {
         Message successReq = setupSuccessRequest(acceptorsFirstUnchosenIndex);
         try {

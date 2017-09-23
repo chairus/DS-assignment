@@ -121,7 +121,7 @@ public class ServerPeers extends Thread {
                                 s.connect(endpoint);
 
                                 // Send a heartbeat message to identify itself
-                                MitterServer.sendMessage(s);
+                                MitterServer.sendHeartbeatMessage(s);
 
                                 synchronized (MitterServer.serversList) {
                                     MitterServer.serversList.add(new ServerIdentity(s,remoteServerId));

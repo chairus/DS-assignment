@@ -254,7 +254,7 @@ public class MitterServer {
                 synchronized (serversList) {
                     // Send heartbeat message to all servers
                     for (ServerPeers.ServerIdentity sId: serversList) {
-                        sendMessage(sId.getSocket());
+                        sendHeartbeatMessage(sId.getSocket());
                         try {
                             TimeUnit.MILLISECONDS.sleep(20);
                         } catch (InterruptedException e) {
@@ -272,9 +272,9 @@ public class MitterServer {
                 currentLeader = highestId;
                 return true;
             }
-
+            
             // Send heartbeat message to server with highest id
-            sendMessage(highestId.getSocket());
+            sendHeartbeatMessage(highestId.getSocket());
 
             // Read the received heartbeat with a 300ms time limit
             long startTime = System.currentTimeMillis();
@@ -304,7 +304,7 @@ public class MitterServer {
      * This method sends a message to a server using the given socket.
      * @param s - A socket on where to send a heartbeat message to
      */
-    public static void sendMessage(Socket s) throws JAXBException, IOException {
+    public static void sendHeartbeatMessage(Socket s) throws JAXBException, IOException {
         BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
         StringWriter sWriter = new StringWriter();
         Message hb = setupHeartbeatMessage();
