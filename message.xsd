@@ -97,6 +97,15 @@
                         </xsd:sequence>
                     </xsd:complexType>
                 </xsd:element>
+                <!-- HEARTBEAT -->
+                <xsd:element name="heartbeat">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <!-- SENDER -->
+                            <xsd:element name="serverId" type="xsd:int" />
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
             </xsd:sequence>
         </xsd:complexType>
     </xsd:element>

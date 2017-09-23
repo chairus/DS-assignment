@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # XSD files
-xjc heartbeat.xsd
 xjc message.xsd
 xjc notification.xsd
 xjc subscription.xsd

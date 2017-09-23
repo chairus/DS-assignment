@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import generated.nonstandard.heartbeat.Heartbeat;
+import generated.nonstandard.message.Message;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -74,14 +74,14 @@ public class ServerPeers extends Thread {
                     Socket s = MitterServer.serverSocket.accept();
 
                     // Find the id of the newly connected server by exchanging heartbeat message
-                    Heartbeat hb = MitterServer.readHeartbeatMessage(s);
+                    Message hb = MitterServer.readMessage(s);
                     while (hb == null) {
-                        hb = MitterServer.readHeartbeatMessage(s);
+                        hb = MitterServer.readMessage(s);
                     }
 
                     // Check if the accepted server connection is already connected
                     boolean isConnected = false;
-                    int serverId = hb.getServerId();
+                    int serverId = hb.getHeartbeat().getServerId();
 
                     synchronized (MitterServer.serversList) {
                         for (ServerIdentity sId: MitterServer.serversList) {
@@ -121,7 +121,7 @@ public class ServerPeers extends Thread {
                                 s.connect(endpoint);
 
                                 // Send a heartbeat message to identify itself
-                                MitterServer.sendHeartbeatMessage(s);
+                                MitterServer.sendMessage(s);
 
                                 synchronized (MitterServer.serversList) {
                                     MitterServer.serversList.add(new ServerIdentity(s,remoteServerId));

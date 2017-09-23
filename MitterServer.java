@@ -3,7 +3,6 @@ package uni.mitter;
 import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.message.Message;
 import generated.nonstandard.notification.ObjectFactory;
-import generated.nonstandard.heartbeat.Heartbeat;
 import generated.nonstandard.notification.NotificationInfo.Timestamp;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -99,10 +98,6 @@ public class MitterServer {
     public Thread clientListenerThread;
     public static long notificationListCount;
     private long[] totalOrderSequenceNumbers = {1,1,1}; // [urgent, caution, notice]
-    // Marshaller and unmarshaller of the heartbeat message
-    public static JAXBContext jaxbContextHeartbeat;
-    public static Unmarshaller jaxbUnmarshallerHeartbeat;
-    public static Marshaller jaxbMarshallerHeartbeat;
     // Marshaller and unmarshaller of the Prepare, Accept and Success message
     public static JAXBContext jaxbContextMessage;
     public static Unmarshaller jaxbUnmarshallerMessage;
@@ -156,10 +151,6 @@ public class MitterServer {
         this.serverPort = serverPort;
         MitterServer.serverId = serverId;
         try {
-            // Create marshaller and unmarshaller for the heartbeat message
-            MitterServer.jaxbContextHeartbeat = JAXBContext.newInstance(Heartbeat.class);
-            MitterServer.jaxbUnmarshallerHeartbeat = jaxbContextHeartbeat.createUnmarshaller();
-            MitterServer.jaxbMarshallerHeartbeat = jaxbContextHeartbeat.createMarshaller();
             // Create marshaller and unmarshaller for the Prepare, Accept and Success messages
             MitterServer.jaxbContextMessage = JAXBContext.newInstance(Message.class);
             MitterServer.jaxbUnmarshallerMessage = jaxbContextMessage.createUnmarshaller();
@@ -212,7 +203,7 @@ public class MitterServer {
                 isLeader = false;
             }
 
-            int prevLogSize = 0;
+            int prevFirstUnchosenIndex = firstUnchosenIndex;
 
             while (true) {
                 if (isLeader) {
@@ -240,9 +231,9 @@ public class MitterServer {
                     nextLogEntryToStore += 1;
                 }
 
-                if (!log.isEmpty() && prevLogSize < log.size()) {
+                if (!log.isEmpty() && prevFirstUnchosenIndex < firstUnchosenIndex) {
                     printLog();
-                    prevLogSize = log.size();
+                    prevFirstUnchosenIndex = firstUnchosenIndex;
                 }
             }
             
@@ -263,7 +254,7 @@ public class MitterServer {
                 synchronized (serversList) {
                     // Send heartbeat message to all servers
                     for (ServerPeers.ServerIdentity sId: serversList) {
-                        sendHeartbeatMessage(sId.getSocket());
+                        sendMessage(sId.getSocket());
                         try {
                             TimeUnit.MILLISECONDS.sleep(20);
                         } catch (InterruptedException e) {
@@ -274,7 +265,7 @@ public class MitterServer {
                     }
                     // Read all received heartbeat messages
                     for (ServerPeers.ServerIdentity sId: serversList) {
-                        readHeartbeatMessage(sId.getSocket());
+                        readMessage(sId.getSocket());
                     }
                 }
                 
@@ -283,15 +274,15 @@ public class MitterServer {
             }
 
             // Send heartbeat message to server with highest id
-            sendHeartbeatMessage(highestId.getSocket());
+            sendMessage(highestId.getSocket());
 
             // Read the received heartbeat with a 300ms time limit
             long startTime = System.currentTimeMillis();
             long currentTime;
             do {
-                Heartbeat hb = readHeartbeatMessage(highestId.getSocket());
+                Message hb = readMessage(highestId.getSocket());
                 if (hb != null) {
-                    if (hb.getServerId() == highestId.getId()) {
+                    if (hb.getHeartbeat().getServerId() == highestId.getId()) {
                         currentLeader = highestId;
                         return true;
                     }
@@ -310,35 +301,34 @@ public class MitterServer {
     }
 
     /**
-     * This method sends a heartbeat message to a server using the given socket.
+     * This method sends a message to a server using the given socket.
      * @param s - A socket on where to send a heartbeat message to
      */
-    public static void sendHeartbeatMessage(Socket s) throws JAXBException, IOException {
+    public static void sendMessage(Socket s) throws JAXBException, IOException {
         BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
         StringWriter sWriter = new StringWriter();
-        Heartbeat hb = new Heartbeat();
-        hb.setServerId(serverId);
-        jaxbMarshallerHeartbeat.marshal(hb, sWriter);
+        Message hb = setupHeartbeatMessage();
+        jaxbMarshallerMessage.marshal(hb, sWriter);
         buffWriter.write(sWriter.toString());
         buffWriter.newLine();
         buffWriter.flush();
     }
 
     /**
-     * This method reads a heartbeat message from a given server using the given socket.
+     * This method reads a message from a given server using the given socket.
      * @param s - A socket on where to listen for a heartbeat message
      * @return - The heartbeat message, null if none is read
      */
-    public static Heartbeat readHeartbeatMessage(Socket s) throws JAXBException, IOException {
+    public static Message readMessage(Socket s) throws JAXBException, IOException {
         BufferedReader buffReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         StringReader sReader;
-        Heartbeat hb = null;
+        Message hb = null;
 
         if (buffReader.ready()) {
             String line = buffReader.readLine();
             if (line != null) {
                 sReader = new StringReader(line);
-                hb = (Heartbeat) jaxbUnmarshallerHeartbeat.unmarshal(sReader);
+                hb = (Message) jaxbUnmarshallerMessage.unmarshal(sReader);
             }
         }
 
@@ -555,14 +545,33 @@ public class MitterServer {
         }
     }
 
+    /**
+     * Creates a heartbeat message
+     * @return - The heartbeat message
+     */
+    public static Message setupHeartbeatMessage() {
+        Message message = new Message();
+        new Message();
+        message.setHeartbeat(new Message.Heartbeat());
+        message.setAccept(null);
+        message.setPrepare(null);
+        message.setSuccess(null);
+        message.getHeartbeat().setServerId(serverId);
+        return message;
+    }
+
     /* =========== FOR DEBUGGING PURPOSES =========== */
     public void printLog() {
         System.out.println("Log entries: ");
-        for(LogEntry entry: log) {
+        int index = 0;
+        LogEntry entry = null;
+        while (index < firstUnchosenIndex) {
+            entry = log.get(index);
             System.out.printf("Accepted proposal: %f\n", entry.getAcceptedProposal());
             System.out.println("Accepted value: ");
             System.out.println("\tSender: " + entry.getAcceptedValue().getSender());
             System.out.println("\tMessage: " + entry.getAcceptedValue().getMessage());
+            index += 1;
         }
     }
 

@@ -42,11 +42,17 @@ import generated.nonstandard.message.Message;
      public void respondToLeader(Message request) {
         if (request != null) {
             if (request.getPrepare() != null) {         // Prepare request
+                System.out.println("RECEIVED PREPARE REQUEST");
                 respondPrepareRequest(request);
             } else if (request.getAccept() != null) {   // Accept request
+                System.out.println("RECEIVED ACCEPT REQUEST");
                 respondAcceptRequest(request);
-            } else {                                    // Success request
+            } else if (request.getSuccess() != null) {  // Success request
+                System.out.println("RECEIVED SUCCESS REQUEST");
                 respondSuccessRequest(request);
+            } else {                                    // Heartbeat message
+                System.out.println("RECEIVED HEARTBEAT MESSAGE");
+
             }
         } else {
             System.err.printf("[ SERVER %d ] A leader has not been elected.", MitterServer.serverId);
@@ -69,8 +75,7 @@ import generated.nonstandard.message.Message;
                     request = res;
                 }
             }    
-        } catch (IOException e) {
-            // The leader has failed/disconnected?
+        } catch (IOException e) { // The leader has crashed or got disconnected
             System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
             e.printStackTrace();
             System.exit(1);
@@ -108,7 +113,7 @@ import generated.nonstandard.message.Message;
         }
         
         if (requestIndex > MitterServer.log.size()-1) {
-            MitterServer.increaseLogCapacity(requestIndex+1);
+            MitterServer.increaseLogCapacity(requestIndex+20);
         }
 
         acceptedValue = MitterServer.log.get(requestIndex).getAcceptedValue();
