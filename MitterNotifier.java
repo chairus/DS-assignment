@@ -1,10 +1,7 @@
 package uni.mitter;
 
 import generated.nonstandard.notification.NotificationInfo;
-<<<<<<< HEAD
-=======
 import generated.nonstandard.notification.ObjectFactory;
->>>>>>> master
 import java.net.Socket;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -33,20 +30,13 @@ public class MitterNotifier {
             BufferedWriter buffWriter = new BufferedWriter(writer);
             
             JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
-<<<<<<< HEAD
-=======
             ObjectFactory objectFactory = new ObjectFactory();
->>>>>>> master
             Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
             try {
                 // Create object notification
                 NotificationInfo notification = new NotificationInfo();
-<<<<<<< HEAD
-                System.out.println("Sending marshalled notification to the server...");
-=======
->>>>>>> master
                 notification = createNotification("IW_building",
                                                   "Ingkarni Wardli Building",
                                                   "Elevator Maintenance",

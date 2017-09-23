@@ -1,12 +1,8 @@
 package uni.mitter;
 
-<<<<<<< HEAD
+import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.message.Message;
-import generated.nonstandard.notification.NotificationInfo;
-=======
-import generated.nonstandard.notification.NotificationInfo;
 import generated.nonstandard.notification.ObjectFactory;
->>>>>>> master
 import generated.nonstandard.heartbeat.Heartbeat;
 import generated.nonstandard.notification.NotificationInfo.Timestamp;
 import java.io.BufferedReader;
@@ -116,6 +112,8 @@ public class MitterServer {
     private Acceptor acceptor;
     // An assertion if this server is the current leader/proposer
     private boolean isLeader;
+    // This index keeps track of which entry in the log is now ready to copy into the setOfNotifications list 
+    private int nextLogEntryToStore;
 
     /**
      * Constructor
@@ -142,6 +140,7 @@ public class MitterServer {
         prepared = false;
         firstUnchosenIndex = 0;
         isLeader = false;
+        nextLogEntryToStore = 0;
     }
 
     /**
@@ -214,15 +213,30 @@ public class MitterServer {
             }
 
             while (true) {
-                notificationListLock.lock();    // Obtain the lock for the notification list
-                if (!notificationList.isEmpty() && isLeader) {
-                    // System.err.println("Notification list is not empty. Taking one out...");
-                    NotificationInfo notification = takeOneFromNotificationList();
-                    assignSequenceNumberAndStore(notification);
-                    // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
+                if (isLeader) {
+                    notificationListLock.lock();    // Obtain the lock for the notification list
+                    if (!notificationList.isEmpty()) {
+                        // System.err.println("Notification list is not empty. Taking one out...");
+                        NotificationInfo notification = takeOneFromNotificationList();
+                        notificationListNotFullCondition.signal();  // Signal waiting notifier thread
+                        notificationListLock.unlock();  // Release lock for notification list
+                        proposer.writeValue(notification);
+                        // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
+                    } else {
+                        notificationListLock.unlock();  // Release lock for notification list
+                    }
                 } else {
-                    notificationListLock.unlock();  // Release lock for notification list
                     acceptor.readValue();
+                }
+                
+                // Put the log entries/notifications into their corresponding list container
+                if (nextLogEntryToStore < firstUnchosenIndex) {
+                    LogEntry entry = log.get(nextLogEntryToStore);
+                    while (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) >= 0) {
+                        assignSequenceNumberAndStore(entry.getAcceptedValue());
+                        nextLogEntryToStore += 1;
+                        entry = log.get(nextLogEntryToStore);
+                    }
                 }
             }
             
@@ -360,8 +374,9 @@ public class MitterServer {
             notificationListCount -= 1;
         // }
 
-        notificationListNotFullCondition.signal();  // Signal waiting notifier thread
-        notificationListLock.unlock();  // Release lock for notification list
+        /* === UNCOMMENT THE NEXT TWO LINES IF SOMETHING HAPPENS === */
+        // notificationListNotFullCondition.signal();  // Signal waiting notifier thread
+        // notificationListLock.unlock();  // Release lock for notification list
         // System.err.println("Taking notification from the list...SUCCESS");
         return notification;
     }
