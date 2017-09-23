@@ -41,7 +41,7 @@ public class MitterClientTest2 {
             subscription.setSender("bss_library");
 
 
-            socket = new Socket("localhost", 3006);
+            socket = new Socket("localhost", 3000);
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
 

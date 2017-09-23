@@ -39,23 +39,24 @@ public class Proposer {
      * This method will perform a single round of Basic Paxos with the argument as the proposed value.
      * This will return a boolean value to indicate if the value was successfully chosen.
      * @param value - The notification to be written to each log on each server
+     * @return - True if the value has been successfully chosen
      */
     public boolean writeValue(NotificationInfo value) {
         PreparePhaseResult result = new PreparePhaseResult();
         do {
-            boolean hasSuccessfullyProposed = true;
+            boolean hasSuccessfullyAccepted = true;
             if (MitterServer.prepared) { // Skip the prepare phase and go straight to accept phase
                 proposedIndex = MitterServer.nextIndex;
                 MitterServer.nextIndex += 1;
-                hasSuccessfullyProposed = acceptRequest(value);
+                hasSuccessfullyAccepted = acceptRequest(value);
                 
-                if (!hasSuccessfullyProposed) {
+                if (!hasSuccessfullyAccepted) {
                     return false;
                 }
             } else { // Start with prepare phase then accept phase
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                 proposedIndex = MitterServer.firstUnchosenIndex;
-                MitterServer.nextIndex = MitterServer.firstUnchosenIndex + 1;
+                MitterServer.nextIndex = proposedIndex + 1;
                 
                 /* ========== PREPARE PHASE ========== */
                 // Send a prepare request to all acceptors
@@ -67,16 +68,16 @@ public class Proposer {
     
                 /* ========== ACCEPT PHASE ========== */
                 if (result.acceptedValue == null) {     // No accepted value therefore pick a value
-                    hasSuccessfullyProposed = acceptRequest(value);
+                    hasSuccessfullyAccepted = acceptRequest(value);
                 } else {                                // Use the accepted value
-                    hasSuccessfullyProposed = acceptRequest(result.acceptedValue);
+                    hasSuccessfullyAccepted = acceptRequest(result.acceptedValue);
                 }
 
-                if (!hasSuccessfullyProposed) {
+                if (!hasSuccessfullyAccepted) {
                     return false;
                 }
             }
-       } while (result.acceptedValue != value);
+       } while (result.acceptedValue != null);
 
        return true;
     }
@@ -95,7 +96,6 @@ public class Proposer {
         // Listen for the responses from all acceptors until a majority of reponses has
         // been received
         List<String> receivedResponses = receiveResponses();
-        
         // Check if the majority of the reponses has a status set to true, that is the proposal
         // has been accepted by the majority of acceptors.
         List<Message> unmarshalledReceivedResponses = new ArrayList<>();    // Container on where to store the unmarshalled received responses
@@ -195,7 +195,8 @@ public class Proposer {
         List<String> receivedResponses = new ArrayList<>();
         synchronized (MitterServer.serversList) {
             int numOfActiveServers = MitterServer.serversList.size();
-            int majoritySize = ((numOfActiveServers/2));
+            // int majoritySize = (numOfActiveServers/2) + 1;
+            int majoritySize = numOfActiveServers;
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
             while (receivedResponses.size() < majoritySize) {
@@ -208,9 +209,14 @@ public class Proposer {
                         if (response != null) {
                             receivedResponses.add(response);
                             unmarshalledResponse = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(new StringReader(response));
+                            // System.out.println("Prepare: " + unmarshalledResponse.getPrepare());
+                            // System.out.println("Success: " + unmarshalledResponse.getSuccess());
+                            // System.out.println("Accept: " + unmarshalledResponse.getPrepare());
                             Float acceptResponseProposalNumber = Float.parseFloat(unmarshalledResponse.getAccept().getResponse().getAcceptorMinProposalNumber());
                             // Abandon proposal
-                            if (Float.compare(acceptResponseProposalNumber, MitterServer.nextIndex-1.0f) > 0) {
+                            float acceptRequestProposalNumber = Float.parseFloat(acceptReq.getAccept().getRequest().getProposalNumber());
+                            if (Float.compare(acceptResponseProposalNumber, acceptRequestProposalNumber) > 0) {
+                                MitterServer.maxRound = Math.round(acceptResponseProposalNumber);
                                 MitterServer.prepared = false;
                                 return false;
                             }
@@ -219,7 +225,7 @@ public class Proposer {
                             MitterServer.updateLastLogIndex();
                             int acceptResponseFirstUnchosenIndex = unmarshalledResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex(); 
                             if (acceptResponseFirstUnchosenIndex <= MitterServer.lastLogIndex
-                                && Float.compare(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) == 0) {
+                                && Float.compare(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                 sendSuccessRequest(acceptResponseFirstUnchosenIndex, acceptor);
                             }
                         }
@@ -241,13 +247,14 @@ public class Proposer {
             // boolean hasMajority = checkMajority(responses, receivedResponses);
 
             // Obtained majority of replies to proposal "proposedIndex" then set the corresponding log entry
-            if (proposedIndex > MitterServer.log.size()) {
+            if (proposedIndex >= MitterServer.log.size()) {
                 MitterServer.increaseLogCapacity(proposedIndex+1);
             }
             LogEntry updatedEntry = MitterServer.log.get(proposedIndex);
             updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
             updatedEntry.setAcceptedValue(value);
             MitterServer.log.set(proposedIndex, updatedEntry);
+            MitterServer.firstUnchosenIndex += 1;
         }
 
         return true;
@@ -303,7 +310,8 @@ public class Proposer {
         List<String> receivedResponses = new ArrayList<>();
         synchronized (MitterServer.serversList) {
             int numOfActiveServers = MitterServer.serversList.size();
-            int majoritySize = ((numOfActiveServers/2));
+            // int majoritySize = (numOfActiveServers/2) + 1;
+            int majoritySize = numOfActiveServers;
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
             while (receivedResponses.size() < majoritySize) {
@@ -331,15 +339,15 @@ public class Proposer {
     }
 
     private Message setupSuccessRequest(int acceptResponseFirstUnchosenIndex) {
-        Message success = new Message();
-        success.setAccept(null);
-        success.setPrepare(null);
-        success.setSuccess(new Message.Success());
-        success.getSuccess().setRequest(new Message.Success.Request());
-        success.getSuccess().getRequest().setIndex(acceptResponseFirstUnchosenIndex);
-        success.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
+        Message message = new Message();
+        message.setAccept(null);
+        message.setPrepare(null);
+        message.setSuccess(new Message.Success());
+        message.getSuccess().setRequest(new Message.Success.Request());
+        message.getSuccess().getRequest().setIndex(acceptResponseFirstUnchosenIndex);
+        message.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
 
-        return success;
+        return message;
     }
 
     /**
@@ -350,7 +358,7 @@ public class Proposer {
      */
     private Message setupAcceptRequest(NotificationInfo value) {
         Message acceptRequest = new Message();
-        String mostRecentProposalNumber = String.valueOf(MitterServer.maxRound-1) + "." + MitterServer.serverId;
+        String mostRecentProposalNumber = String.valueOf(MitterServer.maxRound) + "." + MitterServer.serverId;
         acceptRequest.setPrepare(null);
         acceptRequest.setSuccess(null);
         acceptRequest.setAccept(new Message.Accept());
@@ -359,6 +367,7 @@ public class Proposer {
         acceptRequest.getAccept().getRequest().setProposalNumber(mostRecentProposalNumber);
         acceptRequest.getAccept().getRequest().setValue(value);
         acceptRequest.getAccept().getRequest().setFirstUnchosenIndex(MitterServer.firstUnchosenIndex);
+        MitterServer.maxRound += 1;
 
         return acceptRequest;
     }
@@ -379,8 +388,6 @@ public class Proposer {
         prepareReq.getPrepare().getRequest().setIndex(proposedIndex);
         // Proposal number would be of the format "[maxRound].[serverId]"
         prepareReq.getPrepare().getRequest().setProposalNumber(new String(String.valueOf(MitterServer.maxRound) + "." + MitterServer.serverId));
-        
-        MitterServer.maxRound += 1;
 
         return prepareReq;
     }

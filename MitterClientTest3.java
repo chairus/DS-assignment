@@ -38,7 +38,7 @@ public class MitterClientTest3 {
             subscription.setSender("all");
 
 
-            socket = new Socket("localhost", 3006);
+            socket = new Socket("localhost", 3000);
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
 

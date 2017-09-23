@@ -132,7 +132,7 @@ public class MitterServer {
         notificationList = new ArrayList<>();
         log = new ArrayList<>();
         minProposal = 0;
-        lastLogIndex = 0;
+        lastLogIndex = -1;
         maxRound = 1;
         currentLeader = null;
         proposer = new Proposer();
@@ -212,6 +212,8 @@ public class MitterServer {
                 isLeader = false;
             }
 
+            int prevLogSize = 0;
+
             while (true) {
                 if (isLeader) {
                     notificationListLock.lock();    // Obtain the lock for the notification list
@@ -229,14 +231,18 @@ public class MitterServer {
                     acceptor.readValue();
                 }
                 
+                
                 // Put the log entries/notifications into their corresponding list container
-                if (nextLogEntryToStore < firstUnchosenIndex) {
-                    LogEntry entry = log.get(nextLogEntryToStore);
-                    while (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) >= 0) {
-                        assignSequenceNumberAndStore(entry.getAcceptedValue());
-                        nextLogEntryToStore += 1;
-                        entry = log.get(nextLogEntryToStore);
-                    }
+                LogEntry entry = null;
+                while (nextLogEntryToStore < firstUnchosenIndex) {
+                    entry = log.get(nextLogEntryToStore);
+                    assignSequenceNumberAndStore(entry.getAcceptedValue());
+                    nextLogEntryToStore += 1;
+                }
+
+                if (!log.isEmpty() && prevLogSize < log.size()) {
+                    printLog();
+                    prevLogSize = log.size();
                 }
             }
             
@@ -386,7 +392,7 @@ public class MitterServer {
      * @param notification - Notification received from one of the notifiers or server
      */
     public void assignSequenceNumberAndStore(NotificationInfo notification) throws InterruptedException {
-        // System.err.println("Assigning sequence number on a notification...");
+        System.err.println("Assigning sequence number on a notification...");
         OrderedNotification orderedNotification = new OrderedNotification();
 
         switch (notification.getSeverity().toLowerCase()) {
@@ -402,7 +408,7 @@ public class MitterServer {
             default:
                 break;
         }
-        // System.err.println("Assigning sequence number on a notification...SUCCESS");
+        System.err.println("Assigning sequence number on a notification...SUCCESS");
         putOrderedNotificationToList(orderedNotification);
     }
 
@@ -451,8 +457,8 @@ public class MitterServer {
      * @param listNumber - 0 for urgent, 1 for caution and 2 for notice
      */
     public void put(OrderedNotification orderedNotification, int listNumber) throws InterruptedException {
-        // System.err.println("Putting ordered notification into the appropriate list...");
-        synchronized (writerCount) {    // Tell the reader that the server is ready to write
+        System.err.println("Putting ordered notification into the appropriate list...");
+        synchronized (writerCount) {    // Tell the reader that a writer is ready to write
             writerCount[listNumber] += 1;
         }
 
@@ -465,7 +471,7 @@ public class MitterServer {
         }
 
         readWriteSemaphores.get(listNumber).release(MAX_NUM_READERS);  // Release lock
-        // System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
+        System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
     }
 
     /**
@@ -520,13 +526,13 @@ public class MitterServer {
     }
 
     /**
-     * This method updates the last log index
+     * This method updates the lastLogIndex variable
      */
     public static void updateLastLogIndex() {
         int index = 0;
         while (index < MitterServer.log.size()) {
             LogEntry entry = MitterServer.log.get(index);
-            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) == 0) {  // A value has been chosen for this log index
+            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) >= 0) {  // A value has been chosen for this log index
                 lastLogIndex = index;
             }
             index += 1;
@@ -546,6 +552,17 @@ public class MitterServer {
 
         while (MitterServer.log.size() < size) {
             MitterServer.log.add(new LogEntry());
+        }
+    }
+
+    /* =========== FOR DEBUGGING PURPOSES =========== */
+    public void printLog() {
+        System.out.println("Log entries: ");
+        for(LogEntry entry: log) {
+            System.out.printf("Accepted proposal: %f\n", entry.getAcceptedProposal());
+            System.out.println("Accepted value: ");
+            System.out.println("\tSender: " + entry.getAcceptedValue().getSender());
+            System.out.println("\tMessage: " + entry.getAcceptedValue().getMessage());
         }
     }
 

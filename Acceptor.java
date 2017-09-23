@@ -93,6 +93,7 @@ import generated.nonstandard.message.Message;
       */
     public void respondPrepareRequest(Message request) {
         float prepareRequestProposalNumber = Float.parseFloat(request.getPrepare().getRequest().getProposalNumber());
+        int requestIndex = request.getPrepare().getRequest().getIndex();
         boolean status = false;
         NotificationInfo acceptedValue = null;
         float acceptedProposal = -1.0f;
@@ -101,12 +102,10 @@ import generated.nonstandard.message.Message;
         // Check if the current proposal has larger number than the previous seen proposal. If it is
         // then assign it to minProposal and accept the prepare request by setting the status field to
         // true.
-        if (Float.compare(prepareRequestProposalNumber, MitterServer.minProposal) > 0) {
+        if (Float.compare(prepareRequestProposalNumber, MitterServer.minProposal) >= 0) {
             MitterServer.minProposal = prepareRequestProposalNumber;
             status = true;
         }
-
-        int requestIndex = request.getPrepare().getRequest().getIndex();
         
         if (requestIndex > MitterServer.log.size()-1) {
             MitterServer.increaseLogCapacity(requestIndex+1);
@@ -118,8 +117,9 @@ import generated.nonstandard.message.Message;
         // Check if there are more unchosen log entries aside from the firstUnchosenIndex. If there are
         // and is less than the index in the prepare request then set the noMoreAccepted field of the
         // response 
-        int maxUnchosenIndex = findMaxUnchosenIndex();
-        if (maxUnchosenIndex < requestIndex) {
+        MitterServer.updateLastLogIndex();
+        int maxChosenIndex = MitterServer.lastLogIndex;
+        if (maxChosenIndex < requestIndex) {
             noMoreAccepted = true;
         }
 
@@ -196,7 +196,11 @@ import generated.nonstandard.message.Message;
         int requestIndex = request.getAccept().getRequest().getIndex();
         NotificationInfo requestValue = request.getAccept().getRequest().getValue();
         int requestFirstUnchosenIndex = request.getAccept().getRequest().getFirstUnchosenIndex();
-        if (requestProposalNumber >= MitterServer.minProposal) {
+        if (Float.compare(requestProposalNumber, MitterServer.minProposal) >= 0) {
+            if (requestIndex > MitterServer.log.size()-1) {
+                MitterServer.increaseLogCapacity(requestIndex+1);
+            }
+
             MitterServer.log.set(requestIndex, new LogEntry(requestProposalNumber,requestValue));
             MitterServer.minProposal = requestProposalNumber;
 
@@ -225,12 +229,12 @@ import generated.nonstandard.message.Message;
      */
     public void respondSuccessRequest(Message request) {
         updateLog(request);
-        Message successReq = setupSuccessRequest();
+        // Message successReq = setupSuccessRequest();
 
-        sendRequestResponse(successReq);
+        // sendRequestResponse(successReq);
 
-        Message receivedRequest = readARequestFromLeader();
-        respondToLeader(receivedRequest);
+        // Message receivedRequest = readARequestFromLeader();
+        // respondToLeader(receivedRequest);
     }
 
     /**
@@ -292,8 +296,6 @@ import generated.nonstandard.message.Message;
         NotificationInfo successRequestValue = successRequest.getSuccess().getRequest().getValue();
 
         if (successRequestIndex > MitterServer.log.size()) {
-            // System.err.println("Index out of bounds.");
-            // return;
             MitterServer.increaseLogCapacity(successRequestIndex+1);
         }
 
