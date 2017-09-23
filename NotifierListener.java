@@ -18,10 +18,12 @@ import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.JAXBIntrospector;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.UnmarshalException;
-import generated.nonstandard.notification.Notification;
+import generated.nonstandard.notification.NotificationInfo;
 
 
 /**
@@ -120,7 +122,8 @@ public class NotifierListener extends Thread {
         String n = null;
         try {
             // Initialize unmarshaller(notification)
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            // JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance("generated.nonstandard.notification");
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
             // the channel is non blocking so keep it open till the
@@ -136,10 +139,11 @@ public class NotifierListener extends Thread {
                 // System.out.println(n);
                 StringReader dataReader = new StringReader(n.trim());
                 // System.out.println("Unmarshalling...");
-                Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                JAXBElement<NotificationInfo> notificationInfo = (JAXBElement<NotificationInfo>) jaxbUnmarshaller.unmarshal(dataReader);
+                // NotificationInfo notificationInfo = (NotificationInfo) JAXBIntrospector.getValue(jaxbUnmarshaller.unmarshal(dataReader));
                 // System.out.println("Unmarshalling...SUCCESS");
                 // System.err.println("Putting notification into the list...");
-                put(notification);
+                put(notificationInfo.getValue());
             }    
         } catch (JAXBException e) {
             System.err.println(e.getMessage());
@@ -159,7 +163,7 @@ public class NotifierListener extends Thread {
     /**
      * This method puts the notification into the list. This method waits if the list is full.
      */
-    public void put(Notification notification) throws InterruptedException {
+    public void put(NotificationInfo notification) throws InterruptedException {
         MitterServer.notificationListLock.lock();   // Obtain lock for the notification list
 
         while (MitterServer.MAX_NOTIFICATIONS_LIST == MitterServer.notificationListCount) {

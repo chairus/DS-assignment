@@ -1,6 +1,7 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.*;
+import generated.nonstandard.notification.NotificationInfo;
+import generated.nonstandard.notification.ObjectFactory;
 import java.net.Socket;
 import java.io.IOException;
 import java.io.Writer;
@@ -10,6 +11,7 @@ import java.io.BufferedWriter;
 import java.io.StringWriter;
 import java.util.concurrent.TimeUnit;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
 
 public class Sender {
@@ -53,21 +55,22 @@ public class Sender {
         }
 
         while (!queue.isEmpty()) {
-            Notification notification = queue.popHead().getNotification();
+            NotificationInfo notification = queue.popHead().getNotification();
 
             try {
                 // Get stream for writing notifications
                 OutputStream out = clientSocket.getOutputStream();
                 Writer writer = new OutputStreamWriter(out, "UTF-8");
                 BufferedWriter buffWriter = new BufferedWriter(writer);
-                
-                JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+                JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
                 Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
                 StringWriter dataWriter = new StringWriter();
                 
                 // System.out.print("Sending marshalled notification to the client...");
                 /* marshalling of java objects in xml (send to client) */
-                jaxbMarshaller.marshal(notification, dataWriter);
+                ObjectFactory objectFactory = new ObjectFactory();
+                JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
+                jaxbMarshaller.marshal(notificationInfo, dataWriter);
                 buffWriter = new BufferedWriter(writer);
                 buffWriter.write(dataWriter.toString());
                 buffWriter.newLine();

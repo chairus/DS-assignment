@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.*;
+import generated.nonstandard.notification.NotificationInfo;
 
 import generated.nonstandard.subscription.Subscription;
 import java.io.BufferedReader;
@@ -18,7 +18,6 @@ import java.net.Socket;
 /* JAVAX */
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
@@ -26,20 +25,17 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeFactory;
-
-// import generated.nonstandard.notification.Notification;
  
-public class MitterClient2 {
+public class MitterClientTest1 {
     public static void main(String[] args) throws Exception {
         Socket socket;
         List<String> receivedNotification = new ArrayList<>();
-        int updateSubscription = 1;
 
         try {
             // Create object subscription
             Subscription subscription = new Subscription();
             subscription.setLocation("all");
-            subscription.setSender("bss_library");
+            subscription.setSender("all");
 
 
             socket = new Socket("localhost", 3006);
@@ -53,7 +49,10 @@ public class MitterClient2 {
             Marshaller jaxbMarshaller = jaxbContextSub.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
+            System.out.println("===================================================");
+            System.out.println("Subscibing to all notifications...");
             System.out.println("Sending marshalled subscription to the server...");
+            System.out.println("===================================================");
             /* marshalling of java objects in xml (send to sever) */
             jaxbMarshaller.marshal(subscription, dataWriter);
             buffWriter = new BufferedWriter(writer);
@@ -64,9 +63,9 @@ public class MitterClient2 {
             InputStreamReader reader = new InputStreamReader(in, "UTF-8");
             BufferedReader buffReader = new BufferedReader(reader);
 
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            // JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance("generated.nonstandard.notification");
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-
             StringReader dataReader = null;
 
             while (true) {
@@ -80,7 +79,8 @@ public class MitterClient2 {
                             dataReader = new StringReader(receivedNotification.get(0));
                             receivedNotification.remove(0);
                             System.out.println("Unmarshalling read XML data...");
-                            Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                            JAXBElement<NotificationInfo> notificationInfo = (JAXBElement<NotificationInfo>) jaxbUnmarshaller.unmarshal(dataReader);
+                            NotificationInfo notification = notificationInfo.getValue();
                             System.out.println("===================================================");
                             System.out.println("Received notification!!!");
                             System.out.println("Sender: " + notification.getSender());
@@ -92,24 +92,6 @@ public class MitterClient2 {
                                                 notification.getTimestamp().getDate() + 
                                                 " " + notification.getTimestamp().getTime());
                         }
-                    }
-                    
-                    // Update subscription
-                    if (updateSubscription == 1) {
-                        TimeUnit.MILLISECONDS.sleep(4000);
-                        subscription.setSender("all");
-
-                        dataWriter = new StringWriter();
-                        
-                        System.out.println("Sending marshalled subscription to the server...");
-                        /* marshalling of java objects in xml (send to sever) */
-                        jaxbMarshaller.marshal(subscription, dataWriter);
-                        buffWriter = new BufferedWriter(writer);
-                        buffWriter.write(dataWriter.toString());
-                        buffWriter.newLine();
-                        buffWriter.flush();
-
-                        updateSubscription = 0;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

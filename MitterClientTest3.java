@@ -1,6 +1,6 @@
 package uni.mitter;
 
-import generated.nonstandard.notification.*;
+import generated.nonstandard.notification.NotificationInfo;
 
 import generated.nonstandard.subscription.Subscription;
 import java.io.BufferedReader;
@@ -26,7 +26,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeFactory;
  
-public class MitterClient {
+public class MitterClientTest3 {
     public static void main(String[] args) throws Exception {
         Socket socket;
         List<String> receivedNotification = new ArrayList<>();
@@ -49,7 +49,10 @@ public class MitterClient {
             Marshaller jaxbMarshaller = jaxbContextSub.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
+            System.out.println("===================================================");
+            System.out.println("Subscibing to all notifications...");
             System.out.println("Sending marshalled subscription to the server...");
+            System.out.println("===================================================");
             /* marshalling of java objects in xml (send to sever) */
             jaxbMarshaller.marshal(subscription, dataWriter);
             buffWriter = new BufferedWriter(writer);
@@ -60,7 +63,8 @@ public class MitterClient {
             InputStreamReader reader = new InputStreamReader(in, "UTF-8");
             BufferedReader buffReader = new BufferedReader(reader);
 
-            JAXBContext jaxbContext = JAXBContext.newInstance(Notification.class);
+            // JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+            JAXBContext jaxbContext = JAXBContext.newInstance("generated.nonstandard.notification");
             Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
             StringReader dataReader = null;
 
@@ -75,7 +79,8 @@ public class MitterClient {
                             dataReader = new StringReader(receivedNotification.get(0));
                             receivedNotification.remove(0);
                             System.out.println("Unmarshalling read XML data...");
-                            Notification notification = (Notification) jaxbUnmarshaller.unmarshal(dataReader);
+                            JAXBElement<NotificationInfo> notificationInfo = (JAXBElement<NotificationInfo>) jaxbUnmarshaller.unmarshal(dataReader);
+                            NotificationInfo notification = notificationInfo.getValue();
                             System.out.println("===================================================");
                             System.out.println("Received notification!!!");
                             System.out.println("Sender: " + notification.getSender());

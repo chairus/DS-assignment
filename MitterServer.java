@@ -1,7 +1,12 @@
 package uni.mitter;
 
+<<<<<<< HEAD
 import generated.nonstandard.message.Message;
 import generated.nonstandard.notification.NotificationInfo;
+=======
+import generated.nonstandard.notification.NotificationInfo;
+import generated.nonstandard.notification.ObjectFactory;
+>>>>>>> master
 import generated.nonstandard.heartbeat.Heartbeat;
 import generated.nonstandard.notification.NotificationInfo.Timestamp;
 import java.io.BufferedReader;

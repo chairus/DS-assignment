@@ -1,6 +1,10 @@
 package uni.mitter;
 
 import generated.nonstandard.notification.NotificationInfo;
+<<<<<<< HEAD
+=======
+import generated.nonstandard.notification.ObjectFactory;
+>>>>>>> master
 import java.net.Socket;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -10,10 +14,12 @@ import java.io.Writer;
 import java.util.GregorianCalendar;
 import java.util.concurrent.TimeUnit;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.namespace.QName;
 
 public class MitterNotifier {
     public static void main(String[] args) throws Exception {
@@ -27,20 +33,30 @@ public class MitterNotifier {
             BufferedWriter buffWriter = new BufferedWriter(writer);
             
             JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+<<<<<<< HEAD
+=======
+            ObjectFactory objectFactory = new ObjectFactory();
+>>>>>>> master
             Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
             StringWriter dataWriter = new StringWriter();
             
             try {
                 // Create object notification
                 NotificationInfo notification = new NotificationInfo();
+<<<<<<< HEAD
                 System.out.println("Sending marshalled notification to the server...");
+=======
+>>>>>>> master
                 notification = createNotification("IW_building",
                                                   "Ingkarni Wardli Building",
                                                   "Elevator Maintenance",
                                                   "caution",
                                                   0);
+                System.out.println("Sending marshalled notification to the server...");
+                
                 /* marshalling of java objects in xml (send to sever) */
-                jaxbMarshaller.marshal(notification, dataWriter);
+                JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
+                jaxbMarshaller.marshal(notificationInfo, dataWriter);
                 buffWriter = new BufferedWriter(writer);
                 buffWriter.write(dataWriter.toString());
                 buffWriter.newLine();
@@ -57,7 +73,8 @@ public class MitterNotifier {
 
                 dataWriter = new StringWriter();
                 /* marshalling of java objects in xml (send to sever) */
-                jaxbMarshaller.marshal(notification, dataWriter);
+                notificationInfo = objectFactory.createNotification(notification);
+                jaxbMarshaller.marshal(notificationInfo, dataWriter);
                 buffWriter = new BufferedWriter(writer);
                 buffWriter.write(dataWriter.toString());
                 buffWriter.newLine();

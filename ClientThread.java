@@ -84,7 +84,7 @@ public class ClientThread extends Thread {
             updateSubscription();
 
             // System.out.println("Starting notification assembler...");
-            // Execute the run() method in the NotificationAssembler every 10 milliseconds
+            // Execute the "run" method in the NotificationAssembler every 10 milliseconds
             t.scheduleAtFixedRate(na, 0, 10);
             // System.out.println("Starting notification assembler...SUCCESS");
 
