@@ -42,11 +42,11 @@ import generated.nonstandard.message.Message;
      public void respondToLeader(Message request) {
         if (request != null) {
             if (request.getPrepare() != null) {         // Prepare request
-                responsePrepareRequest(request);
+                respondPrepareRequest(request);
             } else if (request.getAccept() != null) {   // Accept request
-                responseAcceptRequest(request);
+                respondAcceptRequest(request);
             } else {                                    // Success request
-                responseSuccessRequest(request);
+                respondSuccessRequest(request);
             }
         } else {
             System.err.printf("[ SERVER %d ] A leader has not been elected.", MitterServer.serverId);
@@ -91,7 +91,7 @@ import generated.nonstandard.message.Message;
       * are any.
       * @param request - The prepare request
       */
-    public void responsePrepareRequest(Message request) {
+    public void respondPrepareRequest(Message request) {
         float prepareRequestProposalNumber = Float.parseFloat(request.getPrepare().getRequest().getProposalNumber());
         boolean status = false;
         NotificationInfo acceptedValue = null;
@@ -107,22 +107,20 @@ import generated.nonstandard.message.Message;
         }
 
         int requestIndex = request.getPrepare().getRequest().getIndex();
-        if (requestIndex <= MitterServer.log.size()-1) {
-            acceptedValue = MitterServer.log.get(requestIndex).getAcceptedValue();
-            acceptedProposal = MitterServer.log.get(requestIndex).getAcceptedProposal();
+        
+        if (requestIndex > MitterServer.log.size()-1) {
+            MitterServer.increaseLogCapacity(requestIndex+1);
+        }
 
-            // Check if there are more unchosen log entries aside from the firstUnchosenIndex. If there are
-            // and is less than the index in the prepare request then set the noMoreAccepted field of the
-            // response 
-            int maxUnchosenIndex = findMaxUnchosenIndex();
-            if (maxUnchosenIndex < requestIndex) {
-                noMoreAccepted = true;
-            }
-        } else {
-            // Increase capacity of the replicated log
-            while (MitterServer.log.size() <= requestIndex + 1) {
-                MitterServer.log.add(new LogEntry());
-            }
+        acceptedValue = MitterServer.log.get(requestIndex).getAcceptedValue();
+        acceptedProposal = MitterServer.log.get(requestIndex).getAcceptedProposal();
+
+        // Check if there are more unchosen log entries aside from the firstUnchosenIndex. If there are
+        // and is less than the index in the prepare request then set the noMoreAccepted field of the
+        // response 
+        int maxUnchosenIndex = findMaxUnchosenIndex();
+        if (maxUnchosenIndex < requestIndex) {
+            noMoreAccepted = true;
         }
 
         Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
@@ -170,6 +168,72 @@ import generated.nonstandard.message.Message;
     }
 
     /**
+     * This method finds the maximum unchosen index, that is the largest entry in the log that has not yet
+     * been chosen.
+     * @return - The maximum unchosen index
+     */
+    public int findMaxUnchosenIndex() {
+        int maxUnchosenIndex = MitterServer.firstUnchosenIndex;
+        int index = maxUnchosenIndex + 1;
+        while (index < MitterServer.log.size()) {
+            LogEntry entry = MitterServer.log.get(index);
+            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {
+                maxUnchosenIndex = index;
+            }
+            index += 1;
+        }
+        return maxUnchosenIndex;
+    }
+
+
+     /**
+      * This method updates the state of the acceptor with the received accept request and responds back to 
+      * the proposer/leader.
+      * @param request - The accept request
+      */
+    public void respondAcceptRequest(Message request) {
+        float requestProposalNumber = Float.parseFloat(request.getAccept().getRequest().getProposalNumber());
+        int requestIndex = request.getAccept().getRequest().getIndex();
+        NotificationInfo requestValue = request.getAccept().getRequest().getValue();
+        int requestFirstUnchosenIndex = request.getAccept().getRequest().getFirstUnchosenIndex();
+        if (requestProposalNumber >= MitterServer.minProposal) {
+            MitterServer.log.set(requestIndex, new LogEntry(requestProposalNumber,requestValue));
+            MitterServer.minProposal = requestProposalNumber;
+
+            // Mark entries that has an index less than the firstUnchosenIndex of the leader/proposer
+            // as chosen.
+            int index = 0;
+            while (index < requestFirstUnchosenIndex) {
+                LogEntry entry = MitterServer.log.get(index);
+                if (Float.compare(requestProposalNumber, entry.getAcceptedProposal()) == 0) {
+                    entry.setAcceptedProposal(Float.MAX_VALUE);
+                    MitterServer.log.set(index,entry);
+                }
+                index += 1;
+            }
+        }
+        Message acceptResponse = setupAcceptResponse();
+        sendRequestResponse(acceptResponse);
+        // Read another request from the leader/proposer
+        Message req = readARequestFromLeader();
+        respondToLeader(req);
+    }
+
+    /**
+     * This method responds to the success request of a proposer/leader.
+     * @param request - The success request
+     */
+    public void respondSuccessRequest(Message request) {
+        updateLog(request);
+        Message successReq = setupSuccessRequest();
+
+        sendRequestResponse(successReq);
+
+        Message receivedRequest = readARequestFromLeader();
+        respondToLeader(receivedRequest);
+    }
+
+    /**
      * This method creates a response to the prepare request.
      * @param status - Indicates if the acceptor accepts/rejects the prepare request
      * @param acceptedValue
@@ -192,64 +256,8 @@ import generated.nonstandard.message.Message;
         prepareResponse.getPrepare().getResponse().setAcceptedProposal(String.valueOf(acceptedProposal));
         prepareResponse.getPrepare().getResponse().setAcceptedValue(acceptedValue);
         prepareResponse.getPrepare().getResponse().setNoMoreAccepted(noMoreAccepted);
-        
+
         return prepareResponse;
-    }
-
-    /**
-     * This method finds the maximum unchosen index, that is the entry in the log that has not yet been
-     * chosen.
-     * @return - The maximum unchosen index
-     */
-    public int findMaxUnchosenIndex() {
-        int maxUnchosenIndex = MitterServer.firstUnchosenIndex;
-        int index = maxUnchosenIndex + 1;
-        while (index < MitterServer.log.size()) {
-            LogEntry entry = MitterServer.log.get(index);
-            if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {
-                maxUnchosenIndex = index;
-            }
-            index += 1;
-        }
-        return maxUnchosenIndex;
-    }
-
-
-     /**
-      * This method responds to the accept request sent by a proposer/leader.
-      * @param request - The accept request
-      */
-    public void responseAcceptRequest(Message request) {
-        float requestProposalNumber = Float.parseFloat(request.getAccept().getRequest().getProposalNumber());
-        int requestIndex = request.getAccept().getRequest().getIndex();
-        NotificationInfo requestValue = request.getAccept().getRequest().getValue();
-        int requestFirstUnchosenIndex = request.getAccept().getRequest().getFirstUnchosenIndex();
-        if (requestProposalNumber >= MitterServer.minProposal) {
-            MitterServer.log.set(requestIndex, new LogEntry(requestProposalNumber,requestValue));
-            MitterServer.minProposal = requestProposalNumber;
-
-            // Mark entries that has an index less than the firstUnchosenIndex of the leader/proposer
-            // as chosen.
-            int index = 0;
-            while (index < requestFirstUnchosenIndex) {
-                LogEntry entry = MitterServer.log.get(index);
-                boolean setAcceptedProposalToInfinity = false;
-                if (Float.compare(requestProposalNumber, entry.getAcceptedProposal()) == 0) {
-                    setAcceptedProposalToInfinity = true;
-                }
-    
-                if (setAcceptedProposalToInfinity) {
-                    NotificationInfo logEntryValue = MitterServer.log.get(index).getAcceptedValue();
-                    MitterServer.log.set(index, new LogEntry(Float.MAX_VALUE, logEntryValue));
-                }
-                index += 1;
-            }
-        }
-        Message acceptResponse = setupAcceptResponse();
-        sendRequestResponse(acceptResponse);
-        // Read another request from the leader/proposer
-        Message req = readARequestFromLeader();
-        respondToLeader(req);
     }
 
     public Message setupAcceptResponse() {
@@ -275,13 +283,18 @@ import generated.nonstandard.message.Message;
         return successReq;
     }
 
+    /**
+     * Marks a particular entry in the log as chosen and stores the chosen value in that log entry.
+     * @param successRequest - The message containing the proposed index, chosen value and proposal number
+     */
     public void updateLog(Message successRequest) {
         int successRequestIndex = successRequest.getSuccess().getRequest().getIndex();
         NotificationInfo successRequestValue = successRequest.getSuccess().getRequest().getValue();
 
         if (successRequestIndex > MitterServer.log.size()) {
-            System.err.println("Index out of bounds.");
-            return;
+            // System.err.println("Index out of bounds.");
+            // return;
+            MitterServer.increaseLogCapacity(successRequestIndex+1);
         }
 
         LogEntry updatedEntry = MitterServer.log.get(successRequestIndex);
@@ -290,19 +303,5 @@ import generated.nonstandard.message.Message;
 
         MitterServer.log.set(successRequestIndex, updatedEntry);
         MitterServer.firstUnchosenIndex += 1;
-    }
-
-    /**
-     * This method response to the success request of a proposer/leader.
-     * @param request - The success request
-     */
-    public void responseSuccessRequest(Message request) {
-        updateLog(request);
-        Message successReq = setupSuccessRequest();
-
-        sendRequestResponse(successReq);
-
-        Message receivedRequest = readARequestFromLeader();
-        respondToLeader(receivedRequest);
     }
  }

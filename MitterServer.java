@@ -222,6 +222,7 @@ public class MitterServer {
                     // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                 } else {
                     notificationListLock.unlock();  // Release lock for notification list
+                    acceptor.readValue();
                 }
             }
             
@@ -514,6 +515,22 @@ public class MitterServer {
                 lastLogIndex = index;
             }
             index += 1;
+        }
+    }
+
+    /**
+     * This method increases the capacity of the replicated log of this server, without modifying/deleting
+     * the existing contents/entries.
+     * @param size - The size to which the log will be resized to 
+     */
+    public static void increaseLogCapacity(int size) {
+        if (size <= 0) {
+            System.err.println("Negative or zero size not applicable.");
+            return;
+        }
+
+        while (MitterServer.log.size() < size) {
+            MitterServer.log.add(new LogEntry());
         }
     }
 

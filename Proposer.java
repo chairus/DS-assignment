@@ -240,10 +240,14 @@ public class Proposer {
 
             // boolean hasMajority = checkMajority(responses, receivedResponses);
 
-            // Majority of votes then set the corresponding log entry
-            if (proposedIndex <= MitterServer.log.size()) {
-
+            // Obtained majority of replies to proposal "proposedIndex" then set the corresponding log entry
+            if (proposedIndex > MitterServer.log.size()) {
+                MitterServer.increaseLogCapacity(proposedIndex+1);
             }
+            LogEntry updatedEntry = MitterServer.log.get(proposedIndex);
+            updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
+            updatedEntry.setAcceptedValue(value);
+            MitterServer.log.set(proposedIndex, updatedEntry);
         }
 
         return true;
@@ -422,22 +426,6 @@ public class Proposer {
         }
         
         return MitterServer.serversList.remove(sId);
-    }
-
-    /**
-     * This method increases the capacity of the replicated log of this server, without modifying/deleting
-     * the existing contents/entries.
-     * @param size - The size to which the log will be resized to 
-     */
-    public void increaseLogCapacity(int size) {
-        if (size <= 0) {
-            System.err.println("Negative or zero size not applicable.");
-            return;
-        }
-
-        while (MitterServer.log.size() < size) {
-            MitterServer.log.add(new LogEntry());
-        }
     }
 
     private class PreparePhaseResult {
