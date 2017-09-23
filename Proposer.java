@@ -347,10 +347,12 @@ public class Proposer {
             float acceptRequestProposalNumber = Float.parseFloat(acceptReq.getAccept().getRequest().getProposalNumber());
             int numOfActiveServers = MitterServer.serversList.size();
             int numOfServersResponded = 0;
+            int numOfSentSuccessRequest = 0;
             int numOfVotes = 0;
             int majoritySize = numOfActiveServers/2;
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
+            //======================== THIS STILL NEED FIXING =========================
             while (/*numOfVotes < majoritySize &&*/ numOfServersResponded < numOfActiveServers) {
                 int index = 0;
                 while (index < numOfActiveServers) {
@@ -360,24 +362,27 @@ public class Proposer {
                         if (response != null) {
                             if (response.getAccept() != null) { // Received response to accept request
                                 float acceptResponseProposalNumber = Float.parseFloat(response.getAccept().getResponse().getAcceptorMinProposalNumber());
+                                int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
                                 // Abandon proposal
                                 if (Float.compare(acceptResponseProposalNumber, acceptRequestProposalNumber) > 0) {
                                     MitterServer.maxRound = Math.round(acceptResponseProposalNumber);
                                     MitterServer.prepared = false;
                                     return false;
                                 }
+                                
                                 numOfVotes += 1;
                                 numOfServersResponded += 1;
-                                // Send success message
-                                int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
+
                                 if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
                                     && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
+                                    numOfSentSuccessRequest += 1;
                                 }
                             } else if (response.getSuccess() != null) { // Received response to success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
+                                    numOfSentSuccessRequest += 1;
                                 }
                             }
                         }
@@ -410,9 +415,61 @@ public class Proposer {
                 MitterServer.firstUnchosenIndex += 1;
                 System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
+            System.out.println("NUMBER OF SENT SUCCESS REQUEST: " + numOfSentSuccessRequest);
+            if (numOfSentSuccessRequest > 0) {
+                successRequest(numOfSentSuccessRequest);
+            }
         }
 
         return true;
+    }
+
+    public void successRequest(int numOfSentSuccessRequest) {
+        System.out.println("NUMBER OF SENT SUCCESS REQUEST: " + numOfSentSuccessRequest);
+        synchronized (MitterServer.serversList) {
+            int numOfActiveServers = MitterServer.serversList.size();
+            ServerPeers.ServerIdentity acceptor;
+            while (numOfSentSuccessRequest > 0) {
+                int index = 0;
+                while (index < numOfActiveServers) {
+                    acceptor = MitterServer.serversList.get(index);
+                    try {
+                        Message response = MitterServer.readMessage(acceptor.getSocket());
+                        if (response != null) {
+                           if (response.getSuccess() != null) { // Received response to success request
+                                int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
+                                if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
+                                    sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
+                                } else {
+                                    sendSuccessRequest(-1, acceptor);
+                                    numOfSentSuccessRequest -= 1;
+                                }
+                            } else if (response.getHeartbeat() != null) {                                    // Received heartbeat message
+                                MitterServer.sendHeartbeatMessage(acceptor.getSocket());
+                            } else if (response.getAccept() != null) {
+                                int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
+                                if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
+                                    && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
+                                    sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
+                                    numOfSentSuccessRequest += 1;
+                                }
+                            } else {
+                                // IGNORE
+                            }
+                        }
+                    } catch (IOException e) { // A server has crashed or got disconnected
+                        if (removeFromActiveServers(acceptor)) {
+                            index -= 1;
+                            numOfActiveServers = MitterServer.serversList.size();
+                        }
+                    } catch (JAXBException e) {
+                        System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+                        e.printStackTrace();
+                    }
+                    index += 1;
+                }
+            }
+        }
     }
 
     /**
@@ -504,8 +561,10 @@ public class Proposer {
         message.setSuccess(new Message.Success());
         message.getSuccess().setRequest(new Message.Success.Request());
         message.getSuccess().getRequest().setIndex(acceptResponseFirstUnchosenIndex);
-        message.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
-
+        if (acceptResponseFirstUnchosenIndex > -1) {
+            message.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
+        }
+        
         return message;
     }
 
