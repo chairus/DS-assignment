@@ -42,6 +42,11 @@ public class Proposer {
      * @return - True if the value has been successfully chosen
      */
     public boolean writeValue(NotificationInfo value) {
+        if (value == null) {    // Listen for response from success messages
+            successRequest();
+            return true;
+        }
+
         Proposal result = new Proposal();
         do {
             boolean hasSuccessfullyAccepted = true;
@@ -353,7 +358,7 @@ public class Proposer {
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
             //======================== THIS STILL NEED FIXING =========================
-            while (/*numOfVotes < majoritySize &&*/ numOfServersResponded < numOfActiveServers) {
+            while (numOfVotes < majoritySize && numOfServersResponded < numOfActiveServers) {
                 int index = 0;
                 while (index < numOfActiveServers) {
                     acceptor = MitterServer.serversList.get(index);
@@ -415,34 +420,35 @@ public class Proposer {
                 MitterServer.firstUnchosenIndex += 1;
                 System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
-            System.out.println("NUMBER OF SENT SUCCESS REQUEST: " + numOfSentSuccessRequest);
-            if (numOfSentSuccessRequest > 0) {
-                successRequest(numOfSentSuccessRequest);
-            }
+            // System.out.println("NUMBER OF SENT SUCCESS REQUEST: " + numOfSentSuccessRequest);
+            // if (numOfSentSuccessRequest > 0) {
+            //     successRequest(numOfSentSuccessRequest);
+            // }
         }
 
         return true;
     }
 
-    public void successRequest(int numOfSentSuccessRequest) {
-        System.out.println("NUMBER OF SENT SUCCESS REQUEST: " + numOfSentSuccessRequest);
-        synchronized (MitterServer.serversList) {
-            int numOfActiveServers = MitterServer.serversList.size();
-            ServerPeers.ServerIdentity acceptor;
-            while (numOfSentSuccessRequest > 0) {
+    public void successRequest() {
+        System.out.println("Listening for responses from accept and success requests...");
+        int notificationListSize = 0;
+        while (notificationListSize == 0) {
+            synchronized (MitterServer.serversList) {
+                int numOfActiveServers = MitterServer.serversList.size();
+                ServerPeers.ServerIdentity acceptor;
                 int index = 0;
                 while (index < numOfActiveServers) {
                     acceptor = MitterServer.serversList.get(index);
                     try {
                         Message response = MitterServer.readMessage(acceptor.getSocket());
                         if (response != null) {
-                           if (response.getSuccess() != null) { // Received response to success request
+                        if (response.getSuccess() != null) { // Received response to success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 } else {
                                     sendSuccessRequest(-1, acceptor);
-                                    numOfSentSuccessRequest -= 1;
+                                    // numOfSentSuccessRequest -= 1;
                                 }
                             } else if (response.getHeartbeat() != null) {                                    // Received heartbeat message
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
@@ -451,7 +457,7 @@ public class Proposer {
                                 if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
                                     && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
-                                    numOfSentSuccessRequest += 1;
+                                    // numOfSentSuccessRequest += 1;
                                 }
                             } else {
                                 // IGNORE
@@ -469,6 +475,9 @@ public class Proposer {
                     index += 1;
                 }
             }
+            MitterServer.notificationListLock.lock();    // Obtain the lock for the notification list
+            notificationListSize = MitterServer.notificationList.size();
+            MitterServer.notificationListLock.unlock();  // Release lock for notification list
         }
     }
 

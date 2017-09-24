@@ -213,10 +213,11 @@ public class MitterServer {
                         NotificationInfo notification = takeOneFromNotificationList();
                         notificationListNotFullCondition.signal();  // Signal waiting notifier thread
                         notificationListLock.unlock();  // Release lock for notification list
-                        proposer.writeValue(notification);
+                        proposer.writeValue(notification);  // Propose a value
                         // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                     } else {
                         notificationListLock.unlock();  // Release lock for notification list
+                        proposer.writeValue(null);  // Listen for success request
                     }
                 } else {
                     acceptor.readValue();
@@ -567,7 +568,7 @@ public class MitterServer {
         LogEntry entry = null;
         while (index < firstUnchosenIndex) {
             entry = log.get(index);
-            System.out.printf("Accepted proposal: %f\n", entry.getAcceptedProposal());
+            System.out.printf("Accepted proposal: \n\t%f\n", entry.getAcceptedProposal());
             System.out.println("Accepted value: ");
             System.out.println("\tSender: " + entry.getAcceptedValue().getSender());
             System.out.println("\tMessage: " + entry.getAcceptedValue().getMessage());
