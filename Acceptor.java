@@ -309,10 +309,13 @@ import generated.nonstandard.message.Message;
         }
 
         LogEntry updatedEntry = MitterServer.log.get(successRequestIndex);
-        updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
-        updatedEntry.setAcceptedValue(successRequestValue);
-
-        MitterServer.log.set(successRequestIndex, updatedEntry);
-        MitterServer.firstUnchosenIndex += 1;
+        // Check if this entry has already been chosen, if it is then don't update that entry, else
+        // update it with the chosen value.
+        if (Float.compare(updatedEntry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {
+            updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
+            updatedEntry.setAcceptedValue(successRequestValue);
+            MitterServer.log.set(successRequestIndex, updatedEntry);
+            MitterServer.firstUnchosenIndex += 1;
+        }
     }
  }

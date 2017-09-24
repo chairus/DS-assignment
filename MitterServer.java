@@ -183,7 +183,7 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             int serverSize = 0;
-            while (serverSize < 2) {
+            while (serverSize < serverPorts.size()) {
                 synchronized (serversList) {
                     serverSize = serversList.size();
                 }

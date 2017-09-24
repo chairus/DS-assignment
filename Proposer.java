@@ -42,7 +42,7 @@ public class Proposer {
      * @return - True if the value has been successfully chosen
      */
     public boolean writeValue(NotificationInfo value) {
-        if (value == null) {    // Listen for response from success messages
+        if (value == null) {    // Listen for responses from accept and success messages
             successRequest();
             return true;
         }
@@ -94,19 +94,8 @@ public class Proposer {
     private Proposal prepareRequest() {
         Message prepareReq = setupPrepareRequest(); // Initialize the prepare message
         Proposal result = new Proposal();
-
         broadcastRequest(prepareReq);
         result = collectPrepareResponses();
-        // // Listen for the responses from all acceptors until a majority of reponses has
-        // // been received
-        // List<String> receivedResponses = receiveResponses();
-        // // Check if the majority of the reponses has a status set to true, that is the proposal
-        // // has been accepted by the majority of acceptors.
-        // List<Message> unmarshalledReceivedResponses = new ArrayList<>();    // Container on where to store the unmarshalled received responses
-        // result.hasMajority = checkMajority(unmarshalledReceivedResponses, receivedResponses);
-        // result.acceptedValue = checkIfAcceptedValueExist(unmarshalledReceivedResponses);
-        // setOrUnsetPrepared(unmarshalledReceivedResponses);  // Sets the prepared value if majority of the Acceptors has set the noMoreAccepted field in their reponse
-
         return result;
     }
 
@@ -191,77 +180,6 @@ public class Proposer {
     }
 
     /**
-     * This method checks if the majority of received prepare responses has their status set to true,
-     * if it is then return true, else false. This means that the majority of acceptors has promised
-     * to reject proposals with number less than this Proposers proposal number.
-     * @param responses - Stores the unmarshalled received prepare responses
-     * @param receivedResponses - The received prepare responses
-     * @return - True if the majority of responses has their status field set to true 
-     */
-    public boolean checkMajority(List<Message> responses, List<String> receivedResponses) {
-        for (String response: receivedResponses) {
-            StringReader sReader = new StringReader(response);
-            try {
-                Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
-                if (!res.getPrepare().getResponse().isStatus()) {
-                    return false;
-                }
-                responses.add(res);
-            } catch (JAXBException e) {
-                System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-                e.printStackTrace();
-                System.exit(1);
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * This method checks if an accepted value already exists. If there is then return it.
-     * @param reponses - The list of responses from Acceptors
-     * @return - The accepted value if there is, else null
-     */
-    public NotificationInfo checkIfAcceptedValueExist(List<Message> responses) {
-        NotificationInfo acceptedValue = null;
-        float previouslySeenAcceptedProposal = 0.0f;
-
-        for (Message response: responses) {
-            // Check if the acceptedProposal field has a value of '-1', because a '-1' value means that
-            // it has not accepted any proposal.
-            int hasAcceptedProposal = Float.compare(Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal()), -1.0f);
-
-            if (hasAcceptedProposal > 0) {
-                float acceptedProposal = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
-                int greaterThanSeenAcceptedProposal = Float.compare(acceptedProposal, previouslySeenAcceptedProposal);
-
-                if (greaterThanSeenAcceptedProposal > 0) {
-                    acceptedValue = response.getPrepare().getResponse().getAcceptedValue();
-                    previouslySeenAcceptedProposal = acceptedProposal;
-                }
-            }
-        }
-
-        return acceptedValue;
-    }
-
-    /**
-     * This method sets or unsets the prepared variable which indicates that there is no need to issue 
-     * Prepare requests because a majority of acceptors has responded to Prepare requests with 
-     * noMoreAccepted set to true
-     * @param responses - The received responses from the majority of acceptors
-     */
-    public void setOrUnsetPrepared(List<Message> responses) {
-        boolean prepared = true;
-        for (Message response: responses) {
-            if (!response.getPrepare().getResponse().isNoMoreAccepted()) {
-                prepared = false;
-            }
-        }
-        MitterServer.prepared = prepared;
-    }
-
-    /**
      * This method sends an accept request to all Acceptors and in that request is a proposal number
      * and a value, which is either picked by the Proposer or a value that has already been accepted
      * by the majority of the Acceptors
@@ -269,73 +187,7 @@ public class Proposer {
      */
     private boolean acceptRequest(NotificationInfo value) {
         Message acceptReq = setupAcceptRequest(value);
-        
         broadcastRequest(acceptReq);
-
-        // List<String> receivedResponses = new ArrayList<>();
-        // synchronized (MitterServer.serversList) {
-        //     int numOfActiveServers = MitterServer.serversList.size();
-        //     // int majoritySize = (numOfActiveServers/2) + 1;
-        //     int majoritySize = numOfActiveServers;
-        //     ServerPeers.ServerIdentity acceptor;
-        //     // Keep looping until a majority of responses has been received
-        //     while (receivedResponses.size() < majoritySize && numOfServersResponded < numOfActiveServers) {
-        //         int index = 0;
-        //         while (index < numOfActiveServers) {
-        //             acceptor = MitterServer.serversList.get(index);
-        //             try {
-        //                 String response = receiveResponse(acceptor.getSocket());
-        //                 Message unmarshalledResponse;
-        //                 if (response != null) {
-        //                     receivedResponses.add(response);
-        //                     unmarshalledResponse = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(new StringReader(response));
-        //                     Float acceptResponseProposalNumber = Float.parseFloat(unmarshalledResponse.getAccept().getResponse().getAcceptorMinProposalNumber());
-        //                     // Abandon proposal
-        //                     float acceptRequestProposalNumber = Float.parseFloat(acceptReq.getAccept().getRequest().getProposalNumber());
-        //                     if (Float.compare(acceptResponseProposalNumber, acceptRequestProposalNumber) > 0) {
-        //                         MitterServer.maxRound = Math.round(acceptResponseProposalNumber);
-        //                         MitterServer.prepared = false;
-        //                         return false;
-        //                     }
-
-        //                     // Send success message
-        //                     MitterServer.updateLastLogIndex();
-        //                     int acceptResponseFirstUnchosenIndex = unmarshalledResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex(); 
-        //                     if (acceptResponseFirstUnchosenIndex <= MitterServer.lastLogIndex
-        //                         && Float.compare(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
-        //                         sendSuccessRequest(acceptResponseFirstUnchosenIndex, acceptor);
-        //                     }
-        //                 }
-
-        //             } catch (IOException e) {
-        //                 // A server has disconnected?
-        //                 if (removeFromActiveServers(acceptor)) {
-        //                     index -= 1;
-        //                 }
-        //             } catch (JAXBException e) {
-        //                 System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-        //                 e.printStackTrace();
-        //             }
-    
-        //             index += 1;
-        //         }
-        //     }
-
-        //     // boolean hasMajority = checkMajority(responses, receivedResponses);
-
-        //     // Obtained majority of replies to proposal "proposedIndex" then set the corresponding log entry
-        //     if (proposedIndex >= MitterServer.log.size()) {
-        //         MitterServer.increaseLogCapacity(proposedIndex+1);
-        //     }
-        //     LogEntry updatedEntry = MitterServer.log.get(proposedIndex);
-        //     updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
-        //     updatedEntry.setAcceptedValue(acceptReq.getAccept().getRequest().getValue());
-        //     MitterServer.log.set(proposedIndex, updatedEntry);
-        //     MitterServer.firstUnchosenIndex += 1;
-        // }
-
-        // return true;
-
         return collectAcceptResponses(acceptReq);
     }
 
@@ -352,7 +204,6 @@ public class Proposer {
             float acceptRequestProposalNumber = Float.parseFloat(acceptReq.getAccept().getRequest().getProposalNumber());
             int numOfActiveServers = MitterServer.serversList.size();
             int numOfServersResponded = 0;
-            int numOfSentSuccessRequest = 0;
             int numOfVotes = 0;
             int majoritySize = numOfActiveServers/2;
             ServerPeers.ServerIdentity acceptor;
@@ -381,13 +232,11 @@ public class Proposer {
                                 if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
                                     && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
-                                    numOfSentSuccessRequest += 1;
                                 }
                             } else if (response.getSuccess() != null) { // Received response to success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
-                                    numOfSentSuccessRequest += 1;
                                 }
                             }
                         }
@@ -420,17 +269,17 @@ public class Proposer {
                 MitterServer.firstUnchosenIndex += 1;
                 System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
-            // System.out.println("NUMBER OF SENT SUCCESS REQUEST: " + numOfSentSuccessRequest);
-            // if (numOfSentSuccessRequest > 0) {
-            //     successRequest(numOfSentSuccessRequest);
-            // }
         }
 
         return true;
     }
 
+    /**
+     * This method listens for responses from other servers and reply back to them
+     */
     public void successRequest() {
         System.out.println("Listening for responses from accept and success requests...");
+        int numOfReplicatedServers = 0;
         int notificationListSize = 0;
         while (notificationListSize == 0) {
             synchronized (MitterServer.serversList) {
@@ -442,25 +291,29 @@ public class Proposer {
                     try {
                         Message response = MitterServer.readMessage(acceptor.getSocket());
                         if (response != null) {
-                        if (response.getSuccess() != null) { // Received response to success request
+                            if (response.getSuccess() != null) { // Received response from success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 } else {
                                     sendSuccessRequest(-1, acceptor);
-                                    // numOfSentSuccessRequest -= 1;
+                                    numOfReplicatedServers += 1;
                                 }
-                            } else if (response.getHeartbeat() != null) {                                    // Received heartbeat message
-                                MitterServer.sendHeartbeatMessage(acceptor.getSocket());
-                            } else if (response.getAccept() != null) {
+                            } else if (response.getAccept() != null) { // Received response from accept request
                                 int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex <= MitterServer.lastLogIndex
                                     && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
-                                    // numOfSentSuccessRequest += 1;
                                 }
+                            } else if (response.getHeartbeat() != null) { // Received heartbeat message
+                                MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             } else {
-                                // IGNORE
+                                System.err.println(response);
+                            }
+                        } else {    // Send success request to all acceptors for full replication
+                            if (numOfReplicatedServers < numOfActiveServers
+                                && MitterServer.lastLogIndex >= 0) {
+                                sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
                             }
                         }
                     } catch (IOException e) { // A server has crashed or got disconnected
@@ -524,43 +377,6 @@ public class Proposer {
                 index += 1;
             }
         }
-    }
-
-    /**
-     * This method listens for the responses from the acceptors for the prepare request. It will stop
-     * listening once it has received the majority of the responses
-     * @return - The received XML responses from the Acceptors
-     */
-    public List<String> receiveResponses() {
-        List<String> receivedResponses = new ArrayList<>();
-        synchronized (MitterServer.serversList) {
-            int numOfActiveServers = MitterServer.serversList.size();
-            // int majoritySize = (numOfActiveServers/2) + 1;
-            int majoritySize = numOfActiveServers;
-            ServerPeers.ServerIdentity acceptor;
-            // Keep looping until a majority of responses has been received
-            while (receivedResponses.size() < majoritySize) {
-                int index = 0;
-                while (index < numOfActiveServers) {
-                    acceptor = MitterServer.serversList.get(index);
-                    try {
-                        String response = receiveResponse(acceptor.getSocket());
-                        if (response != null) {
-                            receivedResponses.add(response);
-                        }
-                    } catch (IOException e) {
-                        // A server has disconnected?
-                        if (removeFromActiveServers(acceptor)) {
-                            index -= 1;
-                        }
-                    }
-    
-                    index += 1;
-                }
-            }
-        }
-
-        return receivedResponses;
     }
 
     private Message setupSuccessRequest(int acceptResponseFirstUnchosenIndex) {
