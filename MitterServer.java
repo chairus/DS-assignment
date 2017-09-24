@@ -78,6 +78,7 @@ public class MitterServer {
     public static final Lock notificationListLock = new ReentrantLock();
     public static final Condition notificationListNotFullCondition = notificationListLock.newCondition();
     public static final Condition notificationListNotEmptyCondition = notificationListLock.newCondition();
+    public static final Condition notificationListHasNotReplicatedCondition = notificationListLock.newCondition();
     // A list that maintains the lists that stores all received notifications
     public static List<List<OrderedNotification>> setOfNotificationList;    // [0 - urgent, 1 - caution, 2 - notice]
     public static List<Thread> clientsList; // A list that stores active clients
@@ -106,9 +107,15 @@ public class MitterServer {
     private Proposer proposer;
     private Acceptor acceptor;
     // An assertion if this server is the current leader/proposer
-    private boolean isLeader;
+    private static boolean isLeader;
     // This index keeps track of which entry in the log is now ready to copy into the setOfNotifications list 
     private int nextLogEntryToStore;
+    // Number of notifications to relay to leader
+    public static final int BATCH_SIZE = 10;
+    // Number of notifications that was sent/relayed to the leader
+    public static Integer numOfNotificationsRelayed;
+    // The thread that relays the notifications to the leader
+    private Thread notificationRelayer;
 
     /**
      * Constructor
@@ -136,6 +143,7 @@ public class MitterServer {
         firstUnchosenIndex = 0;
         isLeader = false;
         nextLogEntryToStore = 0;
+        numOfNotificationsRelayed = 0;
     }
 
     /**
@@ -201,6 +209,8 @@ public class MitterServer {
             } else {
                 System.out.printf("[ SERVER %d ] Acceptor\n", serverId);
                 isLeader = false;
+                notificationRelayer = new NotificationRelayer();
+                notificationRelayer.start();
             }
 
             int prevFirstUnchosenIndex = firstUnchosenIndex;
@@ -211,9 +221,16 @@ public class MitterServer {
                     if (!notificationList.isEmpty()) {
                         // System.err.println("Notification list is not empty. Taking one out...");
                         NotificationInfo notification = takeOneFromNotificationList();
+                        // notificationListNotFullCondition.signal();  // Signal waiting notifier thread
+                        notificationListLock.unlock();  // Release lock for notification list
+
+                        notificationListLock.lock();    // Obtain the lock for the notification list
+                        if (proposer.writeValue(notification)) {  // Propose a value
+                            notificationList.remove(0);
+                            notificationListCount -= 1;
+                        }
                         notificationListNotFullCondition.signal();  // Signal waiting notifier thread
                         notificationListLock.unlock();  // Release lock for notification list
-                        proposer.writeValue(notification);  // Propose a value
                         // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                     } else {
                         notificationListLock.unlock();  // Release lock for notification list
@@ -229,6 +246,18 @@ public class MitterServer {
                 while (nextLogEntryToStore < firstUnchosenIndex) {
                     entry = log.get(nextLogEntryToStore);
                     assignSequenceNumberAndStore(entry.getAcceptedValue());
+                    synchronized (numOfNotificationsRelayed) {
+                        if (!isLeader && numOfNotificationsRelayed > 0) {
+                            notificationListLock.lock();    // Obtain the lock for the notification list
+                            if (isEqual(entry.getAcceptedValue(), notificationList.get(0))) {
+                                notificationList.remove(0);
+                                notificationListCount -= 1;
+                                numOfNotificationsRelayed -= 1;
+                                notificationListNotFullCondition.signal();  // Signal waiting notifier thread
+                            }
+                            notificationListLock.unlock();  // Release lock for notification list
+                        }
+                    }
                     nextLogEntryToStore += 1;
                 }
 
@@ -367,8 +396,8 @@ public class MitterServer {
 
         // if (notificationListCount != 0) { 
             notification = notificationList.get(0);
-            notificationList.remove(0);
-            notificationListCount -= 1;
+            // notificationList.remove(0);
+            // notificationListCount -= 1;
         // }
 
         /* === UNCOMMENT THE NEXT TWO LINES IF SOMETHING HAPPENS === */
@@ -561,6 +590,17 @@ public class MitterServer {
         return message;
     }
 
+    public boolean isEqual(NotificationInfo n1, NotificationInfo n2) {
+        boolean res = false;
+
+        if (n1.getSender().compareToIgnoreCase(n2.getSender()) == 0 &&
+            n1.getMessageId() == n2.getMessageId()) {
+            res = true;
+        }
+
+        return res;
+    }
+
     /* =========== FOR DEBUGGING PURPOSES =========== */
     public void printLog() {
         System.out.println("Log entries: ");
@@ -618,7 +658,8 @@ public class MitterServer {
                 } else {
                     serverPorts.add(new ArrayList<>());
                     serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[0]));   // Server ID
-                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[3]));   // Server port                    
+                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[3]));   // Server port
+                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[2]));   // Notifier port
                 }
             }
 

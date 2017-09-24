@@ -17,12 +17,12 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBElement;
 
-public class MitterNotifier2 {
+public class MitterNotifier3 {
     public static void main(String[] args) throws Exception {
         Socket socket;
 
         try {
-            socket = new Socket("localhost", 3004);
+            socket = new Socket("127.0.0.1", 3001);
             OutputStream out = socket.getOutputStream();
 
             Writer writer = new OutputStreamWriter(out, "UTF-8");
@@ -37,10 +37,10 @@ public class MitterNotifier2 {
                 // Create object notification
                 NotificationInfo notification = new NotificationInfo();
                 System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("Central_Hub",
-                                                  "Central Hub, Room 402",
-                                                  "Room currently unavailable. Cleaning in progress.",
-                                                  "caution",
+                notification = createNotification("EltonJohn",
+                                                  "Adelaide Entertainment Centre",
+                                                  "Room currently unavailable. Concert in progress.",
+                                                  "urgent",
                                                   0);
                 /* marshalling of java objects in xml (send to sever) */
                 JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
@@ -53,10 +53,10 @@ public class MitterNotifier2 {
                 TimeUnit.MILLISECONDS.sleep(1000);
 
                 System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("Physics_Bld",
-                                                  "Physics Building, Room 112",
-                                                  "Room currently unavailable. Experiment gone wild.",
-                                                  "caution",
+                notification = createNotification("EltonJohn",
+                                                  "Sydney Opera",
+                                                  "Room currently unavailable. Concert in progress",
+                                                  "urgent",
                                                   1);
 
                 dataWriter = new StringWriter();
@@ -71,10 +71,10 @@ public class MitterNotifier2 {
                 TimeUnit.MILLISECONDS.sleep(4000);
 
                 System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("Engineering_Bld",
-                                                  "Engineering South Building, Room 321",
-                                                  "Room currently unavailable. Robot gone wild.",
-                                                  "urgent",
+                notification = createNotification("EltonJohn",
+                                                  "Intercontinental Adelaide",
+                                                  "Room currently occupied.",
+                                                  "notice",
                                                   2);
 
                 dataWriter = new StringWriter();
