@@ -74,7 +74,7 @@ import generated.nonstandard.message.Message;
                 if (buffReader.ready()) {
                     String line = buffReader.readLine();
                     // StringReader sReader = new StringReader(buffReader.readLine());
-                    System.out.println(line);
+                    // System.out.println(line);
                     StringReader sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
                     Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
                     request = res;
