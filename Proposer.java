@@ -387,7 +387,6 @@ public class Proposer {
         message.getSuccess().getRequest().setIndex(acceptResponseFirstUnchosenIndex);
         if (acceptResponseFirstUnchosenIndex > -1) {
             message.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
-            System.out.println(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue().toString());
         }
         
         return message;
@@ -447,7 +446,6 @@ public class Proposer {
         buffWriter.write(sWriter.toString());
         buffWriter.newLine();
         buffWriter.flush();
-        
     }
 
     public String receiveResponse(Socket s) throws IOException {

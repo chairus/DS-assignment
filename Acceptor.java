@@ -35,7 +35,7 @@ import generated.nonstandard.message.Message;
      * This method will perform
      */
      public void readValue() {
-        Message request = readARequestFromLeader();
+        Message request = readARequestFromLeader(null);
         respondToLeader(request);
      }
 
@@ -64,12 +64,13 @@ import generated.nonstandard.message.Message;
       * This method will read a Prepare/Accept request sent by the Leader.
       * @return - The Prepare/Accept message request in String format
       */
-     public Message readARequestFromLeader() {
+     public Message readARequestFromLeader(Message response) {
         Message request = null;
 
-        try {
-            BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
-            while (request == null) {
+        while (request == null) {
+            try {
+                BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
+                
                 if (buffReader.ready()) {
                     String line = buffReader.readLine();
                     // StringReader sReader = new StringReader(buffReader.readLine());
@@ -77,17 +78,41 @@ import generated.nonstandard.message.Message;
                     StringReader sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
                     Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
                     request = res;
-                }
-            }    
-        } catch (IOException e) { // The leader has crashed or got disconnected
-            System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-            e.printStackTrace();
-            System.exit(1);
-        } catch (JAXBException e) {
-            System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-            e.printStackTrace();
-            System.exit(1);
+                }    
+            } catch (IOException e) { // The leader has crashed or got disconnected
+                System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
+                e.printStackTrace();
+                System.exit(1);
+            } catch (JAXBException e) {
+                System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
+                e.printStackTrace();
+                sendRequestResponse(response);
+                // System.exit(1);
+            }
         }
+
+
+        // try {
+        //     BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
+        //     while (request == null) {
+        //         if (buffReader.ready()) {
+        //             String line = buffReader.readLine();
+        //             // StringReader sReader = new StringReader(buffReader.readLine());
+        //             System.out.println(line);
+        //             StringReader sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
+        //             Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
+        //             request = res;
+        //         }
+        //     }    
+        // } catch (IOException e) { // The leader has crashed or got disconnected
+        //     System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
+        //     e.printStackTrace();
+        //     System.exit(1);
+        // } catch (JAXBException e) {
+        //     System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
+        //     e.printStackTrace();
+        //     System.exit(1);
+        // }
 
         return request;
      }
@@ -136,7 +161,7 @@ import generated.nonstandard.message.Message;
         sendRequestResponse(response);
         
         // Listen for request from leader
-        Message receivedReq = readARequestFromLeader();
+        Message receivedReq = readARequestFromLeader(response);
         respondToLeader(receivedReq);
     }
 
@@ -229,7 +254,7 @@ import generated.nonstandard.message.Message;
         sendRequestResponse(acceptResponse);
         System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
         // Read another request from the leader/proposer
-        Message req = readARequestFromLeader();
+        Message req = readARequestFromLeader(acceptResponse);
         respondToLeader(req);
     }
 
@@ -245,7 +270,7 @@ import generated.nonstandard.message.Message;
             Message successReq = setupSuccessRequest();
             sendRequestResponse(successReq);
             System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
-            Message receivedRequest = readARequestFromLeader();
+            Message receivedRequest = readARequestFromLeader(successReq);
             respondToLeader(receivedRequest);
         }
     }
