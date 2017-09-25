@@ -116,7 +116,7 @@ public class NotifierListener extends Thread {
     public void storeNotification(SocketChannel notifierSocket) throws IOException,
                                                                 InterruptedException {
         // Data is available for read. Use buffer for non-blocking read
-        ByteBuffer buffer = ByteBuffer.allocate(5000);
+        ByteBuffer buffer = ByteBuffer.allocate(60000);
         SocketChannel notifierChannel = notifierSocket;
         int bytesRead = 0;
         String n = null;
