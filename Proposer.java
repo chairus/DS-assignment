@@ -387,6 +387,7 @@ public class Proposer {
         message.getSuccess().getRequest().setIndex(acceptResponseFirstUnchosenIndex);
         if (acceptResponseFirstUnchosenIndex > -1) {
             message.getSuccess().getRequest().setValue(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue());
+            System.out.println(MitterServer.log.get(acceptResponseFirstUnchosenIndex).getAcceptedValue().toString());
         }
         
         return message;
