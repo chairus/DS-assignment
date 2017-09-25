@@ -71,10 +71,10 @@ import generated.nonstandard.message.Message;
             BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
             while (request == null) {
                 if (buffReader.ready()) {
-                    // String line = buffReader.readLine();
-                    StringReader sReader = new StringReader(buffReader.readLine());
+                    String line = buffReader.readLine();
+                    // StringReader sReader = new StringReader(buffReader.readLine());
                     // System.out.println(line);
-                    // StringReader sReader = new StringReader(line.trim());
+                    StringReader sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
                     Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
                     request = res;
                 }
