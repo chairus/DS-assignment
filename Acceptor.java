@@ -56,6 +56,7 @@ import generated.nonstandard.message.Message;
             }
         } else {
             System.err.printf("[ SERVER %d ] A leader has not been elected.", MitterServer.serverId);
+            System.exit(1);
         }
      }
 
@@ -159,14 +160,14 @@ import generated.nonstandard.message.Message;
                 MitterServer.currentLeader.getSocket().close();
                 System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
             } catch (IOException ex) {
-                System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
+                System.err.format("[ SERVER %d ] Error: Acceptor, " + ex.getMessage(), MitterServer.serverId);
                 ex.printStackTrace();
             }
             MitterServer.currentLeader = null;
-            System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+            System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
             e.printStackTrace();
         } catch (JAXBException e) {
-            System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+            System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
             e.printStackTrace();
             System.exit(1);
         }

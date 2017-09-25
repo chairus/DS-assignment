@@ -208,7 +208,6 @@ public class Proposer {
             int majoritySize = numOfActiveServers/2;
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
-            //======================== THIS STILL NEED FIXING =========================
             while (numOfVotes < majoritySize && numOfServersResponded < numOfActiveServers) {
                 int index = 0;
                 while (index < numOfActiveServers) {
