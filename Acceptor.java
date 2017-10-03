@@ -266,7 +266,7 @@ import generated.nonstandard.message.Message;
     public void respondSuccessRequest(Message request) {
         int proposersFirstUnchosenIndex = request.getSuccess().getRequest().getIndex();
         System.out.println("PROPOSERS FIRST UNCHOSEN INDEX: " + proposersFirstUnchosenIndex);
-        if (proposersFirstUnchosenIndex > -1 || proposersFirstUnchosenIndex != MitterServer.firstUnchosenIndex) {
+        if (proposersFirstUnchosenIndex > -1 && proposersFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
             updateLog(request);
             Message successReq = setupSuccessRequest();
             sendRequestResponse(successReq);
