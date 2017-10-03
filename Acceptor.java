@@ -32,8 +32,9 @@ import generated.nonstandard.message.Message;
      }
 
      /**
-     * This method will perform
-     */
+      * This method will invoke methods to read a request from the leader and respond to it with the 
+      * appropriate message.
+      */
      public void readValue() {
         Message request = readARequestFromLeader(null);
         respondToLeader(request);
@@ -51,12 +52,23 @@ import generated.nonstandard.message.Message;
                 System.out.println("RECEIVED SUCCESS REQUEST");
                 respondSuccessRequest(request);
             } else {                                    // Heartbeat message
-                System.out.println("RECEIVED HEARTBEAT MESSAGE");
-
+                // System.out.println("RECEIVED HEARTBEAT MESSAGE");
             }
-        } else {
-            System.err.printf("[ SERVER %d ] A leader has not been elected.", MitterServer.serverId);
-            System.exit(1);
+        } else {                                        // Set the currentLeader variable to null to initiate re-election
+            // if (MitterServer.currentLeader == null) {
+                System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n", MitterServer.serverId);
+                try {
+                    if (MitterServer.currentLeader != null) {
+                        MitterServer.currentLeader.getSocket().close();
+                        removeFromActiveServers(MitterServer.currentLeader);
+                        System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
+                    }
+                } catch (IOException ex) {
+                    // IGNORE
+                }
+                // System.err.println("===============OHHHHHHHH NO!!!!===============");
+                MitterServer.currentLeader = null;
+            // }
         }
      }
 
@@ -68,52 +80,21 @@ import generated.nonstandard.message.Message;
      public Message readARequestFromLeader(Message response) {
         Message request = null;
 
-        while (request == null) {
-            try {
-                BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
-                
-                if (buffReader.ready()) {
-                    String line = buffReader.readLine();
-                    // StringReader sReader = new StringReader(buffReader.readLine());
-                    // System.out.println(line);
-                    StringReader sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
-                    Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
-                    request = res;
-                }    
-            } catch (IOException e) { // The leader has crashed or got disconnected
-                System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-                e.printStackTrace();
-                System.exit(1);
-            } catch (JAXBException e) {
-                System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-                e.printStackTrace();
+        try {
+            if (MitterServer.currentLeader != null) {
+                // System.out.println("========THE LEADER IS NOT NULL!!!========");
+                request = MitterServer.readMessage(MitterServer.currentLeader.getSocket(), 2000);
+                // System.out.println("REQUEST FROM readARequestFromLeader: " + request);
+            }
+        } catch (IOException e) {           // The leader has crashed or got disconnected
+            System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n");
+        } catch (JAXBException e) {         // There was a problem in the received XML message, therefore resend the response to the leader
+            System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
+            e.printStackTrace();
+            if (response != null) {
                 sendRequestResponse(response);
-                // System.exit(1);
             }
         }
-
-
-        // try {
-        //     BufferedReader buffReader = new BufferedReader(new InputStreamReader(MitterServer.currentLeader.getSocket().getInputStream()));
-        //     while (request == null) {
-        //         if (buffReader.ready()) {
-        //             String line = buffReader.readLine();
-        //             // StringReader sReader = new StringReader(buffReader.readLine());
-        //             System.out.println(line);
-        //             StringReader sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
-        //             Message res = (Message) MitterServer.jaxbUnmarshallerMessage.unmarshal(sReader);
-        //             request = res;
-        //         }
-        //     }    
-        // } catch (IOException e) { // The leader has crashed or got disconnected
-        //     System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-        //     e.printStackTrace();
-        //     System.exit(1);
-        // } catch (JAXBException e) {
-        //     System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-        //     e.printStackTrace();
-        //     System.exit(1);
-        // }
 
         return request;
      }
@@ -139,8 +120,11 @@ import generated.nonstandard.message.Message;
         // true.
         if (Float.compare(prepareRequestProposalNumber, MitterServer.minProposal) >= 0) {
             MitterServer.minProposal = prepareRequestProposalNumber;
+            MitterServer.maxRound = (new Float(MitterServer.minProposal)).longValue();
             status = true;
         }
+        // System.out.println("prepareRequestProposalNumber: " + prepareRequestProposalNumber);
+        // System.out.println("MitterServer.minProposal: " + MitterServer.minProposal);
         
         if (requestIndex > MitterServer.log.size()-1) {
             MitterServer.increaseLogCapacity(requestIndex+20);
@@ -159,7 +143,9 @@ import generated.nonstandard.message.Message;
         }
 
         Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
-        sendRequestResponse(response);
+        if (!sendRequestResponse(response)) {
+            return;
+        }
         
         // Listen for request from leader
         Message receivedReq = readARequestFromLeader(response);
@@ -169,37 +155,44 @@ import generated.nonstandard.message.Message;
     /**
      * This method sends a response(prepare/accept/success) to the proposer/leader
      * @param response - The response to be sent to the proposer or leader
+     * @return         - True if it has successfully sent the response to the leader, False otherwise
      */
-    public void sendRequestResponse(Message response) {
+    public boolean sendRequestResponse(Message response) {
         // There is no leader and therefore elect one.
         if (MitterServer.currentLeader == null) {
-            return;
+            return false;
         }
 
-        try {
-            BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(MitterServer.currentLeader.getSocket().getOutputStream()));
-            StringWriter sWriter = new StringWriter();
-            MitterServer.jaxbMarshallerMessage.marshal(response, sWriter);
-            buffWriter.write(sWriter.toString());
-            buffWriter.newLine();
-            buffWriter.flush();
-        } catch (IOException e) {
-            // Leader is disconnected or has crashed and so elect a new leader
+        boolean retry;
+        do {
+            retry = false;
             try {
-                MitterServer.currentLeader.getSocket().close();
-                System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
-            } catch (IOException ex) {
-                System.err.format("[ SERVER %d ] Error: Acceptor, " + ex.getMessage(), MitterServer.serverId);
-                ex.printStackTrace();
+                BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(MitterServer.currentLeader.getSocket().getOutputStream()));
+                StringWriter sWriter = new StringWriter();
+                MitterServer.jaxbMarshallerMessage.marshal(response, sWriter);
+                buffWriter.write(sWriter.toString());
+                buffWriter.newLine();
+                buffWriter.flush();
+            } catch (IOException e) {
+                // Leader is disconnected or has crashed and so elect a new leader
+                try {
+                    MitterServer.currentLeader.getSocket().close();
+                    removeFromActiveServers(MitterServer.currentLeader);
+                    System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
+                } catch (IOException ex) {
+                    System.err.printf("[ SERVER %d ] Error: Acceptor, " + ex.getMessage() + "\n", MitterServer.serverId);
+                    ex.printStackTrace();
+                }
+                MitterServer.currentLeader = null;
+                return false;
+            } catch (JAXBException e) {     // If there was something wrong with the XML object(i.e. it got corrupted) resend the response
+                System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
+                e.printStackTrace();
+                retry = true;
             }
-            MitterServer.currentLeader = null;
-            System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-            e.printStackTrace();
-        } catch (JAXBException e) {
-            System.err.format("[ SERVER %d ] Error: Acceptor, " + e.getMessage(), MitterServer.serverId);
-            e.printStackTrace();
-            System.exit(1);
-        }
+        } while (retry);
+
+        return true;
     }
 
     /**
@@ -232,6 +225,7 @@ import generated.nonstandard.message.Message;
         NotificationInfo requestValue = request.getAccept().getRequest().getValue();
         int requestFirstUnchosenIndex = request.getAccept().getRequest().getFirstUnchosenIndex();
         if (Float.compare(requestProposalNumber, MitterServer.minProposal) >= 0) {
+            MitterServer.maxRound = (new Float(requestProposalNumber)).longValue() + 1;
             if (requestIndex > MitterServer.log.size()-1) {
                 MitterServer.increaseLogCapacity(requestIndex+1);
             }
@@ -252,7 +246,9 @@ import generated.nonstandard.message.Message;
             }
         }
         Message acceptResponse = setupAcceptResponse();
-        sendRequestResponse(acceptResponse);
+        if (!sendRequestResponse(acceptResponse)) {
+            return;
+        }
         System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
         // Read another request from the leader/proposer
         Message req = readARequestFromLeader(acceptResponse);
@@ -266,10 +262,12 @@ import generated.nonstandard.message.Message;
     public void respondSuccessRequest(Message request) {
         int proposersFirstUnchosenIndex = request.getSuccess().getRequest().getIndex();
         System.out.println("PROPOSERS FIRST UNCHOSEN INDEX: " + proposersFirstUnchosenIndex);
-        if (proposersFirstUnchosenIndex > -1 && proposersFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
+        if (proposersFirstUnchosenIndex > -1) {
             updateLog(request);
             Message successReq = setupSuccessRequest();
-            sendRequestResponse(successReq);
+            if (!sendRequestResponse(successReq)) {
+                return;
+            }
             System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
             Message receivedRequest = readARequestFromLeader(successReq);
             respondToLeader(receivedRequest);
@@ -346,6 +344,25 @@ import generated.nonstandard.message.Message;
             updatedEntry.setAcceptedValue(successRequestValue);
             MitterServer.log.set(successRequestIndex, updatedEntry);
             MitterServer.firstUnchosenIndex += 1;
+        }
+    }
+
+    /**
+     * This removes the server from the list of active servers.
+     * @param sId - The server to be removed
+     * @return - True if the server has been successfully removed from the active list of servers
+     */
+    public boolean removeFromActiveServers(ServerPeers.ServerIdentity sId) {
+        try {
+            sId.getSocket().close();    
+        } catch (IOException ex) {
+            System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
+            ex.printStackTrace();
+            // System.exit(1);
+        }
+        
+        synchronized (MitterServer.serversList) {
+            return MitterServer.serversList.remove(sId);
         }
     }
  }

@@ -82,11 +82,15 @@ public class ServerPeers extends Thread {
                     // Check if the accepted server connection is already connected
                     boolean isConnected = false;
                     int serverId = hb.getHeartbeat().getServerId();
+                    int leaderId = hb.getHeartbeat().getLeaderId();
 
                     synchronized (MitterServer.serversList) {
                         for (ServerIdentity sId: MitterServer.serversList) {
                             if (sId.getId() == serverId) {
                                 isConnected = true;
+                            }
+                            if (sId.getId() == leaderId) {              // This suggests that a leader has already been elected(i.e. the leaderId field of the heartbeat message is greater than -1)
+                                MitterServer.currentLeader = sId;
                             }
                         }
                         

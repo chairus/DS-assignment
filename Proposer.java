@@ -96,6 +96,7 @@ public class Proposer {
         Message prepareReq = setupPrepareRequest(); // Initialize the prepare message
         Proposal result = new Proposal();
         broadcastRequest(prepareReq);
+        System.out.println("SENT PREPARE REQUESTS.");
         result = collectPrepareResponses();
         return result;
     }
@@ -117,10 +118,12 @@ public class Proposer {
 
         synchronized (MitterServer.serversList) {
             int numOfActiveServers = MitterServer.serversList.size();
-            int majoritySize = numOfActiveServers/2;
+            int majoritySize = (int)Math.ceil(((double)numOfActiveServers)/2);
+            // System.out.println("MAJORITY SIZE: " + majoritySize);
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses/votes has been received
             while (numOfVotes < majoritySize && numOfServersResponded < numOfActiveServers) {
+                // System.out.println("CURRENT NUMBER OF VOTES: " + numOfVotes);
                 int index = 0;
                 while (index < numOfActiveServers) {
                     acceptor = MitterServer.serversList.get(index);
@@ -177,6 +180,8 @@ public class Proposer {
                 result.hasMajority = true;
             }
         }
+        System.out.println("result.hasMajority: " + result.hasMajority);
+        System.out.println("result.acceptedValue: " + result.acceptedValue);
         return result;
     }
 
@@ -310,10 +315,12 @@ public class Proposer {
                             } else {
                                 System.err.println(response);
                             }
-                        } else {    // Send success request to all acceptors for full replication
+                        } else { // Send success request to all acceptors for full replication
                             if (numOfReplicatedServers < numOfActiveServers
                                 && MitterServer.lastLogIndex >= 0) {
                                 sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
+                            } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive    
+                                MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
                     } catch (IOException e) { // A server has crashed or got disconnected
@@ -329,13 +336,14 @@ public class Proposer {
                 }
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(500);
+                TimeUnit.MILLISECONDS.sleep(300);        // To control the access times of this thread on the list of notitifcations(i.e. notificationList)
             } catch (Exception e) {
-
+                // Ignore
             }
             MitterServer.notificationListLock.lock();    // Obtain the lock for the notification list
             notificationListSize = MitterServer.notificationList.size();
             MitterServer.notificationListLock.unlock();  // Release lock for notification list
+            // System.out.println("Exited loop in success request.");
         }
     }
 
@@ -358,7 +366,7 @@ public class Proposer {
     }
 
     /**
-     * This method sends Accept request to all acceptors.
+     * This method sends request(Prepare/Accept/Success) to all acceptors.
      * @param value - The value to be broadcasted to all acceptors
      */
     public void broadcastRequest(Message value) {
@@ -479,7 +487,9 @@ public class Proposer {
             System.exit(1);
         }
         
-        return MitterServer.serversList.remove(sId);
+        synchronized (MitterServer.serversList) {
+            return MitterServer.serversList.remove(sId);
+        }
     }
 
     /**

@@ -107,7 +107,7 @@ public class MitterServer {
     private Proposer proposer;
     private Acceptor acceptor;
     // An assertion if this server is the current leader/proposer
-    private static boolean isLeader;
+    public static boolean isLeader;
     // This index keeps track of which entry in the log is now ready to copy into the setOfNotifications list 
     private int nextLogEntryToStore;
     // Number of notifications to relay to leader
@@ -137,6 +137,7 @@ public class MitterServer {
         lastLogIndex = -1;
         maxRound = 1;
         currentLeader = null;
+        notificationRelayer = null;
         proposer = new Proposer();
         acceptor = new Acceptor();
         prepared = false;
@@ -196,22 +197,21 @@ public class MitterServer {
                     serverSize = serversList.size();
                 }
             }
-            System.out.printf("[ SERVER %d ] All servers connected.\n", serverId);
-
-            // Elect a leader
-            System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-            while (!electLeader()) { }
-            System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
-
-            if (currentLeader.getId() == serverId) {
-                System.out.printf("[ SERVER %d ] Proposer\n", serverId);
-                isLeader = true;
-            } else {
-                System.out.printf("[ SERVER %d ] Acceptor\n", serverId);
-                isLeader = false;
-                notificationRelayer = new NotificationRelayer();
-                notificationRelayer.start();
+            
+            // The first time this server runs make sure that it is connected to three servers at minimum.
+            // while (serverSize < 3) {
+            //     synchronized (serversList) {
+            //         serverSize = serversList.size();
+            //     }
+            // }
+            
+            if (currentLeader == null) { // Elect a leader
+                System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                while (!electLeader()) { }
+                System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
             }
+
+            inspectLeader();
 
             int prevFirstUnchosenIndex = firstUnchosenIndex;
 
@@ -265,6 +265,16 @@ public class MitterServer {
                     printLog();
                     prevFirstUnchosenIndex = firstUnchosenIndex;
                 }
+
+                if (currentLeader == null) {
+                    System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                    while (!electLeader()) { }
+                    inspectLeader();
+                    System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                    synchronized (numOfNotificationsRelayed) {
+                        numOfNotificationsRelayed = 0;      // Reset this variable to initiate re-send of the notifications that has not been replicated
+                    }
+                }
             }
             
         } catch (Exception e) {
@@ -280,6 +290,8 @@ public class MitterServer {
         ServerPeers.ServerIdentity highestId = findHighestServerId(); 
 
         try {
+            // If this server has the highest serverId and there is no leader elected yet, then send heartbeat 
+            // messages to all servers to notify other servers that this server should be the leader
             if (highestId.getId() == serverId) {
                 synchronized (serversList) {
                     // Send heartbeat message to all servers
@@ -306,19 +318,14 @@ public class MitterServer {
             // Send heartbeat message to server with highest id
             sendHeartbeatMessage(highestId.getSocket());
 
-            // Read the received heartbeat with a 300ms time limit
-            long startTime = System.currentTimeMillis();
-            long currentTime;
-            do {
-                Message hb = readMessage(highestId.getSocket());
-                if (hb != null) {
-                    if (hb.getHeartbeat().getServerId() == highestId.getId()) {
-                        currentLeader = highestId;
-                        return true;
-                    }
+            // Read the received heartbeat with a 1000ms time limit
+            Message hb = readMessage(highestId.getSocket(), 1000);
+            if (hb != null) {
+                if (hb.getHeartbeat().getServerId() == highestId.getId()) {
+                    currentLeader = highestId;
+                    return true;
                 }
-                currentTime = System.currentTimeMillis();
-            } while ((currentTime-startTime) < 300);
+            }
         } catch (JAXBException e) {
             System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
             e.printStackTrace();
@@ -331,8 +338,28 @@ public class MitterServer {
     }
 
     /**
-     * This method sends a message to a server using the given socket.
+     * Checks if this server is the leader or not and updates the "isLeader" variable
+     */
+    public void inspectLeader() {
+        if (currentLeader.getId() == serverId) {
+            System.out.printf("[ SERVER %d ] Proposer\n", serverId);
+            isLeader = true;
+            notificationRelayer = null;
+        } else {
+            System.out.printf("[ SERVER %d ] Acceptor\n", serverId);
+            isLeader = false;
+            if (notificationRelayer == null) {
+                notificationRelayer = new NotificationRelayer();
+                notificationRelayer.start();
+            }
+        }
+    }
+
+    /**
+     * This method sends a heartbeat message to a server using the given socket.
      * @param s - A socket on where to send a heartbeat message to
+     * @throws JAXBException [description]
+     * @throws IOException   [description]
      */
     public static void sendHeartbeatMessage(Socket s) throws JAXBException, IOException {
         BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
@@ -348,21 +375,49 @@ public class MitterServer {
      * This method reads a message from a given server using the given socket.
      * @param s - A socket on where to listen for a heartbeat message
      * @return - The heartbeat message, null if none is read
+     * @throws JAXBException [description]
+     * @throws IOException   [description]
      */
     public static Message readMessage(Socket s) throws JAXBException, IOException {
         BufferedReader buffReader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         StringReader sReader;
-        Message hb = null;
+        Message message = null;
 
         if (buffReader.ready()) {
             String line = buffReader.readLine();
             if (line != null) {
-                sReader = new StringReader(line);
-                hb = (Message) jaxbUnmarshallerMessage.unmarshal(sReader);
+                // sReader = new StringReader(line);
+                sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
+                message = (Message) jaxbUnmarshallerMessage.unmarshal(sReader);
             }
         }
 
-        return hb;
+        return message;
+    }
+
+    /**
+     * This method reads a message, from a given socket, if it is ready to be read or waits until the given 
+     * time period for the message to arrive.
+     * @param  s             The socket on where the message to read from
+     * @param  waitTime      The time period that this method would wait for the message to arrive
+     * @return               The received message or null
+     * @throws JAXBException [description]
+     * @throws IOException   [description]
+     */
+    public static Message readMessage(Socket s, long waitTime) throws JAXBException, IOException {
+        Message receivedMessage = null;
+        long startTime = System.currentTimeMillis();
+        long currentTime;
+        do {
+            Message message = readMessage(s);
+            if (message != null) {
+                receivedMessage = message;
+                break;
+            }
+            currentTime = System.currentTimeMillis();
+        } while ((currentTime-startTime) <= waitTime);
+
+        return receivedMessage;
     }
 
     /**
@@ -412,7 +467,7 @@ public class MitterServer {
      * @param notification - Notification received from one of the notifiers or server
      */
     public void assignSequenceNumberAndStore(NotificationInfo notification) throws InterruptedException {
-        System.err.println("Assigning sequence number on a notification...");
+        // System.err.println("Assigning sequence number on a notification...");
         OrderedNotification orderedNotification = new OrderedNotification();
 
         switch (notification.getSeverity().toLowerCase()) {
@@ -428,7 +483,7 @@ public class MitterServer {
             default:
                 break;
         }
-        System.err.println("Assigning sequence number on a notification...SUCCESS");
+        // System.err.println("Assigning sequence number on a notification...SUCCESS");
         putOrderedNotificationToList(orderedNotification);
     }
 
@@ -477,7 +532,7 @@ public class MitterServer {
      * @param listNumber - 0 for urgent, 1 for caution and 2 for notice
      */
     public void put(OrderedNotification orderedNotification, int listNumber) throws InterruptedException {
-        System.err.println("Putting ordered notification into the appropriate list...");
+        // System.err.println("Putting ordered notification into the appropriate list...");
         synchronized (writerCount) {    // Tell the reader that a writer is ready to write
             writerCount[listNumber] += 1;
         }
@@ -491,7 +546,7 @@ public class MitterServer {
         }
 
         readWriteSemaphores.get(listNumber).release(MAX_NUM_READERS);  // Release lock
-        System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
+        // System.err.println("Putting ordered notification into the appropriate list...SUCCESS");
     }
 
     /**
@@ -587,6 +642,11 @@ public class MitterServer {
         message.setPrepare(null);
         message.setSuccess(null);
         message.getHeartbeat().setServerId(serverId);
+        if (currentLeader != null) {                        // If there is a leader set the leaderId field of the heartbeat message to the leader's id
+            message.getHeartbeat().setLeaderId(currentLeader.getId());
+        } else {
+            message.getHeartbeat().setLeaderId(-1);         // else if there is no leader set the leaderId field to -1
+        }
         return message;
     }
 
