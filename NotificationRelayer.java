@@ -84,8 +84,14 @@ public class NotificationRelayer extends Thread {
                             break;
                         }
                         // Take one notification from the list and relay it to the leader
-                        sendNotification(notification);
-                        MitterServer.numOfNotificationsRelayed += 1;
+                        try {
+                            sendNotification(notification);
+                            MitterServer.numOfNotificationsRelayed += 1;
+                            TimeUnit.MILLISECONDS.sleep(200);
+                        } catch (InterruptedException ex) {
+                            System.err.printf("[ SERVER %d ] Thread NotificationRelayer interrupted", MitterServer.serverId);
+                            ex.printStackTrace();    
+                        }
                     }
                 }
                 MitterServer.notificationListLock.unlock();
