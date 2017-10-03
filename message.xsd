@@ -103,6 +103,8 @@
                         <xsd:sequence>
                             <!-- SENDER -->
                             <xsd:element name="serverId" type="xsd:int" />
+                            <!-- LEADER -->
+                            <xsd:element name="leaderId" type="xsd:int" />
                         </xsd:sequence>
                     </xsd:complexType>
                 </xsd:element>

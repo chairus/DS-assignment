@@ -61,8 +61,9 @@ import generated.nonstandard.message.Message;
      }
 
      /**
-      * This method will read a Prepare/Accept request sent by the Leader.
-      * @return - The Prepare/Accept message request in String format
+      * Thie method will read a request(Prepare/Accept/Success) sent by the Leader.
+      * @param  response - The response that was sent for the Leader's request
+      * @return          - The unmarshalled response from the leader
       */
      public Message readARequestFromLeader(Message response) {
         Message request = null;
