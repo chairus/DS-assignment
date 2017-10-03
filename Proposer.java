@@ -328,7 +328,11 @@ public class Proposer {
                     index += 1;
                 }
             }
-            TimeUnit.MILLISECONDS.sleep(500);
+            try {
+                TimeUnit.MILLISECONDS.sleep(500);
+            } catch (Exception e) {
+
+            }
             MitterServer.notificationListLock.lock();    // Obtain the lock for the notification list
             notificationListSize = MitterServer.notificationList.size();
             MitterServer.notificationListLock.unlock();  // Release lock for notification list
