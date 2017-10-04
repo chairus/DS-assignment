@@ -197,7 +197,7 @@ public class MitterServer {
             int numOfActiveServers = 0;
             
             // The first time this server runs make sure that it is connected to two servers at minimum.
-            while (numOfActiveServers < 2) {
+            while (numOfActiveServers < 4) {
                 synchronized (serversList) {
                     numOfActiveServers = serversList.size();
                 }
@@ -245,7 +245,6 @@ public class MitterServer {
                     }
                 } else {
                     acceptor.readValue();
-                    // System.out.println("EXITED ACCEPTOR");
                     // Send heartbeat message to all replicas except the leader
                     respondToHearbeat();
                 }
@@ -420,20 +419,22 @@ public class MitterServer {
             ServerPeers.ServerIdentity sId;
             while (index < serversList.size()) {
                 sId = serversList.get(index);
-                if (sId.getId() != currentLeader.getId()) {
-                    Message hb = null;
-                    try {
-                        hb = readMessage(sId.getSocket(), 500);
-                        if (hb != null && hb.getHeartbeat() != null) {
-                            sendHeartbeatMessage(sId.getSocket());
-                            System.out.println("SENT HEARTBEAT MESSAGE TO SERVER" + sId.getId());
+                if (currentLeader != null) {
+                    if (sId.getId() != currentLeader.getId()) {
+                        Message hb = null;
+                        try {
+                            hb = readMessage(sId.getSocket());
+                            if (hb != null && hb.getHeartbeat() != null) {
+                                sendHeartbeatMessage(sId.getSocket());
+                                System.out.println("SENT HEARTBEAT MESSAGE TO SERVER" + sId.getId());
+                            }
+                        } catch (IOException e) {
+                            serversList.remove(sId);
+                            index -= 1;
+                        } catch (JAXBException e) {
+                            // IGNORE
+                            System.err.println("AN ERROR HAS OCCURED");
                         }
-                    } catch (IOException e) {
-                        serversList.remove(sId);
-                        index -= 1;
-                    } catch (JAXBException e) {
-                        // IGNORE
-                        System.err.println("AN ERROR HAS OCCURED");
                     }
                 }
                 index += 1;
@@ -770,8 +771,10 @@ public class MitterServer {
         }
         if (isLeader) {
             String activeServers = String.valueOf(serverId);
-            for (ServerPeers.ServerIdentity sId: serversList) {
-                activeServers += new String(" " + sId.getId());
+            synchronized (serversList) {
+                for (ServerPeers.ServerIdentity sId: serversList) {
+                    activeServers += new String(" " + sId.getId());
+                }
             }
             message.getHeartbeat().setActiveServers(activeServers);
         }

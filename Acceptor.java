@@ -59,17 +59,18 @@ import generated.nonstandard.message.Message;
                 // }
             }
         } else {    // Set the currentLeader variable to null to initiate re-election
-                System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n", MitterServer.serverId);
-                try {
-                    if (MitterServer.currentLeader != null) {
-                        MitterServer.currentLeader.getSocket().close();
-                        removeFromActiveServers(MitterServer.currentLeader);
-                        System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
-                    }
-                } catch (IOException ex) {
-                    // IGNORE
+            // System.err.println("==========================OH NO!!=====================");
+            System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n", MitterServer.serverId);
+            try {
+                if (MitterServer.currentLeader != null) {
+                    MitterServer.currentLeader.getSocket().close();
+                    removeFromActiveServers(MitterServer.currentLeader);
+                    System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
                 }
-                MitterServer.currentLeader = null;
+            } catch (IOException ex) {
+                // IGNORE
+            }
+            MitterServer.currentLeader = null;
         }
      }
 
@@ -377,8 +378,9 @@ import generated.nonstandard.message.Message;
      * Updates the active servers list with the given string of active server ids by the leader
      * @param activeServer - A string of active server ids
      */
-    public void updateActiveServersList(String activeServer) {
-        String[] activeServerIds = activeServer.trim().split("\\s++");
+    public void updateActiveServersList(String activeServers) {
+        System.out.println("ACTIVE SERVERS: " + activeServers);
+        String[] activeServerIds = activeServers.trim().split("\\s++");
         synchronized (MitterServer.serversList) {
             int index = 0;
             while (index < MitterServer.serversList.size()) {

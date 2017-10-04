@@ -323,11 +323,6 @@ public class Proposer {
                                 // System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL  REPLCATION");
                                 sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
                             } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive
-                                try {
-                                    TimeUnit.MILLISECONDS.sleep(500);
-                                } catch (InterruptedException e) {
-
-                                }
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
