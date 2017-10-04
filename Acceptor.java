@@ -227,7 +227,7 @@ import generated.nonstandard.message.Message;
         if (Float.compare(requestProposalNumber, MitterServer.minProposal) >= 0) {
             MitterServer.maxRound = (new Float(requestProposalNumber)).longValue() + 1;
             if (requestIndex > MitterServer.log.size()-1) {
-                MitterServer.increaseLogCapacity(requestIndex+1);
+                MitterServer.increaseLogCapacity(requestIndex+10);
             }
 
             MitterServer.log.set(requestIndex, new LogEntry(requestProposalNumber,requestValue));
@@ -262,6 +262,7 @@ import generated.nonstandard.message.Message;
     public void respondSuccessRequest(Message request) {
         int proposersFirstUnchosenIndex = request.getSuccess().getRequest().getIndex();
         System.out.println("PROPOSERS FIRST UNCHOSEN INDEX: " + proposersFirstUnchosenIndex);
+        System.out.println("ACCEPTORS FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
         if (proposersFirstUnchosenIndex > -1) {
             updateLog(request);
             Message successReq = setupSuccessRequest();
@@ -289,6 +290,7 @@ import generated.nonstandard.message.Message;
         Message prepareResponse = new Message();
         prepareResponse.setAccept(null);
         prepareResponse.setSuccess(null);
+        prepareResponse.setHeartbeat(null);
         prepareResponse.setPrepare(new Message.Prepare());
         prepareResponse.getPrepare().setRequest(null);
         prepareResponse.getPrepare().setResponse(new Message.Prepare.Response());
@@ -305,6 +307,7 @@ import generated.nonstandard.message.Message;
         Message acceptRes = new Message();
         acceptRes.setPrepare(null);
         acceptRes.setSuccess(null);
+        acceptRes.setHeartbeat(null);
         acceptRes.setAccept(new Message.Accept());
         acceptRes.getAccept().setRequest(null);
         acceptRes.getAccept().setResponse(new Message.Accept.Response());
@@ -318,6 +321,7 @@ import generated.nonstandard.message.Message;
         Message successReq = new Message();
         successReq.setAccept(null);
         successReq.setPrepare(null);
+        successReq.setHeartbeat(null);
         successReq.setSuccess(new Message.Success());
         successReq.getSuccess().setResponse(new Message.Success.Response());
         successReq.getSuccess().getResponse().setAcceptorsFirstUnchosenIndex(MitterServer.firstUnchosenIndex);
@@ -333,7 +337,7 @@ import generated.nonstandard.message.Message;
         NotificationInfo successRequestValue = successRequest.getSuccess().getRequest().getValue();
 
         if (successRequestIndex > MitterServer.log.size()) {
-            MitterServer.increaseLogCapacity(successRequestIndex+1);
+            MitterServer.increaseLogCapacity(successRequestIndex+10);
         }
 
         LogEntry updatedEntry = MitterServer.log.get(successRequestIndex);
@@ -343,8 +347,10 @@ import generated.nonstandard.message.Message;
             updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
             updatedEntry.setAcceptedValue(successRequestValue);
             MitterServer.log.set(successRequestIndex, updatedEntry);
-            MitterServer.firstUnchosenIndex += 1;
+            // MitterServer.firstUnchosenIndex += 1;
         }
+        MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
+
     }
 
     /**

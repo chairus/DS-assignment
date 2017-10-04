@@ -191,19 +191,19 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] Listening to incoming notifiers on port %d\n",serverId,notifierPort);
             System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
-            int serverSize = 0;
-            while (serverSize < serverPorts.size()) {
-                synchronized (serversList) {
-                    serverSize = serversList.size();
-                }
-            }
-            
-            // The first time this server runs make sure that it is connected to three servers at minimum.
-            // while (serverSize < 3) {
+            int numOfActiveServers = 0;
+            // while (numOfActiveServers < serverPorts.size()) {
             //     synchronized (serversList) {
-            //         serverSize = serversList.size();
+            //         numOfActiveServers = serversList.size();
             //     }
             // }
+            
+            // The first time this server runs make sure that it is connected to two servers at minimum.
+            while (numOfActiveServers < 2) {
+                synchronized (serversList) {
+                    numOfActiveServers = serversList.size();
+                }
+            }
             
             if (currentLeader == null) { // Elect a leader
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
@@ -589,7 +589,8 @@ public class MitterServer {
      * @return - The unchosen index
      */
     public static int findFirstUnchosenIndex() {
-        int index = 0;
+        // int index = 0;
+        int index = firstUnchosenIndex;
         while (index < MitterServer.log.size()) {
             LogEntry entry = MitterServer.log.get(index);
             if (Float.compare(entry.getAcceptedProposal(), Float.MAX_VALUE) < 0) {  // No value has been chosen for this log index

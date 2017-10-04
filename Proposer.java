@@ -211,7 +211,7 @@ public class Proposer {
             int numOfActiveServers = MitterServer.serversList.size();
             int numOfServersResponded = 0;
             int numOfVotes = 0;
-            int majoritySize = numOfActiveServers/2;
+            int majoritySize = (int)Math.ceil(((double)numOfActiveServers)/2);
             ServerPeers.ServerIdentity acceptor;
             // Keep looping until a majority of responses has been received
             while (numOfVotes < majoritySize && numOfServersResponded < numOfActiveServers) {
@@ -300,8 +300,10 @@ public class Proposer {
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
+                                    System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + acceptorsFirstUnchosenIndex + "and proposersFirstUnchosenIndex of " + MitterServer.firstUnchosenIndex);
                                 } else {
                                     sendSuccessRequest(-1, acceptor);
+                                    System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + -1);
                                     numOfReplicatedServers += 1;
                                 }
                             } else if (response.getAccept() != null) { // Received response from accept request
@@ -318,6 +320,7 @@ public class Proposer {
                         } else { // Send success request to all acceptors for full replication
                             if (numOfReplicatedServers < numOfActiveServers
                                 && MitterServer.lastLogIndex >= 0) {
+                                System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL  REPLCATION");
                                 sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
                             } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive    
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
