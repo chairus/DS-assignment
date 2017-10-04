@@ -73,7 +73,7 @@ public class ServerPeers extends Thread {
                 try {
                     Socket s = MitterServer.serverSocket.accept();
 
-                    // Find the id of the newly connected server by exchanging heartbeat message
+                    // Find the id of the newly connected server by exchanging heartbeat messages
                     Message hb = MitterServer.readMessage(s);
                     while (hb == null) {
                         hb = MitterServer.readMessage(s);
@@ -82,22 +82,23 @@ public class ServerPeers extends Thread {
                     // Check if the accepted server connection is already connected
                     boolean isConnected = false;
                     int serverId = hb.getHeartbeat().getServerId();
-                    int leaderId = hb.getHeartbeat().getLeaderId();
+                    // int leaderId = hb.getHeartbeat().getLeaderId();
 
                     synchronized (MitterServer.serversList) {
                         for (ServerIdentity sId: MitterServer.serversList) {
                             if (sId.getId() == serverId) {
                                 isConnected = true;
                             }
-                            if (sId.getId() == leaderId) {              // This suggests that a leader has already been elected(i.e. the leaderId field of the heartbeat message is greater than -1)
-                                System.out.println("A LEADER ALREADY EXIST");
-                                MitterServer.currentLeader = sId;
-                            }
+                            // if (sId.getId() == leaderId) {              // This suggests that a leader has already been elected(i.e. the leaderId field of the heartbeat message is greater than -1)
+                            //     System.out.println("A LEADER ALREADY EXIST");
+                            //     MitterServer.currentLeader = sId;
+                            // }
                         }
                         
                         if (!isConnected) {
                             MitterServer.serversList.add(new ServerIdentity(s,serverId));
-                            System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                            // MitterServer.sendHeartbeatMessage(s);
+                            System.out.printf("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
                         }
                     }
                 } catch (IOException e) {
@@ -118,33 +119,43 @@ public class ServerPeers extends Thread {
                         }
 
                         try {
-                            if (!haveSeen) {
-                                remotePort = list.get(1);
-                                remoteServerId = list.get(0);
+                                if (!haveSeen) {
+                                    remotePort = list.get(1);
+                                    remoteServerId = list.get(0);
 
-                                InetSocketAddress endpoint = new InetSocketAddress("127.0.0.1", remotePort);
-                                s.connect(endpoint);
+                                    InetSocketAddress endpoint = new InetSocketAddress("127.0.0.1", remotePort);
+                                    s.connect(endpoint);
 
-                                // Send a heartbeat message to identify itself
-                                MitterServer.sendHeartbeatMessage(s);
-
-                                synchronized (MitterServer.serversList) {
-                                    MitterServer.serversList.add(new ServerIdentity(s,remoteServerId));
+                                    // Send a heartbeat message to identify itself
+                                    MitterServer.sendHeartbeatMessage(s);
+                                    Message hb = MitterServer.readMessage(s);
+                                    // while (hb == null) {
+                                    //     hb = MitterServer.readMessage(s);
+                                    // }
+                                    // Then add the server to the active servers list and check if a leader has already been elected
+                                    synchronized (MitterServer.serversList) {
+                                        MitterServer.serversList.add(new ServerIdentity(s,remoteServerId));
+                                        // for (ServerIdentity sId: MitterServer.serversList) {
+                                        //     if (sId.getId() == hb.getHeartbeat().getLeaderId()) {   // This suggests that a leader has already been elected(i.e. the leaderId field of the heartbeat message is greater than -1)
+                                        //         System.out.println("A LEADER ALREADY EXIST");
+                                        //         MitterServer.currentLeader = sId;
+                                        //     }
+                                        // }
+                                    }
+                                    System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
                                 }
-                                System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
-                            }
                         } catch (IOException ex) {
                             // IGNORE
                         } catch (JAXBException ex) {
                             System.err.format("[ SERVER %d ] Error: ServerPeers, " + ex.getMessage(), MitterServer.serverId);
-                            ex.printStackTrace();
-                            System.exit(1);
+                            // ex.printStackTrace();
+                            // System.exit(1);
                         }
                     }
                 } catch (JAXBException e) {
                     System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
-                    e.printStackTrace();
-                    System.exit(1);
+                    // e.printStackTrace();
+                    // System.exit(1);
                 }
             }
 

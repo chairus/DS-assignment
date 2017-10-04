@@ -130,7 +130,7 @@ public class Proposer {
                     try {
                         Message response = MitterServer.readMessage(acceptor.getSocket());
                         if (response != null) {
-                           if (response.getPrepare() != null) { // Received response to prepare request
+                            if (response.getPrepare() != null) { // Received response to prepare request
                                 if (response.getPrepare().getResponse().isStatus()) {
                                     float receivedAcceptedProposal = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
                                     NotificationInfo receivedAcceptedValue = response.getPrepare().getResponse().getAcceptedValue();
@@ -300,10 +300,10 @@ public class Proposer {
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
-                                    System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + acceptorsFirstUnchosenIndex + "and proposersFirstUnchosenIndex of " + MitterServer.firstUnchosenIndex);
+                                    // System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + acceptorsFirstUnchosenIndex + "and proposersFirstUnchosenIndex of " + MitterServer.firstUnchosenIndex);
                                 } else {
                                     sendSuccessRequest(-1, acceptor);
-                                    System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + -1);
+                                    // System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + -1);
                                     numOfReplicatedServers += 1;
                                 }
                             } else if (response.getAccept() != null) { // Received response from accept request
@@ -320,9 +320,14 @@ public class Proposer {
                         } else { // Send success request to all acceptors for full replication
                             if (numOfReplicatedServers < numOfActiveServers
                                 && MitterServer.lastLogIndex >= 0) {
-                                System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL  REPLCATION");
+                                // System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL  REPLCATION");
                                 sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
-                            } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive    
+                            } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive
+                                try {
+                                    TimeUnit.MILLISECONDS.sleep(500);
+                                } catch (InterruptedException e) {
+
+                                }
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
@@ -339,7 +344,7 @@ public class Proposer {
                 }
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(300);        // To control the access times of this thread on the list of notitifcations(i.e. notificationList)
+                TimeUnit.MILLISECONDS.sleep(200);        // To control the access times of this thread on the list of notitifcations(i.e. notificationList)
             } catch (Exception e) {
                 // Ignore
             }

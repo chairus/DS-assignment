@@ -116,6 +116,8 @@ public class MitterServer {
     public static Integer numOfNotificationsRelayed;
     // The thread that relays the notifications to the leader
     private Thread notificationRelayer;
+    //
+    public static Integer connectionAttempts;
 
     /**
      * Constructor
@@ -145,6 +147,7 @@ public class MitterServer {
         isLeader = false;
         nextLogEntryToStore = 0;
         numOfNotificationsRelayed = 0;
+        connectionAttempts = 0;
     }
 
     /**
@@ -192,11 +195,6 @@ public class MitterServer {
             System.out.printf("[ SERVER %d ] Listening to incoming servers on port %d\n",serverId,serverPort);
 
             int numOfActiveServers = 0;
-            // while (numOfActiveServers < serverPorts.size()) {
-            //     synchronized (serversList) {
-            //         numOfActiveServers = serversList.size();
-            //     }
-            // }
             
             // The first time this server runs make sure that it is connected to two servers at minimum.
             while (numOfActiveServers < 2) {
@@ -204,15 +202,23 @@ public class MitterServer {
                     numOfActiveServers = serversList.size();
                 }
             }
-            
-            if (currentLeader == null) { // Elect a leader
+
+            int leaderId = discoverLeader();
+            if (leaderId > -1) {    // A leader already exists
+                while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
+            } else {
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
                 while (!electLeader()) { }
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
             }
+            
+            // if (currentLeader == null) { // Elect a leader
+            //     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+            //     while (!electLeader()) { }
+            //     System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+            // }
 
             inspectLeader();
-
             int prevFirstUnchosenIndex = firstUnchosenIndex;
 
             while (true) {
@@ -220,7 +226,8 @@ public class MitterServer {
                     notificationListLock.lock();    // Obtain the lock for the notification list
                     if (!notificationList.isEmpty()) {
                         // System.err.println("Notification list is not empty. Taking one out...");
-                        NotificationInfo notification = takeOneFromNotificationList();
+                        // NotificationInfo notification = takeOneFromNotificationList();
+                        NotificationInfo notification = notificationList.get(0);
                         // notificationListNotFullCondition.signal();  // Signal waiting notifier thread
                         notificationListLock.unlock();  // Release lock for notification list
 
@@ -238,8 +245,10 @@ public class MitterServer {
                     }
                 } else {
                     acceptor.readValue();
+                    // System.out.println("EXITED ACCEPTOR");
+                    // Send heartbeat message to all replicas except the leader
+                    respondToHearbeat();
                 }
-                
                 
                 // Put the log entries/notifications into their corresponding list container
                 LogEntry entry = null;
@@ -288,52 +297,164 @@ public class MitterServer {
      */
     public boolean electLeader() {
         ServerPeers.ServerIdentity highestId = findHighestServerId(); 
-
-        try {
+        // try {
             // If this server has the highest serverId and there is no leader elected yet, then send heartbeat 
             // messages to all servers to notify other servers that this server should be the leader
             if (highestId.getId() == serverId) {
                 synchronized (serversList) {
                     // Send heartbeat message to all servers
-                    for (ServerPeers.ServerIdentity sId: serversList) {
-                        sendHeartbeatMessage(sId.getSocket());
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(20);
-                        } catch (InterruptedException e) {
-                            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
-                            e.printStackTrace();
+                    // for (ServerPeers.ServerIdentity sId: serversList) {
+                        int index = 0;
+                        while (index < serversList.size()) {
+                            ServerPeers.ServerIdentity sId = serversList.get(index);
+                            try {
+                                sendHeartbeatMessage(sId.getSocket());    
+                            } catch (IOException e) {
+                                serversList.remove(sId);
+                                index -= 1;
+                            } catch (JAXBException e) {
+                                // IGNORE
+                            }
+                            index += 1;
                         }
                         
-                    }
+                        // try {
+                        //     TimeUnit.MILLISECONDS.sleep(20);
+                        // } catch (InterruptedException e) {
+                        //     // IGNORE
+                        // }
+                        
+                    // }
                     // Read all received heartbeat messages
-                    for (ServerPeers.ServerIdentity sId: serversList) {
-                        readMessage(sId.getSocket());
-                    }
+                    // for (ServerPeers.ServerIdentity sId: serversList) {
+                    //     readMessage(sId.getSocket());
+                    // }
                 }
                 
                 currentLeader = highestId;
                 return true;
+            } else {
+                try {
+                    // Read the received heartbeat with a 500ms time limit
+                    Message hb = readMessage(highestId.getSocket(), 500);
+                    if (hb != null) {
+                        if (hb.getHeartbeat().getServerId() == highestId.getId()) {
+                            currentLeader = highestId;
+                            return true;
+                        }
+                    }
+                } catch (IOException e) {
+                    // IGNORE
+                } catch (JAXBException e) {
+                    // IGNORE
+                }
             }
             
             // Send heartbeat message to server with highest id
-            sendHeartbeatMessage(highestId.getSocket());
+            // sendHeartbeatMessage(highestId.getSocket());
+        // } catch (JAXBException e) {
+        //     System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
+        //     e.printStackTrace();
+        // } catch (IOException e) {
+        //     System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
+        //     e.printStackTrace();
+        // }
 
-            // Read the received heartbeat with a 1000ms time limit
-            Message hb = readMessage(highestId.getSocket(), 1000);
-            if (hb != null) {
-                if (hb.getHeartbeat().getServerId() == highestId.getId()) {
-                    currentLeader = highestId;
+        return false;
+    }
+
+    /**
+     * Listen and sends heartbeat messages to discover the current leader, if a leader exists.
+     * @return - A non-negative integer if a leader exist, -1 if the leader doesn't exist
+     */
+    public int discoverLeader() {
+        int receivedLeaderId = -1;
+        int index;
+        ServerPeers.ServerIdentity sId;
+        synchronized (serversList) {
+            index = 0;
+            while (index < serversList.size()) {
+                sId = serversList.get(index);
+                try {
+                    sendHeartbeatMessage(sId.getSocket());
+                } catch (Exception e) {
+                    // IGNORE
+                    System.err.println("AN ERROR HAS OCCURED");
+                }
+                index += 1;
+            }
+            System.out.println("SENT HEARTBEAT TO REPLICAS TO DISCOVER LEADER");
+        }
+
+        synchronized (serversList) {
+            index = 0;
+            while (index < serversList.size()) {
+                sId = serversList.get(index);
+                try {
+                    Message hb = null;
+                    System.out.println("LISTENING TO SERVER " + sId.getId());
+                    while ((hb = readMessage(sId.getSocket())) == null) { }
+                    // hb = readMessage(sId.getSocket(), 500);
+                    // if (hb != null) {
+                        if (hb.getHeartbeat() != null && hb.getHeartbeat().getLeaderId() > -1) {
+                            System.out.println("THE LEADER IS SERVER " + hb.getHeartbeat().getLeaderId());
+                            receivedLeaderId = hb.getHeartbeat().getLeaderId();
+                        }
+                    // }
+                } catch (IOException e) {   // The replica has crashed. Update the active servers list.    
+                    serversList.remove(sId);
+                    index -= 1;
+                } catch (JAXBException e) {
+                    // IGNORE
+                }
+                index += 1;
+            }
+        }
+        return receivedLeaderId;
+    }
+
+    public void respondToHearbeat() {
+        synchronized (serversList) {
+            System.out.println("CHECKING IF A REPLICA HAS SENT A HEARTBEAT");
+            int index = 0;
+            ServerPeers.ServerIdentity sId;
+            while (index < serversList.size()) {
+                sId = serversList.get(index);
+                if (sId.getId() != currentLeader.getId()) {
+                    Message hb = null;
+                    try {
+                        hb = readMessage(sId.getSocket(), 500);
+                        if (hb != null && hb.getHeartbeat() != null) {
+                            sendHeartbeatMessage(sId.getSocket());
+                            System.out.println("SENT HEARTBEAT MESSAGE TO SERVER" + sId.getId());
+                        }
+                    } catch (IOException e) {
+                        serversList.remove(sId);
+                        index -= 1;
+                    } catch (JAXBException e) {
+                        // IGNORE
+                        System.err.println("AN ERROR HAS OCCURED");
+                    }
+                }
+                index += 1;
+            }
+        }
+    }
+
+    /**
+     * Sets the currentLeader variable with the found leader id
+     * @param  leaderId - The server id of the leader
+     * @return          - True if it has successfully found and set the leader id in the list of active servers, false otherwise
+     */
+    public boolean setLeader(int leaderId) {
+        synchronized (serversList) {
+            for (ServerPeers.ServerIdentity sId: serversList) {
+                if (sId.getId() == leaderId) {
+                    currentLeader = sId;
                     return true;
                 }
             }
-        } catch (JAXBException e) {
-            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
-            e.printStackTrace();
         }
-
         return false;
     }
 
@@ -386,8 +507,8 @@ public class MitterServer {
         if (buffReader.ready()) {
             String line = buffReader.readLine();
             if (line != null) {
-                // sReader = new StringReader(line);
-                sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
+                sReader = new StringReader(line.trim());
+                // sReader = new StringReader(line.trim().replaceFirst("^([\\W]+)<","<"));
                 message = (Message) jaxbUnmarshallerMessage.unmarshal(sReader);
             }
         }
@@ -411,8 +532,7 @@ public class MitterServer {
         do {
             Message message = readMessage(s);
             if (message != null) {
-                receivedMessage = message;
-                break;
+                return message;
             }
             currentTime = System.currentTimeMillis();
         } while ((currentTime-startTime) <= waitTime);
@@ -647,6 +767,13 @@ public class MitterServer {
             message.getHeartbeat().setLeaderId(currentLeader.getId());
         } else {
             message.getHeartbeat().setLeaderId(-1);         // else if there is no leader set the leaderId field to -1
+        }
+        if (isLeader) {
+            String activeServers = String.valueOf(serverId);
+            for (ServerPeers.ServerIdentity sId: serversList) {
+                activeServers += new String(" " + sId.getId());
+            }
+            message.getHeartbeat().setActiveServers(activeServers);
         }
         return message;
     }

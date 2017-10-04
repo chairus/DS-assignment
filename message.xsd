@@ -105,6 +105,8 @@
                             <xsd:element name="serverId" type="xsd:int" />
                             <!-- LEADER -->
                             <xsd:element name="leaderId" type="xsd:int" />
+                            <!-- CURRENT ACTIVE SERVERS(ONLY THE LEADER USES THIS) -->
+                            <xsd:element name="activeServers" type="xsd:string" />
                         </xsd:sequence>
                     </xsd:complexType>
                 </xsd:element>

@@ -53,9 +53,12 @@ import generated.nonstandard.message.Message;
                 respondSuccessRequest(request);
             } else {                                    // Heartbeat message
                 // System.out.println("RECEIVED HEARTBEAT MESSAGE");
+                // if (request.getHeartbeat().getServerId() == MitterServer.currentLeader.getId()) {
+                    // System.out.println("RECEIVED UPDATE FOR ACTIVE SERVERS");
+                    updateActiveServersList(request.getHeartbeat().getActiveServers());
+                // }
             }
-        } else {                                        // Set the currentLeader variable to null to initiate re-election
-            // if (MitterServer.currentLeader == null) {
+        } else {    // Set the currentLeader variable to null to initiate re-election
                 System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n", MitterServer.serverId);
                 try {
                     if (MitterServer.currentLeader != null) {
@@ -66,9 +69,7 @@ import generated.nonstandard.message.Message;
                 } catch (IOException ex) {
                     // IGNORE
                 }
-                // System.err.println("===============OHHHHHHHH NO!!!!===============");
                 MitterServer.currentLeader = null;
-            // }
         }
      }
 
@@ -369,6 +370,31 @@ import generated.nonstandard.message.Message;
         
         synchronized (MitterServer.serversList) {
             return MitterServer.serversList.remove(sId);
+        }
+    }
+
+    /**
+     * Updates the active servers list with the given string of active server ids by the leader
+     * @param activeServer - A string of active server ids
+     */
+    public void updateActiveServersList(String activeServer) {
+        String[] activeServerIds = activeServer.trim().split("\\s++");
+        synchronized (MitterServer.serversList) {
+            int index = 0;
+            while (index < MitterServer.serversList.size()) {
+                boolean found = false;
+                ServerPeers.ServerIdentity sId = MitterServer.serversList.get(index);
+                for (String serverId: activeServerIds) {
+                    if (Integer.parseInt(serverId) == sId.getId()) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    MitterServer.serversList.remove(sId);
+                    index -= 1;
+                }
+                index += 1;
+            }
         }
     }
  }
