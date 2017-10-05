@@ -71,6 +71,7 @@ import generated.nonstandard.message.Message;
                 // IGNORE
             }
             MitterServer.currentLeader = null;
+            MitterServer.changeInLeader = true;
         }
      }
 

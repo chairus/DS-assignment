@@ -143,7 +143,13 @@ public class Proposer {
                                     }
                                     numOfVotes += 1;
                                     numOfServersResponded += 1;
-                                }
+                                } 
+                                // else {        // There is a higher accepted proposal, and so use it to send the next prepare request
+                                //     float proposalNumber = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
+                                //     MitterServer.maxRound = Math.round(proposalNumber)+5;
+                                //     result.hasMajority = false;
+                                //     return result;
+                                // }
                             } else if (response.getAccept() != null) { // Received response to accept request
                                 float acceptResponseProposalNumber = Float.parseFloat(response.getAccept().getResponse().getAcceptorMinProposalNumber());
                                 int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();
@@ -157,6 +163,15 @@ public class Proposer {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
                             } else {                                    // Received heartbeat message
+                                // ====================================================
+                                if (response.getHeartbeat().getServerId() > MitterServer.serverId) {    // Abandon because there is a server that has the highest server id
+                                    MitterServer.currentLeader = acceptor;
+                                    MitterServer.isLeader = false;
+                                    MitterServer.changeInLeader = true;
+                                    result.hasMajority = false;
+                                    return result;
+                                }
+                                // ====================================================
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
@@ -243,6 +258,16 @@ public class Proposer {
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
+                            } else if (response.getHeartbeat() != null) {
+                                // ====================================================
+                                if (response.getHeartbeat().getServerId() > MitterServer.serverId) {    // Abandon because there is a server that has the highest server id
+                                    MitterServer.currentLeader = acceptor;
+                                    MitterServer.isLeader = false;
+                                    MitterServer.changeInLeader = true;
+                                    return false;
+                                }
+                                // ====================================================
+                                MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
                     } catch (IOException e) {   // A server has crashed or got disconnected
@@ -296,7 +321,7 @@ public class Proposer {
                     try {
                         Message response = MitterServer.readMessage(acceptor.getSocket());
                         if (response != null) {
-                            if (response.getSuccess() != null) { // Received response from success request
+                            if (response.getSuccess() != null && response.getSuccess().getResponse() != null) { // Received response from success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
@@ -313,6 +338,14 @@ public class Proposer {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
                             } else if (response.getHeartbeat() != null) { // Received heartbeat message
+                                // ====================================================
+                                if (response.getHeartbeat().getServerId() > MitterServer.serverId) {    // Abandon because there is a server that has the highest server id
+                                    MitterServer.currentLeader = acceptor;
+                                    MitterServer.isLeader = false;
+                                    MitterServer.changeInLeader = true;
+                                    return;
+                                }
+                                // ====================================================
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             } else {
                                 System.err.println(response);
@@ -336,6 +369,7 @@ public class Proposer {
                         e.printStackTrace();
                     }
                     index += 1;
+                    numOfActiveServers = MitterServer.serversList.size();
                 }
             }
             try {

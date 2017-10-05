@@ -117,7 +117,7 @@ public class MitterServer {
     // The thread that relays the notifications to the leader
     private Thread notificationRelayer;
     //
-    public static Integer connectionAttempts;
+    public static boolean changeInLeader;
 
     /**
      * Constructor
@@ -147,7 +147,7 @@ public class MitterServer {
         isLeader = false;
         nextLogEntryToStore = 0;
         numOfNotificationsRelayed = 0;
-        connectionAttempts = 0;
+        changeInLeader = false;
     }
 
     /**
@@ -197,20 +197,20 @@ public class MitterServer {
             int numOfActiveServers = 0;
             
             // The first time this server runs make sure that it is connected to two servers at minimum.
-            while (numOfActiveServers < 4) {
+            while (numOfActiveServers < 2) {
                 synchronized (serversList) {
                     numOfActiveServers = serversList.size();
                 }
             }
 
-            int leaderId = discoverLeader();
-            if (leaderId > -1) {    // A leader already exists
-                while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
-            } else {
+            // int leaderId = discoverLeader();
+            // if (leaderId > -1) {    // A leader already exists
+            //     while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
+            // } else {
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
                 while (!electLeader()) { }
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
-            }
+            // }
             
             // if (currentLeader == null) { // Elect a leader
             //     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
@@ -246,7 +246,7 @@ public class MitterServer {
                 } else {
                     acceptor.readValue();
                     // Send heartbeat message to all replicas except the leader
-                    respondToHearbeat();
+                    // respondToHearbeat();
                 }
                 
                 // Put the log entries/notifications into their corresponding list container
@@ -274,7 +274,8 @@ public class MitterServer {
                     prevFirstUnchosenIndex = firstUnchosenIndex;
                 }
 
-                if (currentLeader == null) {
+                if (currentLeader == null || changeInLeader) {
+                    changeInLeader = false;
                     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
                     while (!electLeader()) { }
                     inspectLeader();
@@ -335,13 +336,13 @@ public class MitterServer {
             } else {
                 try {
                     // Read the received heartbeat with a 500ms time limit
-                    Message hb = readMessage(highestId.getSocket(), 500);
-                    if (hb != null) {
-                        if (hb.getHeartbeat().getServerId() == highestId.getId()) {
+                    // Message hb = readMessage(highestId.getSocket(), 500);
+                    // if (hb != null) {
+                        // if (hb.getHeartbeat().getServerId() == highestId.getId()) {
                             currentLeader = highestId;
                             return true;
-                        }
-                    }
+                        // }
+                    // }
                 } catch (IOException e) {
                     // IGNORE
                 } catch (JAXBException e) {

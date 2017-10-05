@@ -108,7 +108,7 @@ public class NotificationRelayer extends Thread {
 
     @Override
     public void run() {
-        while (!MitterServer.isLeader) {    // While this server is not the leader let this notification relayer to conitnue to exist
+        while (!MitterServer.isLeader && !MitterServer.changeInLeader) {    // While this server is not the leader let this notification relayer to conitnue to exist
             try {
                 setUp();
                 while (MitterServer.currentLeader.getId() == leaderId) {    // While there was no change of leadership, stay connected to the same leader
