@@ -208,8 +208,7 @@ public class MitterServer {
             //     while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
             // } else {
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                int electLeaderAttempts = 0;
-                while (!electLeader(electLeaderAttempts)) { }
+                while (!electLeader()) { }
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
             // }
             
@@ -278,7 +277,7 @@ public class MitterServer {
                 if (currentLeader == null || changeInLeader) {
                     changeInLeader = false;
                     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                    while (!electLeader(electLeaderAttempts)) { }
+                    while (!electLeader()) { }
                     inspectLeader();
                     System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                     synchronized (numOfNotificationsRelayed) {
@@ -296,7 +295,7 @@ public class MitterServer {
      * This method performs a single round of electing a leader. Returns true if a leader has been elected.
      * @return True if a leader has been elected, false otherwise.
      */
-    public boolean electLeader(int attempts) {
+    public boolean electLeader() {
         ServerPeers.ServerIdentity highestId = findHighestServerId(); 
         
         // If this server has the highest serverId and there is no leader elected yet, then send heartbeat 
@@ -323,7 +322,7 @@ public class MitterServer {
             return true;
         } else {
             try {
-                // Read the received heartbeat with a 300ms time limit
+                // Read the received heartbeat with a 1000ms time limit
                 Message hb = readMessage(highestId.getSocket(), 1000);
                 System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
                 if (hb != null) {
@@ -332,19 +331,14 @@ public class MitterServer {
                         return true;
                     }
                 } else {
-                    // if (attempts == 2) {
-                        try {
-                            highestId.getSocket().close();    
-                        } catch (IOException ex) {
-                            // IGNORE
-                        }
-                        synchronized (MitterServer.serversList) {
-                            MitterServer.serversList.remove(highestId);
-                        }
-                        attempts = 0;   // Reset attempts
-                    // } else {
-                    //     attempts += 1;
-                    // }
+                    try {
+                        highestId.getSocket().close();    
+                    } catch (IOException ex) {
+                        // IGNORE
+                    }
+                    synchronized (MitterServer.serversList) {
+                        MitterServer.serversList.remove(highestId);
+                    }
                 }
             } catch (IOException e) {
                 // IGNORE
