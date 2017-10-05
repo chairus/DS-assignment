@@ -61,15 +61,15 @@ import generated.nonstandard.message.Message;
         } else {    // Set the currentLeader variable to null to initiate re-election
             System.err.println("==========================OH NO!!=====================");
             System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
-            try {
+            // try {
                 if (MitterServer.currentLeader != null) {
-                    MitterServer.currentLeader.getSocket().close();
+                    // MitterServer.currentLeader.getSocket().close();
                     removeFromActiveServers(MitterServer.currentLeader);
                     System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
                 }
-            } catch (IOException ex) {
+            // } catch (IOException ex) {
                 // IGNORE
-            }
+            // }
             MitterServer.currentLeader = null;
             MitterServer.changeInLeader = true;
         }
@@ -178,14 +178,14 @@ import generated.nonstandard.message.Message;
                 buffWriter.flush();
             } catch (IOException e) {
                 // Leader is disconnected or has crashed and so elect a new leader
-                try {
-                    MitterServer.currentLeader.getSocket().close();
+                // try {
+                    // MitterServer.currentLeader.getSocket().close();
                     removeFromActiveServers(MitterServer.currentLeader);
                     System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
-                } catch (IOException ex) {
-                    System.err.printf("[ SERVER %d ] Error: Acceptor, " + ex.getMessage() + "\n", MitterServer.serverId);
-                    ex.printStackTrace();
-                }
+                // } catch (IOException ex) {
+                //     System.err.printf("[ SERVER %d ] Error: Acceptor, " + ex.getMessage() + "\n", MitterServer.serverId);
+                //     ex.printStackTrace();
+                // }
                 MitterServer.currentLeader = null;
                 return false;
             } catch (JAXBException e) {     // If there was something wrong with the XML object(i.e. it got corrupted) resend the response
