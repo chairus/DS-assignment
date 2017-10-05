@@ -396,7 +396,8 @@ import generated.nonstandard.message.Message;
                     }
                 }
                 if (!found) {
-                    MitterServer.serversList.remove(sId);
+                    // MitterServer.serversList.remove(sId);
+                    removeFromActiveServers(sId);
                     index -= 1;
                 }
                 index += 1;

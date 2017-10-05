@@ -88,6 +88,7 @@ public class ServerPeers extends Thread {
                         for (ServerIdentity sId: MitterServer.serversList) {
                             if (sId.getId() == serverId) {
                                 isConnected = true;
+                                break;
                             }
                             // if (sId.getId() == leaderId) {              // This suggests that a leader has already been elected(i.e. the leaderId field of the heartbeat message is greater than -1)
                             //     System.out.println("A LEADER ALREADY EXIST");
@@ -99,6 +100,7 @@ public class ServerPeers extends Thread {
                             MitterServer.serversList.add(new ServerIdentity(s,serverId));
                             // MitterServer.sendHeartbeatMessage(s);
                             System.out.printf("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                            System.out.printf("[ SERVER %d ] Size of active servers: %d", MitterServer.serverId, MitterServer.serversList.size());
                         }
                     }
                 } catch (IOException e) {
@@ -143,6 +145,7 @@ public class ServerPeers extends Thread {
                                         // }
                                     }
                                     System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
+                                    System.out.printf("[ SERVER %d ] Size of active servers: %d", MitterServer.serverId, MitterServer.serversList.size());
                                 }
                         } catch (IOException ex) {
                             // IGNORE

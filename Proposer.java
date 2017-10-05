@@ -146,7 +146,7 @@ public class Proposer {
                                 } 
                                 else {        // There is a higher accepted proposal, and so use it to send the next prepare request
                                     float proposalNumber = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
-                                    if ((MitterServer.maxRound - Math.round(proposalNumber)) < 0) {
+                                    if (MitterServer.maxRound < Math.round(proposalNumber)) {
                                         MitterServer.maxRound = Math.round(proposalNumber);
                                     }
                                     result.hasMajority = false;
@@ -298,7 +298,8 @@ public class Proposer {
                 MitterServer.log.set(proposedIndex, updatedEntry);
                 MitterServer.updateLastLogIndex();
                 System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
-                MitterServer.firstUnchosenIndex += 1;
+                // MitterServer.firstUnchosenIndex += 1;
+                MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                 System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
