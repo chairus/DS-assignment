@@ -144,12 +144,14 @@ public class Proposer {
                                     numOfVotes += 1;
                                     numOfServersResponded += 1;
                                 } 
-                                // else {        // There is a higher accepted proposal, and so use it to send the next prepare request
-                                //     float proposalNumber = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
-                                //     MitterServer.maxRound = Math.round(proposalNumber)+5;
-                                //     result.hasMajority = false;
-                                //     return result;
-                                // }
+                                else {        // There is a higher accepted proposal, and so use it to send the next prepare request
+                                    float proposalNumber = Float.parseFloat(response.getPrepare().getResponse().getAcceptedProposal());
+                                    if ((MitterServer.maxRound - Math.round(proposalNumber)) < 0) {
+                                        MitterServer.maxRound = Math.round(proposalNumber);
+                                    }
+                                    result.hasMajority = false;
+                                    return result;
+                                }
                             } else if (response.getAccept() != null) { // Received response to accept request
                                 float acceptResponseProposalNumber = Float.parseFloat(response.getAccept().getResponse().getAcceptorMinProposalNumber());
                                 int acceptorsFirstUnchosenIndex = response.getAccept().getResponse().getAcceptorsFirstUnchosenIndex();

@@ -336,7 +336,7 @@ public class MitterServer {
             } else {
                 try {
                     // Read the received heartbeat with a 500ms time limit
-                    // Message hb = readMessage(highestId.getSocket(), 500);
+                    Message hb = readMessage(highestId.getSocket(), 500);
                     // if (hb != null) {
                         // if (hb.getHeartbeat().getServerId() == highestId.getId()) {
                             currentLeader = highestId;

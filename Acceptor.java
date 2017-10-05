@@ -59,8 +59,8 @@ import generated.nonstandard.message.Message;
                 // }
             }
         } else {    // Set the currentLeader variable to null to initiate re-election
-            // System.err.println("==========================OH NO!!=====================");
-            System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n", MitterServer.serverId);
+            System.err.println("==========================OH NO!!=====================");
+            System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
             try {
                 if (MitterServer.currentLeader != null) {
                     MitterServer.currentLeader.getSocket().close();
@@ -90,7 +90,7 @@ import generated.nonstandard.message.Message;
                 // System.out.println("REQUEST FROM readARequestFromLeader: " + request);
             }
         } catch (IOException e) {           // The leader has crashed or got disconnected
-            System.err.printf("[ SERVER %d ] The leader has crashed or got disconnected.\n");
+            System.err.printf("[ SERVER %d ] The leader(SERVE %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
         } catch (JAXBException e) {         // There was a problem in the received XML message, therefore resend the response to the leader
             System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
             e.printStackTrace();
@@ -380,6 +380,9 @@ import generated.nonstandard.message.Message;
      * @param activeServer - A string of active server ids
      */
     public void updateActiveServersList(String activeServers) {
+        if (activeServers == null) {
+            return;
+        }
         System.out.println("ACTIVE SERVERS: " + activeServers);
         String[] activeServerIds = activeServers.trim().split("\\s++");
         synchronized (MitterServer.serversList) {
