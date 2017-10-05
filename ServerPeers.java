@@ -100,7 +100,7 @@ public class ServerPeers extends Thread {
                             MitterServer.serversList.add(new ServerIdentity(s,serverId));
                             // MitterServer.sendHeartbeatMessage(s);
                             System.out.printf("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
-                            System.out.printf("[ SERVER %d ] Size of active servers: %d", MitterServer.serverId, MitterServer.serversList.size());
+                            System.out.printf("[ SERVER %d ] Size of active servers: %d\n", MitterServer.serverId, MitterServer.serversList.size());
                         }
                     }
                 } catch (IOException e) {
@@ -145,7 +145,7 @@ public class ServerPeers extends Thread {
                                         // }
                                     }
                                     System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
-                                    System.out.printf("[ SERVER %d ] Size of active servers: %d", MitterServer.serverId, MitterServer.serversList.size());
+                                    System.out.printf("[ SERVER %d ] Size of active servers: %d\n", MitterServer.serverId, MitterServer.serversList.size());
                                 }
                         } catch (IOException ex) {
                             // IGNORE

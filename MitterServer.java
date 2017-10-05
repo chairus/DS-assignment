@@ -208,7 +208,8 @@ public class MitterServer {
             //     while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
             // } else {
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                while (!electLeader()) { }
+                int electLeaderAttempts = 0;
+                while (!electLeader(electLeaderAttempts)) { }
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
             // }
             
@@ -277,7 +278,7 @@ public class MitterServer {
                 if (currentLeader == null || changeInLeader) {
                     changeInLeader = false;
                     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                    while (!electLeader()) { }
+                    while (!electLeader(electLeaderAttempts)) { }
                     inspectLeader();
                     System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                     synchronized (numOfNotificationsRelayed) {
@@ -295,71 +296,62 @@ public class MitterServer {
      * This method performs a single round of electing a leader. Returns true if a leader has been elected.
      * @return True if a leader has been elected, false otherwise.
      */
-    public boolean electLeader() {
+    public boolean electLeader(int attempts) {
         ServerPeers.ServerIdentity highestId = findHighestServerId(); 
-        // try {
-            // If this server has the highest serverId and there is no leader elected yet, then send heartbeat 
-            // messages to all servers to notify other servers that this server should be the leader
-            if (highestId.getId() == serverId) {
-                synchronized (serversList) {
-                    // Send heartbeat message to all servers
-                    // for (ServerPeers.ServerIdentity sId: serversList) {
-                        int index = 0;
-                        while (index < serversList.size()) {
-                            ServerPeers.ServerIdentity sId = serversList.get(index);
-                            try {
-                                sendHeartbeatMessage(sId.getSocket());    
-                            } catch (IOException e) {
-                                serversList.remove(sId);
-                                index -= 1;
-                            } catch (JAXBException e) {
-                                // IGNORE
-                            }
-                            index += 1;
-                        }
-                        
-                        // try {
-                        //     TimeUnit.MILLISECONDS.sleep(20);
-                        // } catch (InterruptedException e) {
-                        //     // IGNORE
-                        // }
-                        
-                    // }
-                    // Read all received heartbeat messages
-                    // for (ServerPeers.ServerIdentity sId: serversList) {
-                    //     readMessage(sId.getSocket());
-                    // }
-                }
-                
-                currentLeader = highestId;
-                return true;
-            } else {
-                try {
-                    // Read the received heartbeat with a 500ms time limit
-                    Message hb = readMessage(highestId.getSocket(), 500);
-                    // if (hb != null) {
-                        // if (hb.getHeartbeat().getServerId() == highestId.getId()) {
-                            currentLeader = highestId;
-                            return true;
-                        // }
-                    // }
-                } catch (IOException e) {
-                    // IGNORE
-                } catch (JAXBException e) {
-                    // IGNORE
+        
+        // If this server has the highest serverId and there is no leader elected yet, then send heartbeat 
+        // messages to all servers to notify other servers that this server should be the leader
+        if (highestId.getId() == serverId) {
+            synchronized (serversList) {
+                // Send heartbeat message to all servers
+                int index = 0;
+                while (index < serversList.size()) {
+                    ServerPeers.ServerIdentity sId = serversList.get(index);
+                    try {
+                        sendHeartbeatMessage(sId.getSocket());    
+                    } catch (IOException e) {
+                        // serversList.remove(sId);
+                        // index -= 1;
+                    } catch (JAXBException e) {
+                        // IGNORE
+                    }
+                    index += 1;
                 }
             }
             
-            // Send heartbeat message to server with highest id
-            // sendHeartbeatMessage(highestId.getSocket());
-        // } catch (JAXBException e) {
-        //     System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
-        //     e.printStackTrace();
-        // } catch (IOException e) {
-        //     System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
-        //     e.printStackTrace();
-        // }
-
+            currentLeader = highestId;
+            return true;
+        } else {
+            try {
+                // Read the received heartbeat with a 300ms time limit
+                Message hb = readMessage(highestId.getSocket(), 1000);
+                System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
+                if (hb != null) {
+                    if (hb.getHeartbeat().getServerId() == highestId.getId()) {
+                        currentLeader = highestId;
+                        return true;
+                    }
+                } else {
+                    // if (attempts == 2) {
+                        try {
+                            highestId.getSocket().close();    
+                        } catch (IOException ex) {
+                            // IGNORE
+                        }
+                        synchronized (MitterServer.serversList) {
+                            MitterServer.serversList.remove(highestId);
+                        }
+                        attempts = 0;   // Reset attempts
+                    // } else {
+                    //     attempts += 1;
+                    // }
+                }
+            } catch (IOException e) {
+                // IGNORE
+            } catch (JAXBException e) {
+                // IGNORE
+            }
+        }
         return false;
     }
 

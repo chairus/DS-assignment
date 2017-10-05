@@ -356,9 +356,10 @@ public class Proposer {
                         } else { // Send success request to all acceptors for full replication
                             if (numOfReplicatedServers < numOfActiveServers
                                 && MitterServer.lastLogIndex >= 0) {
-                                // System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL  REPLCATION");
+                                System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL  REPLCATION");
                                 sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
                             } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive
+                                // System.out.printf("SENT HEARTBEAT MESSAGE TO AN ACCEPTOR(SERVER %d)\n", acceptor.getId());
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         }
@@ -376,7 +377,7 @@ public class Proposer {
                 }
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(200);        // To control the access times of this thread on the list of notitifcations(i.e. notificationList)
+                TimeUnit.MILLISECONDS.sleep(50);        // To control the access times of this thread on the list of notitifcations(i.e. notificationList)
             } catch (Exception e) {
                 // Ignore
             }

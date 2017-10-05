@@ -64,8 +64,8 @@ import generated.nonstandard.message.Message;
             // try {
                 if (MitterServer.currentLeader != null) {
                     // MitterServer.currentLeader.getSocket().close();
-                    removeFromActiveServers(MitterServer.currentLeader);
-                    System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
+                    // removeFromActiveServers(MitterServer.currentLeader);
+                    // System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
                 }
             // } catch (IOException ex) {
                 // IGNORE
