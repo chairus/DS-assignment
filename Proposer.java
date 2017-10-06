@@ -350,8 +350,6 @@ public class Proposer {
                                 }
                                 // ====================================================
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
-                            } else {
-                                System.err.println(response);
                             }
                         } else { // Send success request to all acceptors for full replication
                             if (numOfReplicatedServers < numOfActiveServers
@@ -369,8 +367,13 @@ public class Proposer {
                             numOfActiveServers = MitterServer.serversList.size();
                         }
                     } catch (JAXBException e) {
-                        System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-                        e.printStackTrace();
+                        // System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
+                        // e.printStackTrace();
+                        try {
+                            MitterServer.sendHeartbeatMessage(acceptor.getSocket());
+                        } catch (Exception ex) {
+                            // IGNORE
+                        }
                     }
                     index += 1;
                     numOfActiveServers = MitterServer.serversList.size();

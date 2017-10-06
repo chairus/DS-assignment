@@ -26,9 +26,11 @@ import javax.xml.bind.JAXBException;
 import generated.nonstandard.message.Message;
 
  public class Acceptor {
+    private long counter;
+
      // Constructor
      public Acceptor() {
-
+        counter = 0;
      }
 
      /**
@@ -51,7 +53,7 @@ import generated.nonstandard.message.Message;
             } else if (request.getSuccess() != null) {  // Success request
                 System.out.println("RECEIVED SUCCESS REQUEST");
                 respondSuccessRequest(request);
-            } else {                                    // Heartbeat message
+            } else if (request.getHeartbeat() != null) {// Heartbeat message
                 // System.out.println("RECEIVED HEARTBEAT MESSAGE");
                 // if (request.getHeartbeat().getServerId() == MitterServer.currentLeader.getId()) {
                     // System.out.println("RECEIVED UPDATE FOR ACTIVE SERVERS");
@@ -62,11 +64,11 @@ import generated.nonstandard.message.Message;
             System.err.println("==========================OH NO!!=====================");
             System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
             // try {
-                if (MitterServer.currentLeader != null) {
+                // if (MitterServer.currentLeader != null) {
                     // MitterServer.currentLeader.getSocket().close();
                     // removeFromActiveServers(MitterServer.currentLeader);
                     // System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
-                }
+                // }
             // } catch (IOException ex) {
                 // IGNORE
             // }
@@ -90,13 +92,14 @@ import generated.nonstandard.message.Message;
                 // System.out.println("REQUEST FROM readARequestFromLeader: " + request);
             }
         } catch (IOException e) {           // The leader has crashed or got disconnected
-            System.err.printf("[ SERVER %d ] The leader(SERVE %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
+            System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
         } catch (JAXBException e) {         // There was a problem in the received XML message, therefore resend the response to the leader
-            System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
-            e.printStackTrace();
+            // System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + ";)\n", MitterServer.serverId);
+            // e.printStackTrace();
             if (response != null) {
                 sendRequestResponse(response);
             }
+            request = new Message();
         }
 
         return request;
@@ -180,8 +183,8 @@ import generated.nonstandard.message.Message;
                 // Leader is disconnected or has crashed and so elect a new leader
                 // try {
                     // MitterServer.currentLeader.getSocket().close();
-                    removeFromActiveServers(MitterServer.currentLeader);
-                    System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
+                    // removeFromActiveServers(MitterServer.currentLeader);
+                    // System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
                 // } catch (IOException ex) {
                 //     System.err.printf("[ SERVER %d ] Error: Acceptor, " + ex.getMessage() + "\n", MitterServer.serverId);
                 //     ex.printStackTrace();
@@ -190,7 +193,7 @@ import generated.nonstandard.message.Message;
                 return false;
             } catch (JAXBException e) {     // If there was something wrong with the XML object(i.e. it got corrupted) resend the response
                 System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
-                e.printStackTrace();
+                // e.printStackTrace();
                 retry = true;
             }
         } while (retry);
@@ -383,25 +386,30 @@ import generated.nonstandard.message.Message;
         if (activeServers == null) {
             return;
         }
-        System.out.println("ACTIVE SERVERS: " + activeServers);
-        String[] activeServerIds = activeServers.trim().split("\\s++");
-        synchronized (MitterServer.serversList) {
-            int index = 0;
-            while (index < MitterServer.serversList.size()) {
-                boolean found = false;
-                ServerPeers.ServerIdentity sId = MitterServer.serversList.get(index);
-                for (String serverId: activeServerIds) {
-                    if (Integer.parseInt(serverId) == sId.getId()) {
-                        found = true;
+        counter += 1;
+        if (counter >= 20) {
+            // System.out.println("ACTIVE SERVERS: " + activeServers);
+            String[] activeServerIds = activeServers.trim().split("\\s++");
+            synchronized (MitterServer.serversList) {
+                int index = 0;
+                while (index < MitterServer.serversList.size()) {
+                    boolean found = false;
+                    ServerPeers.ServerIdentity sId = MitterServer.serversList.get(index);
+                    for (String serverId: activeServerIds) {
+                        if (Integer.parseInt(serverId) == sId.getId()) {
+                            found = true;
+                        }
                     }
+                    if (!found) {
+                        // MitterServer.serversList.remove(sId);
+                        removeFromActiveServers(sId);
+                        index -= 1;
+                        System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
+                    }
+                    index += 1;
                 }
-                if (!found) {
-                    // MitterServer.serversList.remove(sId);
-                    removeFromActiveServers(sId);
-                    index -= 1;
-                }
-                index += 1;
             }
+            counter = 0;
         }
     }
  }
