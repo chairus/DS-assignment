@@ -149,8 +149,9 @@ public class Proposer {
                                     if (MitterServer.maxRound < Math.round(proposalNumber)) {
                                         MitterServer.maxRound = Math.round(proposalNumber);
                                     }
-                                    result.hasMajority = false;
-                                    return result;
+                                    // result.hasMajority = false;
+                                    // return result;
+                                    result = prepareRequest();
                                 }
                             } else if (response.getAccept() != null) { // Received response to accept request
                                 float acceptResponseProposalNumber = Float.parseFloat(response.getAccept().getResponse().getAcceptorMinProposalNumber());
