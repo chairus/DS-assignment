@@ -88,7 +88,7 @@ import generated.nonstandard.message.Message;
         try {
             if (MitterServer.currentLeader != null) {
                 // System.out.println("========THE LEADER IS NOT NULL!!!========");
-                request = MitterServer.readMessage(MitterServer.currentLeader.getSocket(), 2000);
+                request = MitterServer.readMessage(MitterServer.currentLeader.getSocket(), 3000);
                 // System.out.println("REQUEST FROM readARequestFromLeader: " + request);
             }
         } catch (IOException e) {           // The leader has crashed or got disconnected

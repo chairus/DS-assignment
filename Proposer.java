@@ -197,8 +197,8 @@ public class Proposer {
                 result.hasMajority = true;
             }
         }
-        System.out.println("result.hasMajority: " + result.hasMajority);
-        System.out.println("result.acceptedValue: " + result.acceptedValue);
+        // System.out.println("result.hasMajority: " + result.hasMajority);
+        // System.out.println("result.acceptedValue: " + result.acceptedValue);
         return result;
     }
 
