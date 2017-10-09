@@ -212,20 +212,20 @@ public class MitterServer {
                 currentTime = System.currentTimeMillis();
             } while ((currentTime - startTime) < 1000);
 
-            // int leaderId = discoverLeader();
-            // if (leaderId > -1) {    // A leader already exists
-            //     while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
-            // } else {
+            int leaderId = discoverLeader();
+            if (leaderId > -1) {    // A leader already exists
+                while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
+            } else {
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
                 while (!electLeader()) { }
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
-            // }
+            }
             
-            // if (currentLeader == null) { // Elect a leader
-            //     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-            //     while (!electLeader()) { }
-            //     System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
-            // }
+            if (currentLeader == null) { // Elect a leader
+                System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                while (!electLeader()) { }
+                System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+            }
 
             inspectLeader();
             int prevFirstUnchosenIndex = firstUnchosenIndex;
@@ -255,7 +255,7 @@ public class MitterServer {
                 } else {
                     acceptor.readValue();
                     // Send heartbeat message to all replicas except the leader
-                    // respondToHearbeat();
+                    respondToHearbeat();
                 }
                 
                 // Put the log entries/notifications into their corresponding list container
@@ -331,14 +331,18 @@ public class MitterServer {
             return true;
         } else {
             try {
-                // Read the received heartbeat with a 300ms time limit
-                Message hb = readMessage(highestId.getSocket(), 300);
+                // Read the received heartbeat with a 1000ms time limit
+                Message hb = readMessage(highestId.getSocket(), 2000);
                 System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
                 if (hb != null && hb.getHeartbeat() != null) {
                     if (hb.getHeartbeat().getServerId() == highestId.getId()) {
                         currentLeader = highestId;
                         return true;
                     }
+                    // if (hb.getServerId() == highestId.getId()) {
+                    //     currentLeader = highestId;
+                    //     return true;
+                    // }
                 } else {
                     try {
                         highestId.getSocket().close();    
@@ -410,7 +414,7 @@ public class MitterServer {
 
     public void respondToHearbeat() {
         synchronized (serversList) {
-            System.out.println("CHECKING IF A REPLICA HAS SENT A HEARTBEAT");
+            // System.out.println("CHECKING IF A REPLICA HAS SENT A HEARTBEAT");
             int index = 0;
             ServerPeers.ServerIdentity sId;
             while (index < serversList.size()) {
@@ -755,16 +759,17 @@ public class MitterServer {
     public static Message setupHeartbeatMessage() {
         Message message = new Message();
         new Message();
+        message.setServerId(serverId);
         message.setHeartbeat(new Message.Heartbeat());
         message.setAccept(null);
         message.setPrepare(null);
         message.setSuccess(null);
         message.getHeartbeat().setServerId(serverId);
-        // if (currentLeader != null) {                        // If there is a leader set the leaderId field of the heartbeat message to the leader's id
-        //     message.getHeartbeat().setLeaderId(currentLeader.getId());
-        // } else {
-        //     message.getHeartbeat().setLeaderId(-1);         // else if there is no leader set the leaderId field to -1
-        // }
+        if (currentLeader != null) {                        // If there is a leader set the leaderId field of the heartbeat message to the leader's id
+            message.getHeartbeat().setLeaderId(currentLeader.getId());
+        } else {
+            message.getHeartbeat().setLeaderId(-1);         // else if there is no leader set the leaderId field to -1
+        }
         if (isLeader) {
             String activeServers = String.valueOf(serverId);
             synchronized (serversList) {

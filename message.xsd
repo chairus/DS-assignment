@@ -10,6 +10,8 @@
     <xsd:element name="message">
         <xsd:complexType>
             <xsd:sequence>
+                <!-- SENDER -->
+                <xsd:element name="serverId" type="xsd:int" />
                 <!-- PREPARE REQUEST -->
                 <xsd:element name="prepare">
                     <xsd:complexType>

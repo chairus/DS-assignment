@@ -387,7 +387,7 @@ import generated.nonstandard.message.Message;
             return;
         }
         counter += 1;
-        if (counter >= 20) {
+        if (counter >= 50) {
             // System.out.println("ACTIVE SERVERS: " + activeServers);
             String[] activeServerIds = activeServers.trim().split("\\s++");
             synchronized (MitterServer.serversList) {
