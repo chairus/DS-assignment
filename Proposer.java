@@ -279,7 +279,8 @@ public class Proposer {
                         if (removeFromActiveServers(acceptor)) {
                             index -= 1;
                             numOfActiveServers = MitterServer.serversList.size();
-                            majoritySize = numOfActiveServers/2;
+                            // majoritySize = numOfActiveServers/2;
+                            majoritySize = (int)Math.ceil(((double)numOfActiveServers)/2);
                         }
                     } catch (JAXBException e) {
                         System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);

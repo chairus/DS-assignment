@@ -94,8 +94,6 @@ import generated.nonstandard.message.Message;
         } catch (IOException e) {           // The leader has crashed or got disconnected
             System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
         } catch (JAXBException e) {         // There was a problem in the received XML message, therefore resend the response to the leader
-            // System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + ";)\n", MitterServer.serverId);
-            // e.printStackTrace();
             if (response != null) {
                 sendRequestResponse(response);
             }
@@ -193,7 +191,6 @@ import generated.nonstandard.message.Message;
                 return false;
             } catch (JAXBException e) {     // If there was something wrong with the XML object(i.e. it got corrupted) resend the response
                 System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
-                // e.printStackTrace();
                 retry = true;
             }
         } while (retry);
@@ -256,13 +253,12 @@ import generated.nonstandard.message.Message;
             return;
         }
         System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
-        // Read another request from the leader/proposer
         Message req = readARequestFromLeader(acceptResponse);
         respondToLeader(req);
     }
 
     /**
-     * This method responds to the success request of a proposer/leader.
+     * This method responds to the success request of the proposer/leader.
      * @param request - The success request
      */
     public void respondSuccessRequest(Message request) {
