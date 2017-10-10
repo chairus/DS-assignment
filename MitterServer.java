@@ -439,7 +439,7 @@ public class MitterServer {
                             hb = readMessage(sId.getSocket());
                             if (hb != null && hb.getHeartbeat() != null) {
                                 sendHeartbeatMessage(sId.getSocket());
-                                System.out.println("SENT HEARTBEAT MESSAGE TO SERVER" + sId.getId());
+                                System.out.println("SENT HEARTBEAT MESSAGE TO SERVER " + sId.getId());
                             }
                         } catch (IOException e) {
                             serversList.remove(sId);
