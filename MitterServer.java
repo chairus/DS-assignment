@@ -62,8 +62,7 @@ public class MitterServer {
     public static boolean prepared;
     // A list that stores the replicated log entries
     public static List<LogEntry> log;
-    // A list of the ports and the server id of each individual server in the network.
-    public static List<List<Integer>> serverPorts;
+    // A list of information(i.e. server id, server/notifier port, ip address) of each individual server in the network.
     public static List<ServerInfo> serverInfo;
     // A variable that stores the server id of the current leader
     public static ServerPeers.ServerIdentity currentLeader;
@@ -126,7 +125,6 @@ public class MitterServer {
      * Constructor
      */
     public MitterServer() {
-        serverPorts = new ArrayList<>();
         serverInfo = new ArrayList<>();
         serversList = new ArrayList<>();
         clientsList = new ArrayList<>();
@@ -410,8 +408,7 @@ public class MitterServer {
                             break;
                         }
                     } catch (IOException e) {   // The replica has crashed. Update the active servers list.    
-                        // serversList.remove(sId);
-                        // index -= 1;
+                        // IGNORE
                     } catch (JAXBException e) {
                         // IGNORE
                     }
@@ -419,7 +416,7 @@ public class MitterServer {
                 }
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(100);   // Wait for the servers to establish connection
+                TimeUnit.MILLISECONDS.sleep(300);   // Wait for the servers to establish connection
             } catch (InterruptedException e) {
                 // IGNORE
             }
@@ -429,7 +426,6 @@ public class MitterServer {
 
     public void respondToHearbeat() {
         synchronized (serversList) {
-            // System.out.println("CHECKING IF A REPLICA HAS SENT A HEARTBEAT");
             int index = 0;
             ServerPeers.ServerIdentity sId;
             while (index < serversList.size()) {
@@ -444,8 +440,8 @@ public class MitterServer {
                                 System.out.println("SENT HEARTBEAT MESSAGE TO SERVER " + sId.getId());
                             }
                         } catch (IOException e) {
-                            serversList.remove(sId);
-                            index -= 1;
+                            // serversList.remove(sId);
+                            // index -= 1;
                         } catch (JAXBException e) {
                             // IGNORE
                             System.err.println("AN ERROR HAS OCCURED");
@@ -458,7 +454,7 @@ public class MitterServer {
     }
 
     /**
-     * Disconnects to all servers
+     * Disconnect connection to all servers
      */
     public void disconnect() {
         ServerPeers.ServerIdentity sId;
@@ -886,11 +882,6 @@ public class MitterServer {
                     nPort = Integer.parseInt(lineArr[2]);
                     sPort = Integer.parseInt(lineArr[3]);
                 } else {
-                    // serverPorts.add(new ArrayList<>());
-                    // serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[0]));   // Server ID
-                    // serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[3]));   // Server port
-                    // serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[2]));   // Notifier port
-                    // serverPorts.get(serverPorts.size()-1).add(lineArr[5]);                     // IP Address
                     ServerInfo sInfo = new ServerInfo();
                     sInfo.id = Integer.parseInt(lineArr[0]);                // Server ID
                     sInfo.serverPort = Integer.parseInt(lineArr[3]);        // Server Port

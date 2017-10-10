@@ -55,23 +55,11 @@ import generated.nonstandard.message.Message;
                 respondSuccessRequest(request);
             } else if (request.getHeartbeat() != null) {// Heartbeat message
                 // System.out.println("RECEIVED HEARTBEAT MESSAGE");
-                // if (request.getHeartbeat().getServerId() == MitterServer.currentLeader.getId()) {
-                    // System.out.println("RECEIVED UPDATE FOR ACTIVE SERVERS");
-                    updateActiveServersList(request.getHeartbeat().getActiveServers());
-                // }
+                updateActiveServersList(request.getHeartbeat().getActiveServers());
             }
         } else {    // Set the currentLeader variable to null to initiate re-election
             System.err.println("==========================OH NO!!=====================");
             System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
-            // try {
-                // if (MitterServer.currentLeader != null) {
-                    // MitterServer.currentLeader.getSocket().close();
-                    // removeFromActiveServers(MitterServer.currentLeader);
-                    // System.out.printf("[ SERVER %d ] Closed leader socket.\n", MitterServer.serverId);
-                // }
-            // } catch (IOException ex) {
-                // IGNORE
-            // }
             MitterServer.currentLeader = null;
             MitterServer.changeInLeader = true;
         }
@@ -127,8 +115,6 @@ import generated.nonstandard.message.Message;
             MitterServer.maxRound = (new Float(MitterServer.minProposal)).longValue();
             status = true;
         }
-        // System.out.println("prepareRequestProposalNumber: " + prepareRequestProposalNumber);
-        // System.out.println("MitterServer.minProposal: " + MitterServer.minProposal);
         
         if (requestIndex > MitterServer.log.size()-1) {
             MitterServer.increaseLogCapacity(requestIndex+20);
@@ -177,16 +163,7 @@ import generated.nonstandard.message.Message;
                 buffWriter.write(sWriter.toString());
                 buffWriter.newLine();
                 buffWriter.flush();
-            } catch (IOException e) {
-                // Leader is disconnected or has crashed and so elect a new leader
-                // try {
-                    // MitterServer.currentLeader.getSocket().close();
-                    // removeFromActiveServers(MitterServer.currentLeader);
-                    // System.out.printf("[ SERVER %d ] Closed leader socket.", MitterServer.serverId);
-                // } catch (IOException ex) {
-                //     System.err.printf("[ SERVER %d ] Error: Acceptor, " + ex.getMessage() + "\n", MitterServer.serverId);
-                //     ex.printStackTrace();
-                // }
+            } catch (IOException e) {       // Leader got disconnected or has crashed and so elect a new leader
                 MitterServer.currentLeader = null;
                 return false;
             } catch (JAXBException e) {     // If there was something wrong with the XML object(i.e. it got corrupted) resend the response
@@ -274,6 +251,7 @@ import generated.nonstandard.message.Message;
             System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
             Message receivedRequest = readARequestFromLeader(successReq);
             respondToLeader(receivedRequest);
+            System.out.println("EXITING responseSuccessRequest METHOD");
         }
     }
 
