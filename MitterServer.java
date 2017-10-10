@@ -218,15 +218,9 @@ public class MitterServer {
                 while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
             } else {
                 System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                while (!electLeader()) { }
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                while (!electLeader()) { }
             }
-            
-            // if (currentLeader == null) { // Elect a leader
-            //     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-            //     while (!electLeader()) { }
-            //     System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
-            // }
 
             inspectLeader();
             int prevFirstUnchosenIndex = firstUnchosenIndex;
@@ -330,7 +324,7 @@ public class MitterServer {
             return true;
         } else {
             try {
-                // Read the received heartbeat with a 1000ms time limit
+                // Read the received heartbeat with a 2000ms time limit
                 Message hb = readMessage(highestId.getSocket(), 2000);
                 System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
                 if (hb != null && hb.getHeartbeat() != null) {
@@ -338,10 +332,6 @@ public class MitterServer {
                         currentLeader = highestId;
                         return true;
                     }
-                    // if (hb.getServerId() == highestId.getId()) {
-                    //     currentLeader = highestId;
-                    //     return true;
-                    // }
                 } else {
                     try {
                         highestId.getSocket().close();    
@@ -349,7 +339,12 @@ public class MitterServer {
                         // IGNORE
                     }
                     synchronized (MitterServer.serversList) {
-                        MitterServer.serversList.remove(highestId);
+                        try {
+                            MitterServer.serversList.remove(highestId);
+                            highestId.getSocket().close();
+                        } catch (Exception ex) {
+
+                        }
                     }
                 }
             } catch (IOException e) {

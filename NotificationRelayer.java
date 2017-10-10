@@ -35,10 +35,6 @@ public class NotificationRelayer extends Thread {
      * This method connects to the leader/proposer notifier port
      */
     public void connect() throws IOException, NullPointerException {
-        // int serverNotifierPort = findLeaderNotifierPort();
-        // if (serverNotifierPort > 0) {
-        //     leader = new Socket("127.0.0.1", serverNotifierPort);
-        // }
         ServerInfo sInfo = findLeader();
         if (sInfo != null) {
             leader = new Socket(sInfo.ipAddress, sInfo.notifierPort);
@@ -59,15 +55,6 @@ public class NotificationRelayer extends Thread {
         }
 
         return null;
-        // int serverId = MitterServer.currentLeader.getId();
-        // for (List<Integer> ports: MitterServer.serverPorts) {
-        //     if (ports.get(0) == serverId) {
-        //         leaderId = serverId;
-        //         return ports.get(2);
-        //     }
-        // }
-
-        // return -1;
     }
 
     /**
@@ -161,7 +148,6 @@ public class NotificationRelayer extends Thread {
             } catch (JAXBException e) {
                 System.err.format("[ SERVER %d ] Error: NotificationRelayer, " + e.getMessage(), MitterServer.serverId);
                 e.printStackTrace();
-                // System.exit(1);
             }
         }
     }
