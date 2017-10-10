@@ -57,7 +57,8 @@ public class Proposer {
                 hasSuccessfullyAccepted = acceptRequest(value);
                 
                 if (!hasSuccessfullyAccepted) {
-                    return false;
+                    // return false;
+                    result.acceptedValue = value;
                 }
             } else { // Start with prepare phase then accept phase
                 // MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
@@ -68,7 +69,8 @@ public class Proposer {
                 result = prepareRequest();
     
                 if (!result.hasMajority) {
-                    return false;
+                    // return false;
+                    result.acceptedValue = value;
                 }
     
                 /* ========== ACCEPT PHASE ========== */
@@ -79,7 +81,8 @@ public class Proposer {
                 }
 
                 if (!hasSuccessfullyAccepted) {         // There's a higher proposal number therefore increment the proposal number
-                    return false;
+                    // return false;
+                    result.acceptedValue = value;
                 }
             }
        } while (result.acceptedValue != null);
@@ -286,11 +289,9 @@ public class Proposer {
                 // MitterServer.firstUnchosenIndex += 1;
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                 System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
-                return true;
             }
         }
-        // return true;
-        return false;
+        return true;
     }
 
     /**

@@ -235,8 +235,7 @@ public class MitterServer {
                 if (isLeader) {
                     notificationListLock.lock();    // Obtain the lock for the notification list
                     if (!notificationList.isEmpty()) {
-                        // System.err.println("Notification list is not empty. Taking one out...");
-                        // NotificationInfo notification = takeOneFromNotificationList();
+                        // Take one from notification list
                         NotificationInfo notification = notificationList.get(0);
                         // notificationListNotFullCondition.signal();  // Signal waiting notifier thread
                         notificationListLock.unlock();  // Release lock for notification list
@@ -248,7 +247,6 @@ public class MitterServer {
                         }
                         notificationListNotFullCondition.signal();  // Signal waiting notifier thread
                         notificationListLock.unlock();  // Release lock for notification list
-                        // System.err.println("Notification list is not empty. Taking one out...SUCCESS");
                     } else {
                         notificationListLock.unlock();  // Release lock for notification list
                         proposer.writeValue(null);  // Listen for success request
