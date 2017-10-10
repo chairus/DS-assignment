@@ -149,9 +149,9 @@ public class Proposer {
                                     if (MitterServer.maxRound < Math.round(proposalNumber)) {
                                         MitterServer.maxRound = Math.round(proposalNumber);
                                     }
-                                    // result.hasMajority = false;
-                                    // return result;
-                                    result = prepareRequest();
+                                    result.hasMajority = false;
+                                    return result;
+                                    // result = prepareRequest();
                                 }
                             } else if (response.getAccept() != null) { // Received response to accept request
                                 float acceptResponseProposalNumber = Float.parseFloat(response.getAccept().getResponse().getAcceptorMinProposalNumber());
@@ -332,6 +332,7 @@ public class Proposer {
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                     // System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + acceptorsFirstUnchosenIndex + "and proposersFirstUnchosenIndex of " + MitterServer.firstUnchosenIndex);
+                                    numOfReplicatedServers -= 1;
                                 } else {
                                     sendSuccessRequest(-1, acceptor);
                                     // System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + -1);
@@ -379,7 +380,11 @@ public class Proposer {
                             // IGNORE
                         }
                     }
+                    // System.out.printf("Number of replicated servers: %d\n", numOfReplicatedServers);
                     index += 1;
+                    if (MitterServer.serversList.size() > numOfActiveServers) { // There is a new replica that has connected
+                        numOfReplicatedServers = 0;
+                    }
                     numOfActiveServers = MitterServer.serversList.size();
                 }
             }
