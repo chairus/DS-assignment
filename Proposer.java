@@ -316,9 +316,10 @@ public class Proposer {
         System.out.println("Listening for responses from accept and success requests...");
         int numOfReplicatedServers = 0;
         int notificationListSize = 0;
+        int numOfActiveServers = 0;
         while (notificationListSize == 0) {
             synchronized (MitterServer.serversList) {
-                int numOfActiveServers = MitterServer.serversList.size();
+                numOfActiveServers = MitterServer.serversList.size();
                 ServerPeers.ServerIdentity acceptor;
                 int index = 0;
                 while (index < numOfActiveServers) {

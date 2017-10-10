@@ -206,6 +206,7 @@ public class MitterServer {
                 }
             }
 
+            // Wait for other servers to connect
             long startTime = System.currentTimeMillis();
             long currentTime = startTime;
             do {
@@ -221,11 +222,11 @@ public class MitterServer {
                 System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
             }
             
-            if (currentLeader == null) { // Elect a leader
-                System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                while (!electLeader()) { }
-                System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
-            }
+            // if (currentLeader == null) { // Elect a leader
+            //     System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+            //     while (!electLeader()) { }
+            //     System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+            // }
 
             inspectLeader();
             int prevFirstUnchosenIndex = firstUnchosenIndex;
@@ -369,44 +370,56 @@ public class MitterServer {
     public int discoverLeader() {
         int receivedLeaderId = -1;
         int index;
+        boolean leaderDiscovered = false;
         ServerPeers.ServerIdentity sId;
-        synchronized (serversList) {
-            index = 0;
-            while (index < serversList.size()) {
-                sId = serversList.get(index);
-                try {
-                    sendHeartbeatMessage(sId.getSocket());
-                } catch (Exception e) {
-                    // IGNORE
-                    System.err.println("AN ERROR HAS OCCURED");
+        
+        while (!leaderDiscovered) {
+            synchronized (serversList) {
+                index = 0;
+                while (index < serversList.size()) {
+                    sId = serversList.get(index);
+                    try {
+                        sendHeartbeatMessage(sId.getSocket());
+                    } catch (Exception e) {
+                        // IGNORE
+                        System.err.println("AN ERROR HAS OCCURED");
+                    }
+                    index += 1;
                 }
-                index += 1;
-            }
-            System.out.println("SENT HEARTBEAT TO REPLICAS TO DISCOVER LEADER");
-        }
+                System.out.println("SENT HEARTBEAT TO REPLICAS TO DISCOVER LEADER");
 
-        synchronized (serversList) {
-            index = 0;
-            while (index < serversList.size()) {
-                sId = serversList.get(index);
-                try {
-                    Message hb = null;
-                    System.out.println("LISTENING TO SERVER " + sId.getId());
-                    while ((hb = readMessage(sId.getSocket())) == null) { }
-                    // hb = readMessage(sId.getSocket(), 500);
-                    // if (hb != null) {
-                        if (hb.getHeartbeat() != null && hb.getHeartbeat().getLeaderId() > -1) {
-                            System.out.println("THE LEADER IS SERVER " + hb.getHeartbeat().getLeaderId());
-                            receivedLeaderId = hb.getHeartbeat().getLeaderId();
+                index = 0;
+                while (index < serversList.size()) {
+                    sId = serversList.get(index);
+                    try {
+                        Message hb = null;
+                        System.out.println("LISTENING TO SERVER " + sId.getId());
+                        // while ((hb = readMessage(sId.getSocket())) == null) { }
+                        hb = readMessage(sId.getSocket(), 5000);
+                        if (hb != null) {
+                            if (hb.getHeartbeat() != null && hb.getHeartbeat().getLeaderId() > -1) {
+                                System.out.println("THE LEADER IS SERVER " + hb.getHeartbeat().getLeaderId());
+                                receivedLeaderId = hb.getHeartbeat().getLeaderId();
+                            }
+                            leaderDiscovered = true;
+                        } else {
+                            disconnect();
+                            leaderDiscovered = false;
+                            break;
                         }
-                    // }
-                } catch (IOException e) {   // The replica has crashed. Update the active servers list.    
-                    serversList.remove(sId);
-                    index -= 1;
-                } catch (JAXBException e) {
-                    // IGNORE
+                    } catch (IOException e) {   // The replica has crashed. Update the active servers list.    
+                        // serversList.remove(sId);
+                        // index -= 1;
+                    } catch (JAXBException e) {
+                        // IGNORE
+                    }
+                    index += 1;
                 }
-                index += 1;
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);   // Wait for the servers to establish connection
+            } catch (InterruptedException e) {
+                // IGNORE
             }
         }
         return receivedLeaderId;
@@ -438,6 +451,29 @@ public class MitterServer {
                     }
                 }
                 index += 1;
+            }
+        }
+    }
+
+    /**
+     * Disconnects to all servers
+     */
+    public void disconnect() {
+        ServerPeers.ServerIdentity sId;
+        synchronized (serversList) {
+            while (!serversList.isEmpty()) {
+                sId = serversList.get(0);
+                try {
+                    sId.getSocket().close();    
+                } catch (IOException ex) {
+                    System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
+                    ex.printStackTrace();
+                    System.exit(1);
+                }
+                
+                if (!MitterServer.serversList.remove(sId)) {
+                    // DO SOMETHING
+                }
             }
         }
     }
