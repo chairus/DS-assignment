@@ -78,7 +78,7 @@ public class Proposer {
                     hasSuccessfullyAccepted = acceptRequest(result.acceptedValue);
                 }
 
-                if (!hasSuccessfullyAccepted) { // Need to elect a leader
+                if (!hasSuccessfullyAccepted) {         // There's a higher proposal number therefore increment the proposal number
                     return false;
                 }
             }
@@ -221,6 +221,7 @@ public class Proposer {
      * and for each accept response received send a Success message if the firstUnchosenIndex in the
      * accept response is less than that of this server's lastLogIndex and the accepted proposal
      * in log[response.firstUnchosenIndex] == infinity(Float.MAX_VALUE).
+     * @param acceptReq - The response from the acceptors for the accept request
      * @return - 
      */
     public boolean collectAcceptResponses(Message acceptReq) {
@@ -305,12 +306,12 @@ public class Proposer {
                 System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
-
         return true;
     }
 
     /**
-     * This method listens for responses from other servers and reply back to them
+     * This method listens for responses from other servers and replies back to them with the appropriate
+     * response.
      */
     public void successRequest() {
         System.out.println("Listening for responses from accept and success requests...");
@@ -331,11 +332,9 @@ public class Proposer {
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
-                                    // System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + acceptorsFirstUnchosenIndex + "and proposersFirstUnchosenIndex of " + MitterServer.firstUnchosenIndex);
-                                    numOfReplicatedServers -= 1;
+                                    // numOfReplicatedServers -= 1;
                                 } else {
                                     sendSuccessRequest(-1, acceptor);
-                                    // System.out.println("SENT SUCCESS REQUEST WITH acceptorsFirstUnchosenIndex of " + -1);
                                     numOfReplicatedServers += 1;
                                 }
                             } else if (response.getAccept() != null) { // Received response from accept request
@@ -372,15 +371,12 @@ public class Proposer {
                             numOfActiveServers = MitterServer.serversList.size();
                         }
                     } catch (JAXBException e) {
-                        // System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-                        // e.printStackTrace();
                         try {
                             MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                         } catch (Exception ex) {
                             // IGNORE
                         }
                     }
-                    // System.out.printf("Number of replicated servers: %d\n", numOfReplicatedServers);
                     index += 1;
                     if (MitterServer.serversList.size() > numOfActiveServers) { // There is a new replica that has connected
                         numOfReplicatedServers = 0;
@@ -389,14 +385,13 @@ public class Proposer {
                 }
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(50);        // To control the access times of this thread on the list of notitifcations(i.e. notificationList)
+                TimeUnit.MILLISECONDS.sleep(50);        // To throttle the access times of this thread on the list of notitifcations(i.e. notificationList)
             } catch (Exception e) {
                 // Ignore
             }
             MitterServer.notificationListLock.lock();    // Obtain the lock for the notification list
             notificationListSize = MitterServer.notificationList.size();
             MitterServer.notificationListLock.unlock();  // Release lock for notification list
-            // System.out.println("Exited loop in success request.");
         }
     }
 

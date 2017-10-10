@@ -35,9 +35,13 @@ public class NotificationRelayer extends Thread {
      * This method connects to the leader/proposer notifier port
      */
     public void connect() throws IOException, NullPointerException {
-        int serverNotifierPort = findLeaderNotifierPort();
-        if (serverNotifierPort > 0) {
-            leader = new Socket("127.0.0.1", serverNotifierPort);
+        // int serverNotifierPort = findLeaderNotifierPort();
+        // if (serverNotifierPort > 0) {
+        //     leader = new Socket("127.0.0.1", serverNotifierPort);
+        // }
+        ServerInfo sInfo = findLeader();
+        if (sInfo != null) {
+            leader = new Socket(sInfo.ipAddress, sInfo.notifierPort);
         }
     }
 
@@ -45,16 +49,25 @@ public class NotificationRelayer extends Thread {
      * This method finds the port on the leader where the notifiers are suppose to connect to.
      * @return - The port number(0 if the leader port is not found(i.e. there is no leader))
      */
-    public int findLeaderNotifierPort() {
+    public ServerInfo findLeader() {
         int serverId = MitterServer.currentLeader.getId();
-        for (List<Integer> ports: MitterServer.serverPorts) {
-            if (ports.get(0) == serverId) {
+        for (ServerInfo sInfo: MitterServer.serverInfo) {
+            if (sInfo.id == serverId) {
                 leaderId = serverId;
-                return ports.get(2);
+                return sInfo;
             }
         }
 
-        return -1;
+        return null;
+        // int serverId = MitterServer.currentLeader.getId();
+        // for (List<Integer> ports: MitterServer.serverPorts) {
+        //     if (ports.get(0) == serverId) {
+        //         leaderId = serverId;
+        //         return ports.get(2);
+        //     }
+        // }
+
+        // return -1;
     }
 
     /**

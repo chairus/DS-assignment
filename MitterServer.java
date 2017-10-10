@@ -64,6 +64,7 @@ public class MitterServer {
     public static List<LogEntry> log;
     // A list of the ports and the server id of each individual server in the network.
     public static List<List<Integer>> serverPorts;
+    public static List<ServerInfo> serverInfo;
     // A variable that stores the server id of the current leader
     public static ServerPeers.ServerIdentity currentLeader;
     // Server ID of this server
@@ -126,6 +127,7 @@ public class MitterServer {
      */
     public MitterServer() {
         serverPorts = new ArrayList<>();
+        serverInfo = new ArrayList<>();
         serversList = new ArrayList<>();
         clientsList = new ArrayList<>();
         notificationListCount = 0;
@@ -871,8 +873,8 @@ public class MitterServer {
                 
                 if (lineArr[0].charAt(0) == '#') continue; // Ignore comment lines
                 
-                if (lineArr.length != 4) {
-                    System.err.println("[ INFO ] Error: Missing port number or server id.");
+                if (lineArr.length != 5) {
+                    System.err.println("[ INFO ] Error: Missing port number or server id or ip address.");
                     System.exit(1);
                 }
 
@@ -884,10 +886,17 @@ public class MitterServer {
                     nPort = Integer.parseInt(lineArr[2]);
                     sPort = Integer.parseInt(lineArr[3]);
                 } else {
-                    serverPorts.add(new ArrayList<>());
-                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[0]));   // Server ID
-                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[3]));   // Server port
-                    serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[2]));   // Notifier port
+                    // serverPorts.add(new ArrayList<>());
+                    // serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[0]));   // Server ID
+                    // serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[3]));   // Server port
+                    // serverPorts.get(serverPorts.size()-1).add(Integer.parseInt(lineArr[2]));   // Notifier port
+                    // serverPorts.get(serverPorts.size()-1).add(lineArr[5]);                     // IP Address
+                    ServerInfo sInfo = new ServerInfo();
+                    sInfo.id = Integer.parseInt(lineArr[0]);                // Server ID
+                    sInfo.serverPort = Integer.parseInt(lineArr[3]);        // Server Port
+                    sInfo.notifierPort = Integer.parseInt(lineArr[2]);      // Notifier Port
+                    sInfo.ipAddress = lineArr[4];                           // IP Address
+                    serverInfo.add(sInfo);
                 }
             }
 
