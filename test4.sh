@@ -24,7 +24,9 @@ java uni/mitter/MitterNotifier5 &
 sleep 3
 java uni/mitter/MitterNotifier4 &
 
-sleep 2m
+sleep 60
 
-pkill java
-pkill xterm
+pkill "java"
+pkill "xterm"
+
+echo "Released all allocated resources."

@@ -26,7 +26,7 @@ echo "First notifier running."
 java uni/mitter/MitterNotifier2 &
 echo "Sending notifications to the server..."
 
-sleep 9
+sleep 12
 
 echo "========================================================================"
 echo "Second notifier running."
@@ -34,7 +34,7 @@ echo "Sending notifications to the server..."
 # Run and connect notifiers to the servers and send notifications
 java uni/mitter/MitterNotifier3 &
 
-sleep 9
+sleep 12
 
 echo "========================================================================"
 echo "Third notifier running."
@@ -42,17 +42,21 @@ echo "Sending notifications to the server..."
 # Run and connect notifiers to the servers and send notifications
 java uni/mitter/MitterNotifier4 &
 
-sleep 9
+sleep 12
 
 echo "========================================================================"
 echo "First client running."
 # Run the first client
 java uni/mitter/MitterClientTest1 &
 
-echo "Wait for about 40 seconds..."
-sleep 30
+echo "Wait for about 10 seconds..."
+sleep 10
 
 echo "========================================================================"
 echo "Second client running."
 # Run the second client
-java uni/mitter/MitterClientTest2
+java uni/mitter/MitterClientTest2 &
+
+sleep 15
+pkill "java"
+echo "Released all allocated resources."

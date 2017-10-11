@@ -26,9 +26,15 @@ echo "Client running."
 echo "Sending notifications to the server..."
 java uni/mitter/MitterClientTest1 &
 
-sleep 8
+sleep 11
 
 echo "========================================================================"
 echo "Notifier running."
 # Run and connect notifiers to the servers and send notifications
-java uni/mitter/MitterNotifier2
+java uni/mitter/MitterNotifier2 &
+
+sleep 35
+
+pkill "java"
+
+echo "Released all allocated resources."
