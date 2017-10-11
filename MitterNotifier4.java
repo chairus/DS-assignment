@@ -17,21 +17,11 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBElement;
 
-public class MitterNotifier4 {
+public class MitterNotifier4 extends Notifier {
     public static void main(String[] args) throws Exception {
-        Socket socket;
-
         try {
-            socket = new Socket("127.0.0.1", 3007);
-            OutputStream out = socket.getOutputStream();
-
-            Writer writer = new OutputStreamWriter(out, "UTF-8");
-            BufferedWriter buffWriter = new BufferedWriter(writer);
-            
-            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
-            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-            ObjectFactory objectFactory = new ObjectFactory();
-            StringWriter dataWriter = new StringWriter();
+            init("127.0.0.1", 3013);
+            System.out.println("Connected to SERVER 4");
             
             try {
                 // Create object notification
@@ -42,13 +32,7 @@ public class MitterNotifier4 {
                                                   "Gym Time",
                                                   "notice",
                                                   0);
-                /* marshalling of java objects in xml (send to sever) */
-                JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+                sendNotification(notification, buffWriter);
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
@@ -60,15 +44,9 @@ public class MitterNotifier4 {
                                                   1);
 
                 dataWriter = new StringWriter();
-                /* marshalling of java objects in xml (send to sever) */
-                notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+                sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(4000);
+                TimeUnit.MILLISECONDS.sleep(1000);
 
                 System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("PowerRangerRed",
@@ -78,13 +56,31 @@ public class MitterNotifier4 {
                                                   2);
 
                 dataWriter = new StringWriter();
-                /* marshalling of java objects in xml (send to sever) */
-                notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+                sendNotification(notification, buffWriter);
+
+                TimeUnit.MILLISECONDS.sleep(1000);
+
+                System.out.println("Sending marshalled notification to the server...");
+                notification = createNotification("Leonardo",
+                                                  "Secret base",
+                                                  "Eating pizza.",
+                                                  "notice",
+                                                  3);
+
+                dataWriter = new StringWriter();
+                sendNotification(notification, buffWriter);
+
+                TimeUnit.MILLISECONDS.sleep(1000);
+
+                System.out.println("Sending marshalled notification to the server...");
+                notification = createNotification("Raphael",
+                                                  "Sewers",
+                                                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc eleifend auctor augue, ac lacinia quam feugiat at. Aenean sit amet quam venenatis, finibus nulla id, finibus nisi. Curabitur sagittis metus ac lorem posuere finibus. Suspendisse potenti. Vestibulum eget enim mattis, sodales lacus at, malesuada enim. Phasellus nec justo lacinia nibh hendrerit accumsan sit amet ac justo. Sed venenatis libero sit amet ullamcorper porta. Sed vitae congue lacus.",
+                                                  "caution",
+                                                  4);
+
+                dataWriter = new StringWriter();
+                sendNotification(notification, buffWriter);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -98,27 +94,5 @@ public class MitterNotifier4 {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static NotificationInfo createNotification(String sender,
-                                                  String location,
-                                                  String message,
-                                                  String severity,
-                                                  long messageId) throws DatatypeConfigurationException {
-        NotificationInfo n = new NotificationInfo();
-        
-        n.setSender(sender);
-        n.setLocation(location);
-        n.setMessage(message);
-        NotificationInfo.Timestamp timestamp = new NotificationInfo.Timestamp();
-        GregorianCalendar gc = new GregorianCalendar();
-        XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-        timestamp.setDate(xmlGC);
-        timestamp.setTime(xmlGC);
-        n.setTimestamp(timestamp);
-        n.setSeverity(severity);
-        n.setMessageId(messageId);
-
-        return n;
     }
 }

@@ -14,7 +14,7 @@ public class MitterNotifier2 extends Notifier {
     public static void main(String[] args) {
         try {
             init("localhost", 3004);
-            
+            System.out.println("Connected to SERVER 1");
             try {
                 // Create object notification
                 NotificationInfo notification = new NotificationInfo();

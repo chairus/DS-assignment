@@ -21,6 +21,7 @@ public class MitterNotifier3 extends Notifier {
     public static void main(String[] args) {
         try {
             init("localhost", 3001);
+            System.out.println("Connected to SERVER 0");
             // Create object notification
             NotificationInfo notification = new NotificationInfo();
             System.out.println("Sending marshalled notification to the server...");
@@ -33,7 +34,7 @@ public class MitterNotifier3 extends Notifier {
 
             TimeUnit.MILLISECONDS.sleep(1000);
 
-            System.out.println("Sending marshalled notification to the server...");
+            // System.out.println("Sending marshalled notification to the server...");
             notification = createNotification("The_Band",
                                               "Sydney Opera",
                                               "Room currently unavailable. Concert in progress",
@@ -43,9 +44,9 @@ public class MitterNotifier3 extends Notifier {
             dataWriter = new StringWriter();
             sendNotification(notification, buffWriter);
 
-            TimeUnit.MILLISECONDS.sleep(1000);
+            TimeUnit.MILLISECONDS.sleep(500);
 
-            System.out.println("Sending marshalled notification to the server...");
+            // System.out.println("Sending marshalled notification to the server...");
             notification = createNotification("The_Band",
                                               "Intercontinental Adelaide",
                                               "Room currently occupied.",
@@ -57,7 +58,7 @@ public class MitterNotifier3 extends Notifier {
 
             TimeUnit.MILLISECONDS.sleep(1000);
 
-            System.out.println("Sending marshalled notification to the server...");
+            // System.out.println("Sending marshalled notification to the server...");
             notification = createNotification("The_Band",
                                               "Adelaide Entertainment Centre",
                                               "Rock and Rolling.",

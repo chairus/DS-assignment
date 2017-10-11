@@ -7,6 +7,7 @@ public class MitterClientTest1 extends Client {
     public static void main(String[] args) throws Exception {
         try {
             init("localhost", 3006);
+            System.out.println("Connected to SERVER 2");
             Subscription subscription = createSubscription("all", "all");
             
             System.out.println("===================================================");

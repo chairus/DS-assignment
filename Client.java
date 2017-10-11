@@ -59,8 +59,8 @@ public class Client {
     public static Subscription createSubscription(String sender, String location) {
         // Create object subscription
         Subscription subscription = new Subscription();
-        subscription.setLocation(sender);
-        subscription.setSender(location);
+        subscription.setLocation(location);
+        subscription.setSender(sender);
         return subscription;
     }
 
