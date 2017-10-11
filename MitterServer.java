@@ -171,8 +171,7 @@ public class MitterServer {
             MitterServer.jaxbUnmarshallerMessage = jaxbContextMessage.createUnmarshaller();
             MitterServer.jaxbMarshallerMessage = jaxbContextMessage.createMarshaller();
         } catch (JAXBException e) {
-            // System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
-            // e.printStackTrace();
+            System.err.format("[ SERVER %d ] Error: MitterServer, " + e.getMessage() + "\n", MitterServer.serverId);
         }
     }
 
@@ -400,7 +399,7 @@ public class MitterServer {
                             leaderDiscovered = false;
                             break;
                         }
-                    } catch (IOException e) {   // The replica has crashed. Update the active servers list.    
+                    } catch (IOException e) {
                         // IGNORE
                     } catch (JAXBException e) {
                         // IGNORE
@@ -409,7 +408,7 @@ public class MitterServer {
                 }
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(300);   // Wait for the servers to establish connection
+                TimeUnit.MILLISECONDS.sleep(1000);   // Wait for the servers to establish connection
             } catch (InterruptedException e) {
                 // IGNORE
             }
@@ -433,8 +432,7 @@ public class MitterServer {
                                 System.out.println("SENT HEARTBEAT MESSAGE TO SERVER " + sId.getId());
                             }
                         } catch (IOException e) {
-                            // serversList.remove(sId);
-                            // index -= 1;
+                            System.err.printf(" [ SERVER %d ] Error: %s\n", serverId, e.getMessage());
                         } catch (JAXBException e) {
                             // IGNORE
                             System.err.println("AN ERROR HAS OCCURED");

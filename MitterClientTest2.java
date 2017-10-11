@@ -38,7 +38,7 @@ public class MitterClientTest2 {
             // Create object subscription
             Subscription subscription = new Subscription();
             subscription.setLocation("all");
-            subscription.setSender("bss_library");
+            subscription.setSender("PowerRangerRed");
 
 
             socket = new Socket("localhost", 3000);
@@ -53,7 +53,7 @@ public class MitterClientTest2 {
             StringWriter dataWriter = new StringWriter();
             
             System.out.println("===================================================");
-            System.out.println("Subscibing to notifications with sender \"bss_library\"...");
+            System.out.println("Subscibing to notifications with sender \"PowerRangerRed\"...");
             System.out.println("Sending marshalled subscription to the server...");
             System.out.println("===================================================");
             /* marshalling of java objects in xml (send to sever) */

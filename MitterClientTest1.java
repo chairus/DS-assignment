@@ -1,7 +1,6 @@
 package uni.mitter;
 
 import generated.nonstandard.notification.NotificationInfo;
-
 import generated.nonstandard.subscription.Subscription;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,16 +26,16 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeFactory;
  
 public class MitterClientTest1 {
-    public static void main(String[] args) throws Exception {
-        Socket socket;
-        List<String> receivedNotification = new ArrayList<>();
+    static Socket socket;
+    static List<String> receivedNotification;
 
+    public static void main(String[] args) throws Exception {
         try {
+            init();
             // Create object subscription
             Subscription subscription = new Subscription();
             subscription.setLocation("all");
             subscription.setSender("all");
-
 
             socket = new Socket("localhost", 3006);
             InputStream in = socket.getInputStream();
@@ -102,5 +101,9 @@ public class MitterClientTest1 {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void init() {
+        receivedNotification = new ArrayList<>();
     }
 }

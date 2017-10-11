@@ -18,20 +18,18 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBElement;
 
 public class MitterNotifier2 {
+    static Socket socket;
+    static OutputStream out;
+    static Writer writer;
+    static BufferedWriter buffWriter;
+    static JAXBContext jaxbContext;
+    static Marshaller jaxbMarshaller;
+    static ObjectFactory objectFactory;
+    static StringWriter dataWriter;
+
     public static void main(String[] args) throws Exception {
-        Socket socket;
-
         try {
-            socket = new Socket("localhost", 3004);
-            OutputStream out = socket.getOutputStream();
-
-            Writer writer = new OutputStreamWriter(out, "UTF-8");
-            BufferedWriter buffWriter = new BufferedWriter(writer);
-            
-            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
-            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-            ObjectFactory objectFactory = new ObjectFactory();
-            StringWriter dataWriter = new StringWriter();
+            init();
             
             try {
                 // Create object notification
@@ -42,13 +40,7 @@ public class MitterNotifier2 {
                                                   "Room currently unavailable. Cleaning in progress.",
                                                   "caution",
                                                   0);
-                /* marshalling of java objects in xml (send to sever) */
-                JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+                sendNotification(notification, buffWriter);
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
@@ -60,13 +52,7 @@ public class MitterNotifier2 {
                                                   1);
 
                 dataWriter = new StringWriter();
-                /* marshalling of java objects in xml (send to sever) */
-                notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+                sendNotification(notification, buffWriter);
 
                 TimeUnit.MILLISECONDS.sleep(4000);
 
@@ -78,26 +64,41 @@ public class MitterNotifier2 {
                                                   2);
 
                 dataWriter = new StringWriter();
-                /* marshalling of java objects in xml (send to sever) */
-                notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+                sendNotification(notification, buffWriter);
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
-                
-
-            while (true) {
-                // Run forever
-            }
-            
         } catch (Exception e) {
             e.printStackTrace();
         }
+        while (true) {
+            // Run forever
+        }
+    }
+
+    public static void init() throws Exception {
+        socket = new Socket("localhost", 3004);
+        out = socket.getOutputStream();
+
+        writer = new OutputStreamWriter(out, "UTF-8");
+        buffWriter = new BufferedWriter(writer);
+        
+        jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
+        jaxbMarshaller = jaxbContext.createMarshaller();
+        objectFactory = new ObjectFactory();
+        dataWriter = new StringWriter();
+    }
+
+    public static void sendNotification(NotificationInfo notification, Writer writer) throws Exception {
+        BufferedWriter buffWriter = (BufferedWriter)writer;
+        /* marshalling of java objects in xml (send to sever) */
+        JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
+        jaxbMarshaller.marshal(notificationInfo, dataWriter);
+        buffWriter = new BufferedWriter(writer);
+        buffWriter.write(dataWriter.toString());
+        buffWriter.newLine();
+        buffWriter.flush();
     }
 
     public static NotificationInfo createNotification(String sender,
