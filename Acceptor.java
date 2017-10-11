@@ -45,13 +45,13 @@ import generated.nonstandard.message.Message;
      public void respondToLeader(Message request) {
         if (request != null) {
             if (request.getPrepare() != null) {         // Prepare request
-                System.out.println("RECEIVED PREPARE REQUEST");
+                // System.out.println("RECEIVED PREPARE REQUEST");
                 respondPrepareRequest(request);
             } else if (request.getAccept() != null) {   // Accept request
-                System.out.println("RECEIVED ACCEPT REQUEST");
+                // System.out.println("RECEIVED ACCEPT REQUEST");
                 respondAcceptRequest(request);
             } else if (request.getSuccess() != null) {  // Success request
-                System.out.println("RECEIVED SUCCESS REQUEST");
+                // System.out.println("RECEIVED SUCCESS REQUEST");
                 respondSuccessRequest(request);
             } else if (request.getHeartbeat() != null) {// Heartbeat message
                 // System.out.println("RECEIVED HEARTBEAT MESSAGE");
@@ -229,7 +229,7 @@ import generated.nonstandard.message.Message;
         if (!sendRequestResponse(acceptResponse)) {
             return;
         }
-        System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
+        // System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
         Message req = readARequestFromLeader(acceptResponse);
         respondToLeader(req);
     }
@@ -240,18 +240,17 @@ import generated.nonstandard.message.Message;
      */
     public void respondSuccessRequest(Message request) {
         int proposersFirstUnchosenIndex = request.getSuccess().getRequest().getIndex();
-        System.out.println("PROPOSERS FIRST UNCHOSEN INDEX: " + proposersFirstUnchosenIndex);
-        System.out.println("ACCEPTORS FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
+        // System.out.println("PROPOSERS FIRST UNCHOSEN INDEX: " + proposersFirstUnchosenIndex);
+        // System.out.println("ACCEPTORS FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
         if (proposersFirstUnchosenIndex > -1) {
             updateLog(request);
             Message successReq = setupSuccessRequest();
             if (!sendRequestResponse(successReq)) {
                 return;
             }
-            System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
+            // System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
             Message receivedRequest = readARequestFromLeader(successReq);
             respondToLeader(receivedRequest);
-            System.out.println("EXITING responseSuccessRequest METHOD");
         }
     }
 
@@ -375,10 +374,9 @@ import generated.nonstandard.message.Message;
                         }
                     }
                     if (!found) {
-                        // MitterServer.serversList.remove(sId);
                         removeFromActiveServers(sId);
                         index -= 1;
-                        System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
+                        // System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
                     }
                     index += 1;
                 }

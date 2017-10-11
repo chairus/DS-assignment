@@ -99,7 +99,7 @@ public class Proposer {
         Message prepareReq = setupPrepareRequest(); // Initialize the prepare message
         Proposal result = new Proposal();
         broadcastRequest(prepareReq);
-        System.out.println("SENT PREPARE REQUESTS.");
+        // System.out.println("SENT PREPARE REQUESTS.");
         result = collectPrepareResponses();
         return result;
     }
@@ -282,10 +282,10 @@ public class Proposer {
                 updatedEntry.setAcceptedValue(acceptReq.getAccept().getRequest().getValue());
                 MitterServer.log.set(proposedIndex, updatedEntry);
                 MitterServer.updateLastLogIndex();
-                System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
+                // System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
                 // MitterServer.firstUnchosenIndex += 1;
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
-                System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
+                // System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
         return true;
@@ -296,7 +296,7 @@ public class Proposer {
      * response.
      */
     public void successRequest() {
-        System.out.println("Listening for responses from accept and success requests...");
+        // System.out.println("Listening for responses from accept and success requests...");
         int numOfReplicatedServers = 0;
         int notificationListSize = 0;
         int numOfActiveServers = 0;

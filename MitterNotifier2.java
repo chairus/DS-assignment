@@ -18,7 +18,7 @@ public class MitterNotifier2 extends Notifier {
             try {
                 // Create object notification
                 NotificationInfo notification = new NotificationInfo();
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Central_Hub",
                                                   "Central Hub, Room 402",
                                                   "Room currently unavailable. Cleaning in progress.",
@@ -28,7 +28,7 @@ public class MitterNotifier2 extends Notifier {
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Physics_Bld",
                                                   "Physics Building, Room 112",
                                                   "Room currently unavailable. Experiment gone wild.",
@@ -40,7 +40,7 @@ public class MitterNotifier2 extends Notifier {
 
                 TimeUnit.MILLISECONDS.sleep(4000);
 
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Engineering_Bld",
                                                   "Engineering South Building, Room 321",
                                                   "Room currently unavailable. Robot gone wild.",

@@ -216,8 +216,8 @@ public class MitterServer {
             if (leaderId > -1) {    // A leader already exists
                 while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
             } else {
-                System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                // System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                // System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                 while (!electLeader()) { }
             }
 
@@ -271,16 +271,16 @@ public class MitterServer {
                 }
 
                 if (!log.isEmpty() && prevFirstUnchosenIndex < firstUnchosenIndex) {
-                    printLog();
+                    // printLog();
                     prevFirstUnchosenIndex = firstUnchosenIndex;
                 }
 
                 if (currentLeader == null || changeInLeader) {
                     changeInLeader = false;
-                    System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                    // System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                    // System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                     while (!electLeader()) { }
                     inspectLeader();
-                    System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                     synchronized (numOfNotificationsRelayed) {
                         numOfNotificationsRelayed = 0;      // Reset this variable to initiate re-send of the notifications that has not been replicated
                     }
@@ -325,7 +325,7 @@ public class MitterServer {
             try {
                 // Read the received heartbeat with a 2000ms time limit
                 Message hb = readMessage(highestId.getSocket(), 2000);
-                System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
+                // System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
                 if (hb != null && hb.getHeartbeat() != null) {
                     if (hb.getHeartbeat().getServerId() == highestId.getId()) {
                         currentLeader = highestId;
@@ -378,19 +378,19 @@ public class MitterServer {
                     }
                     index += 1;
                 }
-                System.out.println("SENT HEARTBEAT TO REPLICAS TO DISCOVER LEADER");
+                // System.out.println("SENT HEARTBEAT TO REPLICAS TO DISCOVER LEADER");
 
                 index = 0;
                 while (index < serversList.size()) {
                     sId = serversList.get(index);
                     try {
                         Message hb = null;
-                        System.out.println("LISTENING TO SERVER " + sId.getId());
+                        // System.out.println("LISTENING TO SERVER " + sId.getId());
                         // while ((hb = readMessage(sId.getSocket())) == null) { }
                         hb = readMessage(sId.getSocket(), 5000);
                         if (hb != null) {
                             if (hb.getHeartbeat() != null && hb.getHeartbeat().getLeaderId() > -1) {
-                                System.out.println("THE LEADER IS SERVER " + hb.getHeartbeat().getLeaderId());
+                                // System.out.println("THE LEADER IS SERVER " + hb.getHeartbeat().getLeaderId());
                                 receivedLeaderId = hb.getHeartbeat().getLeaderId();
                             }
                             leaderDiscovered = true;
@@ -429,7 +429,7 @@ public class MitterServer {
                             hb = readMessage(sId.getSocket());
                             if (hb != null && hb.getHeartbeat() != null) {
                                 sendHeartbeatMessage(sId.getSocket());
-                                System.out.println("SENT HEARTBEAT MESSAGE TO SERVER " + sId.getId());
+                                // System.out.println("SENT HEARTBEAT MESSAGE TO SERVER " + sId.getId());
                             }
                         } catch (IOException e) {
                             System.err.printf(" [ SERVER %d ] Error: %s\n", serverId, e.getMessage());
