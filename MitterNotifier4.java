@@ -26,7 +26,7 @@ public class MitterNotifier4 extends Notifier {
             try {
                 // Create object notification
                 NotificationInfo notification = new NotificationInfo();
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("PowerRangerRed",
                                                   "Gold Gym",
                                                   "Gym Time",
@@ -36,7 +36,7 @@ public class MitterNotifier4 extends Notifier {
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("PowerRangerRed",
                                                   "Krispy Kreme",
                                                   "Currently fighting monsters.",
@@ -48,7 +48,7 @@ public class MitterNotifier4 extends Notifier {
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("PowerRangerRed",
                                                   "Secret base",
                                                   "It morphin time!!",
@@ -60,7 +60,7 @@ public class MitterNotifier4 extends Notifier {
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Leonardo",
                                                   "Secret base",
                                                   "Eating pizza.",
@@ -72,7 +72,7 @@ public class MitterNotifier4 extends Notifier {
 
                 TimeUnit.MILLISECONDS.sleep(1000);
 
-                System.out.println("Sending marshalled notification to the server...");
+                // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Raphael",
                                                   "Sewers",
                                                   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc eleifend auctor augue, ac lacinia quam feugiat at. Aenean sit amet quam venenatis, finibus nulla id, finibus nisi. Curabitur sagittis metus ac lorem posuere finibus. Suspendisse potenti. Vestibulum eget enim mattis, sodales lacus at, malesuada enim. Phasellus nec justo lacinia nibh hendrerit accumsan sit amet ac justo. Sed venenatis libero sit amet ullamcorper porta. Sed vitae congue lacus.",

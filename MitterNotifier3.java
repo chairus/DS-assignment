@@ -24,7 +24,7 @@ public class MitterNotifier3 extends Notifier {
             System.out.println("Connected to SERVER 0");
             // Create object notification
             NotificationInfo notification = new NotificationInfo();
-            System.out.println("Sending marshalled notification to the server...");
+            // System.out.println("Sending marshalled notification to the server...");
             notification = createNotification("The_Band",
                                               "Adelaide Entertainment Centre",
                                               "Room currently unavailable. Concert in progress.",

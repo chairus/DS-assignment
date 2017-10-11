@@ -17,21 +17,24 @@ sleep 5
 
 echo "========================================================================"
 echo "Testing if two clients connected to different servers with same subscrption receives the same notifications in the same order."
-echo "Expecting to receive one urgent and two caution notifications for each client."
+echo "Expecting to receive one urgent, two caution and two notice notifications for each client in that order."
 echo "========================================================================"
 
 echo "========================================================================"
 echo "Notifier running."
 # Run and connect notifiers to the servers and send notifications
+echo "Sending notifications to the server..."
 java uni/mitter/MitterNotifier2 &
+
+sleep 7
 
 echo "========================================================================"
 echo "First client running."
 # Run the first client
 java uni/mitter/MitterClientTest1 &
 
-echo "Wait for about 40 seconds..."
-sleep 40
+# wait for about 40 seconds..."
+sleep 30
 
 echo "========================================================================"
 echo "Second client running."

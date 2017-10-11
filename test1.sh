@@ -23,7 +23,10 @@ echo "========================================================================"
 echo "========================================================================"
 # Run client test
 echo "Client running."
+echo "Sending notifications to the server..."
 java uni/mitter/MitterClientTest1 &
+
+sleep 1
 
 echo "========================================================================"
 echo "Notifier running."

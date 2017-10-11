@@ -24,16 +24,25 @@ echo "========================================================================"
 echo "First notifier running."
 # Run and connect notifiers to the servers and send notifications
 java uni/mitter/MitterNotifier2 &
+echo "Sending notifications to the server..."
+
+sleep 1
 
 echo "========================================================================"
 echo "Second notifier running."
+echo "Sending notifications to the server..."
 # Run and connect notifiers to the servers and send notifications
 java uni/mitter/MitterNotifier3 &
 
+sleep 1
+
 echo "========================================================================"
 echo "Third notifier running."
+echo "Sending notifications to the server..."
 # Run and connect notifiers to the servers and send notifications
 java uni/mitter/MitterNotifier4 &
+
+sleep 7
 
 echo "========================================================================"
 echo "First client running."
