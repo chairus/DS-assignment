@@ -99,8 +99,8 @@ public class ServerPeers extends Thread {
                         if (!isConnected) {
                             MitterServer.serversList.add(new ServerIdentity(remoteServerSocket,serverId));
                             // MitterServer.sendHeartbeatMessage(s);
-                            System.out.printf("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
-                            System.out.printf("[ SERVER %d ] Number of active servers: %d\n", MitterServer.serverId, MitterServer.serversList.size());
+                            // System.out.printf("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,serverId);
+                            // System.out.printf("[ SERVER %d ] Number of active servers: %d\n", MitterServer.serverId, MitterServer.serversList.size());
                         }
                     }
                 } catch (IOException e) {
@@ -133,8 +133,8 @@ public class ServerPeers extends Thread {
                                     Message hb = MitterServer.readMessage(remoteServerSocket);
                                     // Then add the server to the active servers list and check if a leader has already been elected
                                     MitterServer.serversList.add(new ServerIdentity(remoteServerSocket,remoteServerId));
-                                    System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
-                                    System.out.printf("[ SERVER %d ] Number of active servers: %d\n", MitterServer.serverId, MitterServer.serversList.size());
+                                    // System.out.format("[ SERVER %d ] Established connection with server %d\n",MitterServer.serverId,remoteServerId);
+                                    // System.out.printf("[ SERVER %d ] Number of active servers: %d\n", MitterServer.serverId, MitterServer.serversList.size());
                                 }
                             } catch (IOException ex) {
                                 // IGNORE
