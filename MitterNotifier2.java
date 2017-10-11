@@ -38,14 +38,38 @@ public class MitterNotifier2 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(4000);
+                TimeUnit.MILLISECONDS.sleep(1000);
+
+                // System.out.println("Sending marshalled notification to the server...");
+                notification = createNotification("Maths_Learning_Centre",
+                                                  "Engineering South Building, Room 221",
+                                                  "Class in progress",
+                                                  "notice",
+                                                  2);
+
+                dataWriter = new StringWriter();
+                sendNotification(notification, buffWriter);
+
+                TimeUnit.MILLISECONDS.sleep(1000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Engineering_Bld",
                                                   "Engineering South Building, Room 321",
                                                   "Room currently unavailable. Robot gone wild.",
                                                   "urgent",
-                                                  2);
+                                                  3);
+
+                dataWriter = new StringWriter();
+                sendNotification(notification, buffWriter);
+
+                TimeUnit.MILLISECONDS.sleep(1000);
+
+                // System.out.println("Sending marshalled notification to the server...");
+                notification = createNotification("Fitness_Hub",
+                                                  "Fitness Hub, Room 101",
+                                                  "Room currently unavailable. Pilates on progress.",
+                                                  "notice",
+                                                  4);
 
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
