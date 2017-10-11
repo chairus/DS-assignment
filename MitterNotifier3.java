@@ -17,80 +17,55 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.bind.JAXBElement;
 
-public class MitterNotifier3 {
-    public static void main(String[] args) throws Exception {
-        Socket socket;
-
+public class MitterNotifier3 extends Notifier {
+    public static void main(String[] args) {
         try {
-            socket = new Socket("127.0.0.1", 3001);
-            OutputStream out = socket.getOutputStream();
+            init("localhost", 3001);
+            // Create object notification
+            NotificationInfo notification = new NotificationInfo();
+            System.out.println("Sending marshalled notification to the server...");
+            notification = createNotification("The_Band",
+                                              "Adelaide Entertainment Centre",
+                                              "Room currently unavailable. Concert in progress.",
+                                              "urgent",
+                                              0);
+            sendNotification(notification, buffWriter);
 
-            Writer writer = new OutputStreamWriter(out, "UTF-8");
-            BufferedWriter buffWriter = new BufferedWriter(writer);
-            
-            JAXBContext jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
-            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-            ObjectFactory objectFactory = new ObjectFactory();
-            StringWriter dataWriter = new StringWriter();
-            
-            try {
-                // Create object notification
-                NotificationInfo notification = new NotificationInfo();
-                System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("EltonJohn",
-                                                  "Adelaide Entertainment Centre",
-                                                  "Room currently unavailable. Concert in progress.",
-                                                  "urgent",
-                                                  0);
-                /* marshalling of java objects in xml (send to sever) */
-                JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+            TimeUnit.MILLISECONDS.sleep(1000);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+            System.out.println("Sending marshalled notification to the server...");
+            notification = createNotification("The_Band",
+                                              "Sydney Opera",
+                                              "Room currently unavailable. Concert in progress",
+                                              "urgent",
+                                              1);
 
-                System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("EltonJohn",
-                                                  "Sydney Opera",
-                                                  "Room currently unavailable. Concert in progress",
-                                                  "urgent",
-                                                  1);
+            dataWriter = new StringWriter();
+            sendNotification(notification, buffWriter);
 
-                dataWriter = new StringWriter();
-                /* marshalling of java objects in xml (send to sever) */
-                notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+            TimeUnit.MILLISECONDS.sleep(1000);
 
-                TimeUnit.MILLISECONDS.sleep(4000);
+            System.out.println("Sending marshalled notification to the server...");
+            notification = createNotification("The_Band",
+                                              "Intercontinental Adelaide",
+                                              "Room currently occupied.",
+                                              "notice",
+                                              2);
 
-                System.out.println("Sending marshalled notification to the server...");
-                notification = createNotification("EltonJohn",
-                                                  "Intercontinental Adelaide",
-                                                  "Room currently occupied.",
-                                                  "notice",
-                                                  2);
+            dataWriter = new StringWriter();
+            sendNotification(notification, buffWriter);
 
-                dataWriter = new StringWriter();
-                /* marshalling of java objects in xml (send to sever) */
-                notificationInfo = objectFactory.createNotification(notification);
-                jaxbMarshaller.marshal(notificationInfo, dataWriter);
-                buffWriter = new BufferedWriter(writer);
-                buffWriter.write(dataWriter.toString());
-                buffWriter.newLine();
-                buffWriter.flush();
+            TimeUnit.MILLISECONDS.sleep(1000);
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-                
+            System.out.println("Sending marshalled notification to the server...");
+            notification = createNotification("The_Band",
+                                              "Adelaide Entertainment Centre",
+                                              "Rock and Rolling.",
+                                              "caution",
+                                              3);
 
+            dataWriter = new StringWriter();
+            sendNotification(notification, buffWriter);
             while (true) {
                 // Run forever
             }
@@ -98,27 +73,5 @@ public class MitterNotifier3 {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static NotificationInfo createNotification(String sender,
-                                                  String location,
-                                                  String message,
-                                                  String severity,
-                                                  long messageId) throws DatatypeConfigurationException {
-        NotificationInfo n = new NotificationInfo();
-        
-        n.setSender(sender);
-        n.setLocation(location);
-        n.setMessage(message);
-        NotificationInfo.Timestamp timestamp = new NotificationInfo.Timestamp();
-        GregorianCalendar gc = new GregorianCalendar();
-        XMLGregorianCalendar xmlGC = DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
-        timestamp.setDate(xmlGC);
-        timestamp.setTime(xmlGC);
-        n.setTimestamp(timestamp);
-        n.setSeverity(severity);
-        n.setMessageId(messageId);
-
-        return n;
     }
 }

@@ -11,7 +11,7 @@ import java.io.Writer;
 import java.util.concurrent.TimeUnit;
 
 public class MitterNotifier2 extends Notifier {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         try {
             init("localhost", 3004);
             
