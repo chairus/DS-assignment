@@ -38,18 +38,19 @@ public class Client {
     static JAXBContext jaxbContext;
     static Unmarshaller jaxbUnmarshaller;
     static StringReader dataReader;
+    static Constants constants = new Constants();
 
     public static void init(String ipAddress, int port) throws Exception {
         receivedNotification = new ArrayList<>();
         socket = new Socket(ipAddress, port);
         // For sending subscription
-        writer = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
+        writer = new OutputStreamWriter(socket.getOutputStream(), constants.encoding);
         buffWriter = new BufferedWriter(writer);
         jaxbContextSub = JAXBContext.newInstance(Subscription.class);
         jaxbMarshaller = jaxbContextSub.createMarshaller();
         dataWriter = new StringWriter();
         // For receiving notifications
-        reader = new InputStreamReader(socket.getInputStream(), "UTF-8");
+        reader = new InputStreamReader(socket.getInputStream(), constants.encoding);
         buffReader = new BufferedReader(reader);
         jaxbContext = JAXBContext.newInstance("generated.nonstandard.notification");
         jaxbUnmarshaller = jaxbContext.createUnmarshaller();

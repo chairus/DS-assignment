@@ -23,6 +23,8 @@ sleep 1
 java uni/mitter/MitterNotifier5 &
 sleep 3
 java uni/mitter/MitterNotifier4 &
+sleep 1
+java uni/mitter/MitterNotifier &
 
 sleep 60
 

@@ -26,12 +26,13 @@ public class Notifier {
     static Marshaller jaxbMarshaller;
     static ObjectFactory objectFactory;
     static StringWriter dataWriter;
+    static Constants constants = new Constants();
 
     public static void init(String ipAddress, int port) throws Exception {
         socket = new Socket(ipAddress, port);
         out = socket.getOutputStream();
 
-        writer = new OutputStreamWriter(out, "UTF-8");
+        writer = new OutputStreamWriter(out, constants.encoding);
         buffWriter = new BufferedWriter(writer);
         
         jaxbContext = JAXBContext.newInstance(NotificationInfo.class);
