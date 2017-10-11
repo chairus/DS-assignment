@@ -46,7 +46,7 @@ public class MitterNotifier5 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+                TimeUnit.MILLISECONDS.sleep(3000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Ask_Adelaide",
@@ -58,7 +58,7 @@ public class MitterNotifier5 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+                TimeUnit.MILLISECONDS.sleep(3000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Adelaide_University_Union",
@@ -70,7 +70,7 @@ public class MitterNotifier5 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+                TimeUnit.MILLISECONDS.sleep(3000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Adelaide_University_Union",

@@ -44,7 +44,7 @@ public class MitterNotifier3 extends Notifier {
             dataWriter = new StringWriter();
             sendNotification(notification, buffWriter);
 
-            TimeUnit.MILLISECONDS.sleep(500);
+            TimeUnit.MILLISECONDS.sleep(3000);
 
             // System.out.println("Sending marshalled notification to the server...");
             notification = createNotification("The_Band",
@@ -56,7 +56,7 @@ public class MitterNotifier3 extends Notifier {
             dataWriter = new StringWriter();
             sendNotification(notification, buffWriter);
 
-            TimeUnit.MILLISECONDS.sleep(1000);
+            TimeUnit.MILLISECONDS.sleep(3000);
 
             // System.out.println("Sending marshalled notification to the server...");
             notification = createNotification("The_Band",

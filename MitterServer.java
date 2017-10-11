@@ -118,8 +118,8 @@ public class MitterServer {
     private Thread notificationRelayer;
     // A flag that indicates if there is a change in leader
     public static boolean changeInLeader;
-    //
-    public int connectionAttempts;
+    // Debug mode(i.e. for printing the contents of the log)
+    private boolean debug;
 
     /**
      * Constructor
@@ -150,7 +150,7 @@ public class MitterServer {
         nextLogEntryToStore = 0;
         numOfNotificationsRelayed = 0;
         changeInLeader = false;
-        connectionAttempts = 0;
+        debug = false;
     }
 
     /**
@@ -250,28 +250,12 @@ public class MitterServer {
                     respondToHearbeat();
                 }
                 
-                // Put the log entries/notifications into their corresponding list container
-                LogEntry entry = null;
-                while (nextLogEntryToStore < firstUnchosenIndex) {
-                    entry = log.get(nextLogEntryToStore);
-                    assignSequenceNumberAndStore(entry.getAcceptedValue());
-                    synchronized (numOfNotificationsRelayed) {
-                        if (!isLeader && numOfNotificationsRelayed > 0) {
-                            notificationListLock.lock();    // Obtain the lock for the notification list
-                            if (isEqual(entry.getAcceptedValue(), notificationList.get(0))) {
-                                notificationList.remove(0);
-                                notificationListCount -= 1;
-                                numOfNotificationsRelayed -= 1;
-                                notificationListNotFullCondition.signal();  // Signal waiting notifier thread
-                            }
-                            notificationListLock.unlock();  // Release lock for notification list
-                        }
-                    }
-                    nextLogEntryToStore += 1;
-                }
+                storeLogEntriesToListContainer();
 
                 if (!log.isEmpty() && prevFirstUnchosenIndex < firstUnchosenIndex) {
-                    // printLog();
+                    if (debug) {
+                        printLog();
+                    }
                     prevFirstUnchosenIndex = firstUnchosenIndex;
                 }
 
@@ -416,7 +400,7 @@ public class MitterServer {
         return receivedLeaderId;
     }
 
-    public void respondToHearbeat() {
+    public static void respondToHearbeat() {
         synchronized (serversList) {
             int index = 0;
             ServerPeers.ServerIdentity sId;
@@ -503,6 +487,35 @@ public class MitterServer {
     }
 
     /**
+     * Stores the log entries/notifications into their corresponding list container(i.e. 
+     * caution, notice and urgent lists)
+     */
+    public void storeLogEntriesToListContainer() {
+        LogEntry entry = null;
+        try {
+            while (nextLogEntryToStore < firstUnchosenIndex) {
+                entry = log.get(nextLogEntryToStore);
+                assignSequenceNumberAndStore(entry.getAcceptedValue());
+                synchronized (numOfNotificationsRelayed) {
+                    if (!isLeader && numOfNotificationsRelayed > 0) {
+                        notificationListLock.lock();    // Obtain the lock for the notification list
+                        if (isEqual(entry.getAcceptedValue(), notificationList.get(0))) {
+                            notificationList.remove(0);
+                            notificationListCount -= 1;
+                            numOfNotificationsRelayed -= 1;
+                            notificationListNotFullCondition.signal();  // Signal waiting notifier thread
+                        }
+                        notificationListLock.unlock();  // Release lock for notification list
+                    }
+                }
+                nextLogEntryToStore += 1;
+            }
+        } catch (Exception e) {
+            System.err.printf("[ Server %d ] Error: %s", serverId, e.getMessage());
+        }
+    }
+
+    /**
      * This method sends a heartbeat message to a server using the given socket.
      * @param s - A socket on where to send a heartbeat message to
      * @throws JAXBException [description]
@@ -584,28 +597,6 @@ public class MitterServer {
         }
 
         return highestId;
-    }
-
-    /**
-     * Take notifications from the notification list and stores it into one of the lists.
-     * This method does not wait if the notification list is empty.
-     */
-    public NotificationInfo takeOneFromNotificationList() throws InterruptedException {
-        NotificationInfo notification = null;
-        // System.err.println("Taking notification from the list...");
-        // notificationListLock.lock();    // Obtain the lock for the notification list
-
-        // if (notificationListCount != 0) { 
-            notification = notificationList.get(0);
-            // notificationList.remove(0);
-            // notificationListCount -= 1;
-        // }
-
-        /* === UNCOMMENT THE NEXT TWO LINES IF SOMETHING HAPPENS === */
-        // notificationListNotFullCondition.signal();  // Signal waiting notifier thread
-        // notificationListLock.unlock();  // Release lock for notification list
-        // System.err.println("Taking notification from the list...SUCCESS");
-        return notification;
     }
 
     /**
@@ -716,13 +707,12 @@ public class MitterServer {
      */
     public void storeDeletedNotificationToAllClientThreadCache(OrderedNotification on) {
         // System.err.println("Storing deleted notification...");
-        Iterator it = clientsList.iterator();
+        Iterator clientIterator = clientsList.iterator();
 
-        while (it.hasNext()) {  // Loop through all active clients
-            ClientThread t = (ClientThread) it.next();
-            synchronized (t.deletedNotifications) { // Obtain lock for the deleted notifications list
-                t.deletedNotifications.add(on);
-                // System.err.println("Size of deletedNotifications " + t.deletedNotifications.size());
+        while (clientIterator.hasNext()) {  // Loop through all active clients
+            ClientThread cThread = (ClientThread) clientIterator.next();
+            synchronized (cThread.deletedNotifications) { // Obtain lock for the deleted notifications list
+                cThread.deletedNotifications.add(on);
             }
         }
 
@@ -818,14 +808,16 @@ public class MitterServer {
         return res;
     }
 
-    /* =========== FOR DEBUGGING PURPOSES =========== */
+    /////////////////////////////
+    // FOR DEBUGGING PURPOSES  //
+    /////////////////////////////
     public void printLog() {
+        System.out.println("======================================================");
         System.out.println("Log entries: ");
         int index = 0;
         LogEntry entry = null;
         while (index < firstUnchosenIndex) {
             entry = log.get(index);
-            System.out.printf("Accepted proposal: \n\t%f\n", entry.getAcceptedProposal());
             System.out.println("Accepted value: ");
             System.out.println("\tSender: " + entry.getAcceptedValue().getSender());
             System.out.println("\tMessage: " + entry.getAcceptedValue().getMessage());
@@ -833,11 +825,9 @@ public class MitterServer {
         }
     }
 
-    /**
-     *  ========
-     * |  MAIN  |
-     *  ========
-     */
+    //////////
+    // MAIN //
+    //////////
     public static void main(String[] args) {
         MitterServer mServer = new MitterServer();
         int cPort = 0, 
@@ -845,9 +835,13 @@ public class MitterServer {
             sPort = 0,
             serverID = 0;
 
-        if (args.length != 1) {
+        if (args.length > 2 || args.length < 1) {
             System.err.println("[ INFO ] Usage: MitterServer [server_id]");
             System.exit(1);
+        }
+
+        if (args.length == 2) {
+            mServer.debug = true;
         }
 
         try {
@@ -900,5 +894,6 @@ public class MitterServer {
 
         mServer.setUp(cPort,nPort,sPort,serverID);
         mServer.start();
+
     }
 }

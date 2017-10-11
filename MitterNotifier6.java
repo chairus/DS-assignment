@@ -46,7 +46,7 @@ public class MitterNotifier6 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+                TimeUnit.MILLISECONDS.sleep(3000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Image_And_Copy_Centre",
@@ -58,7 +58,7 @@ public class MitterNotifier6 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+                TimeUnit.MILLISECONDS.sleep(3000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Fire_Detector_1",
@@ -70,7 +70,7 @@ public class MitterNotifier6 extends Notifier {
                 dataWriter = new StringWriter();
                 sendNotification(notification, buffWriter);
 
-                TimeUnit.MILLISECONDS.sleep(1000);
+                TimeUnit.MILLISECONDS.sleep(3000);
 
                 // System.out.println("Sending marshalled notification to the server...");
                 notification = createNotification("Fire_Detector_2",

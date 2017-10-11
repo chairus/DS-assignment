@@ -26,7 +26,7 @@ echo "Notifier running."
 echo "Sending notifications to the server..."
 java uni/mitter/MitterNotifier2 &
 
-sleep 7
+sleep 8
 
 echo "========================================================================"
 echo "First client running."
