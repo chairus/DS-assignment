@@ -212,8 +212,8 @@ public class MitterServer {
             if (leaderId > -1) {    // A leader already exists
                 while(!setLeader(leaderId)) { sleepFor(100); }   // Wait for the leader to establish connection
             } else {
-                System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                // System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                // System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                 while (!electLeader()) { }
             }
 
@@ -257,8 +257,8 @@ public class MitterServer {
 
                 if (currentLeader == null || changeInLeader) {
                     changeInLeader = false;
-                    System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                    System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                    // System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                    // System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                     while (!electLeader()) { }
                     inspectLeader();
                     synchronized (numOfNotificationsRelayed) {

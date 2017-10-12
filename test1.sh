@@ -28,7 +28,7 @@ echo "Client running."
 echo "Listening for notifications from the server..."
 java uni/mitter/MitterClientTest1 > test1_output.txt &
 
-sleep 11
+sleep 12
 
 echo "========================================================================"
 echo "Notifier running."
@@ -36,7 +36,7 @@ echo "Sending notifications to the server..."
 # Run and connect notifiers to the servers and send notifications
 java uni/mitter/MitterNotifier2 &
 
-sleep 35
+sleep 30
 
 pkill "java"
 

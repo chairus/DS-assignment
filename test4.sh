@@ -41,8 +41,9 @@ java uni/mitter/MitterNotifier4 &
 sleep 1
 java uni/mitter/MitterNotifier &
 
+echo "Waiting for all notifiers to send all notifications..."
 # wait for 60 seconds
-sleep 60
+sleep 65
 
 pkill "java"
 pkill "xterm"

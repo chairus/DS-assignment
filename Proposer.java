@@ -180,7 +180,6 @@ public class Proposer {
                         }
                     } catch (JAXBException e) {
                         System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-                        e.printStackTrace();
                     }
                     index += 1;
                 }
@@ -284,10 +283,10 @@ public class Proposer {
                 updatedEntry.setAcceptedValue(acceptReq.getAccept().getRequest().getValue());
                 MitterServer.log.set(proposedIndex, updatedEntry);
                 MitterServer.updateLastLogIndex();
-                System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
+                // System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
                 // MitterServer.firstUnchosenIndex += 1;
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
-                System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
+                // System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
         return true;
@@ -380,8 +379,6 @@ public class Proposer {
             removeFromActiveServers(acceptor);
         } catch (JAXBException e) {
             System.err.format("[ SERVER %d ] Error: Proposer, " + e.getMessage(), MitterServer.serverId);
-            e.printStackTrace();
-            System.exit(1);
         }
     }
 

@@ -373,7 +373,7 @@ import generated.nonstandard.message.Message;
                     if (!found) {
                         removeFromActiveServers(sId);
                         index -= 1;
-                        System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
+                        // System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
                     }
                     index += 1;
                 }

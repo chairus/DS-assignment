@@ -38,9 +38,6 @@ echo "First client running."
 echo "Listening for notifications from the server..."
 java uni/mitter/MitterClientTest1 > test2_output_client_test1.txt &
 
-# wait for about 20 seconds..."
-sleep 10
-
 echo "========================================================================"
 echo "Second client running."
 echo "Listening for notifications from the server..."
