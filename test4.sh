@@ -15,15 +15,15 @@ echo "test4_output_server_4.txt"
 echo "========================================================================"
 
 echo "Starting all five servers..."
-xterm -title "Server 0" -e "java uni/mitter/MitterServer 0 debug > test4_output_server_0.txt && echo \"Server 0 running...\"" &
+xterm -title "Server 0" -e "echo \"Server 0 running...\" && java uni/mitter/MitterServer 0 debug > test4_output_server_0.txt" &
 echo "Server 0 running..."
-xterm -title "Server 3" -e "java uni/mitter/MitterServer 3 debug > test4_output_server_3.txt && echo \"Server 3 running...\"" &
+xterm -title "Server 3" -e "echo \"Server 3 running...\" && java uni/mitter/MitterServer 3 debug > test4_output_server_3.txt" &
 echo "Server 3 running..."
-xterm -title "Server 1" -e "java uni/mitter/MitterServer 1 debug > test4_output_server_1.txt && echo \"Server 1 running...\"" &
+xterm -title "Server 1" -e "echo \"Server 1 running...\" && java uni/mitter/MitterServer 1 debug > test4_output_server_1.txt" &
 echo "Server 1 running..."
-xterm -title "Server 2" -e "java uni/mitter/MitterServer 2 debug > test4_output_server_2.txt && echo \"Server 2 running...\"" &
+xterm -title "Server 2" -e "echo \"Server 2 running...\" && java uni/mitter/MitterServer 2 debug > test4_output_server_2.txt" &
 echo "Server 2 running..."
-xterm -title "Server 4" -e "java uni/mitter/MitterServer 4 debug > test4_output_server_4.txt && echo \"Server 4 running...\"" &
+xterm -title "Server 4" -e "echo \"Server 4 running...\" && java uni/mitter/MitterServer 4 debug > test4_output_server_4.txt" &
 echo "Server 4 running..."
 
 sleep 7
@@ -41,6 +41,7 @@ java uni/mitter/MitterNotifier4 &
 sleep 1
 java uni/mitter/MitterNotifier &
 
+# wait for 60 seconds
 sleep 60
 
 pkill "java"

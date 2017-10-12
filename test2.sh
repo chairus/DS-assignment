@@ -21,8 +21,7 @@ echo "Expecting to receive one urgent, two caution and two notice notifications 
 echo "The received notifications of each client will be in the files called:"
 echo "test2_output_client_test1.txt"
 echo "test2_output_client_test3.txt"
-echo "NOTE: The first line on the output text tells which server the client is connected to,"
-echo "	and the rest of the output are the received notifications from that server."
+echo "NOTE: The first line on the output text tells which server the client is connected to, and the rest of the output are the received notifications from that server."
 echo "========================================================================"
 
 echo "========================================================================"

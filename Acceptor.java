@@ -26,7 +26,7 @@ import javax.xml.bind.JAXBException;
 import generated.nonstandard.message.Message;
 
  public class Acceptor {
-    private long counter;
+    private long counter;   // The number of times
 
      // Constructor
      public Acceptor() {
@@ -58,7 +58,6 @@ import generated.nonstandard.message.Message;
                 updateActiveServersList(request.getHeartbeat().getActiveServers());
             }
         } else {    // Set the currentLeader variable to null to initiate re-election
-            System.err.println("==========================OH NO!!=====================");
             System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
             MitterServer.currentLeader = null;
             MitterServer.changeInLeader = true;
@@ -107,7 +106,7 @@ import generated.nonstandard.message.Message;
         float acceptedProposal = -1.0f;
         boolean noMoreAccepted = false;
 
-        // Check if the current proposal has larger number than the previous seen proposal. If it is
+        // Check if the current proposal is greater than or equal to the previously seen proposal. If it is
         // then assign it to minProposal and accept the prepare request by setting the status field to
         // true.
         if (Float.compare(prepareRequestProposalNumber, MitterServer.minProposal) >= 0) {
@@ -134,7 +133,7 @@ import generated.nonstandard.message.Message;
 
         Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
         if (!sendRequestResponse(response)) {
-            return;
+            // return;
         }
         
         // Listen for request from leader
@@ -227,7 +226,7 @@ import generated.nonstandard.message.Message;
         }
         Message acceptResponse = setupAcceptResponse();
         if (!sendRequestResponse(acceptResponse)) {
-            return;
+            // return;
         }
         // System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
         Message req = readARequestFromLeader(acceptResponse);
@@ -246,7 +245,7 @@ import generated.nonstandard.message.Message;
             updateLog(request);
             Message successReq = setupSuccessRequest();
             if (!sendRequestResponse(successReq)) {
-                return;
+                // return;
             }
             // System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
             Message receivedRequest = readARequestFromLeader(successReq);
@@ -342,8 +341,6 @@ import generated.nonstandard.message.Message;
             sId.getSocket().close();    
         } catch (IOException ex) {
             System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
-            ex.printStackTrace();
-            // System.exit(1);
         }
         
         synchronized (MitterServer.serversList) {
@@ -376,7 +373,7 @@ import generated.nonstandard.message.Message;
                     if (!found) {
                         removeFromActiveServers(sId);
                         index -= 1;
-                        // System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
+                        System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
                     }
                     index += 1;
                 }

@@ -206,18 +206,14 @@ public class MitterServer {
             }
 
             // Wait for other servers to connect
-            long startTime = System.currentTimeMillis();
-            long currentTime = startTime;
-            do {
-                currentTime = System.currentTimeMillis();
-            } while ((currentTime - startTime) < 1000);
+            sleepFor(1000);
 
             int leaderId = discoverLeader();
             if (leaderId > -1) {    // A leader already exists
-                while(!setLeader(leaderId)) { TimeUnit.MILLISECONDS.sleep(100); }   // Wait for the leader to establish connection
+                while(!setLeader(leaderId)) { sleepFor(100); }   // Wait for the leader to establish connection
             } else {
-                // System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                // System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                 while (!electLeader()) { }
             }
 
@@ -261,16 +257,15 @@ public class MitterServer {
 
                 if (currentLeader == null || changeInLeader) {
                     changeInLeader = false;
-                    // System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
-                    // System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
+                    System.out.printf("[ SERVER %d ] Electing a leader...\n",serverId);
+                    System.out.printf("[ SERVER %d ] A leader has been elected.\n", serverId);
                     while (!electLeader()) { }
                     inspectLeader();
                     synchronized (numOfNotificationsRelayed) {
                         numOfNotificationsRelayed = 0;      // Reset this variable to initiate re-send of the notifications that has not been replicated
                     }
                 }
-            }
-            
+            }  
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -304,11 +299,12 @@ public class MitterServer {
             }
             
             currentLeader = highestId;
+            sleepFor(1000);
             return true;
         } else {
             try {
-                // Read the received heartbeat with a 2000ms time limit
-                Message hb = readMessage(highestId.getSocket(), 2000);
+                // Read the received heartbeat with a 3000ms time limit
+                Message hb = readMessage(highestId.getSocket(), 3000);
                 // System.out.printf("Listening for heartbeat message from leader(SERVER %d)\n", highestId.getId());
                 if (hb != null && hb.getHeartbeat() != null) {
                     if (hb.getHeartbeat().getServerId() == highestId.getId()) {
@@ -321,7 +317,7 @@ public class MitterServer {
                     } catch (IOException ex) {
                         // IGNORE
                     }
-                    synchronized (MitterServer.serversList) {
+                    synchronized (MitterServer.serversList) {   // Remove the server from the active servers list
                         try {
                             MitterServer.serversList.remove(highestId);
                             highestId.getSocket().close();
@@ -330,9 +326,7 @@ public class MitterServer {
                         }
                     }
                 }
-            } catch (IOException e) {
-                // IGNORE
-            } catch (JAXBException e) {
+            } catch (Exception e) {
                 // IGNORE
             }
         }
@@ -376,6 +370,8 @@ public class MitterServer {
                             if (hb.getHeartbeat() != null && hb.getHeartbeat().getLeaderId() > -1) {
                                 // System.out.println("THE LEADER IS SERVER " + hb.getHeartbeat().getLeaderId());
                                 receivedLeaderId = hb.getHeartbeat().getLeaderId();
+                                // leaderDiscovered = true;
+                                // break;
                             }
                             leaderDiscovered = true;
                         } else {
@@ -383,19 +379,15 @@ public class MitterServer {
                             leaderDiscovered = false;
                             break;
                         }
-                    } catch (IOException e) {
-                        // IGNORE
-                    } catch (JAXBException e) {
+                    } catch (Exception e) {
                         // IGNORE
                     }
                     index += 1;
                 }
+
+                sleepFor(200);  // Wait for the leader to broadcast the active servers and for the replicas to update their active servers
             }
-            try {
-                TimeUnit.MILLISECONDS.sleep(1000);   // Wait for the servers to establish connection
-            } catch (InterruptedException e) {
-                // IGNORE
-            }
+            sleepFor(1000);     // Wait for the servers to establish connection
         }
         return receivedLeaderId;
     }
@@ -797,6 +789,24 @@ public class MitterServer {
         return message;
     }
 
+    /**
+     * Lets the thread wait for about "waitTime" milliseconds
+     * @param waitTime - The time to wait in milliseconds
+     */
+    public static void sleepFor(long waitTime) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(waitTime);
+        } catch (Exception e) {
+            // IGNORE
+        }
+    }
+
+    /**
+     * Compares two notification if they are equal or not based on their sender and message id
+     * @param  n1 - The first notification
+     * @param  n2 - The second notification
+     * @return    - True if equal, otherwise false
+     */
     public boolean isEqual(NotificationInfo n1, NotificationInfo n2) {
         boolean res = false;
 

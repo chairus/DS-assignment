@@ -97,12 +97,8 @@ public class NotificationRelayer extends Thread {
      */
     public void waitForLeaderElection() {
         do {
-            try {
-                leader = null;
-                TimeUnit.MILLISECONDS.sleep(200);  // Wait for the re-election of the leader to finish
-            } catch (Exception ex) {
-                // IGNORE
-            }
+            leader = null;
+            MitterServer.sleepFor(200);
         } while (MitterServer.currentLeader == null);
     }
 
@@ -133,12 +129,7 @@ public class NotificationRelayer extends Thread {
                     MitterServer.notificationListLock.unlock();
 
                     do {    // Wait until the batch of relayed notifications has been fully replicated
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(500);   
-                        } catch (InterruptedException ex) {
-                            System.err.printf("[ SERVER %d ] Thread NotificationRelayer interrupted", MitterServer.serverId);
-                            ex.printStackTrace();
-                        }
+                        MitterServer.sleepFor(500);
                     } while (MitterServer.numOfNotificationsRelayed > 0);
                 }
             } catch (IOException e) {            // The leader has crashed or got diconnected
@@ -147,7 +138,6 @@ public class NotificationRelayer extends Thread {
                 waitForLeaderElection();
             } catch (JAXBException e) {
                 System.err.format("[ SERVER %d ] Error: NotificationRelayer, " + e.getMessage(), MitterServer.serverId);
-                e.printStackTrace();
             }
         }
     }

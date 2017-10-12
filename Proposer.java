@@ -163,6 +163,7 @@ public class Proposer {
                                 }
                             } else if (response.getSuccess() != null) { // Received response to success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
+                                MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
@@ -250,6 +251,7 @@ public class Proposer {
                                 }
                             } else if (response.getSuccess() != null) { // Received response to success request
                                 int acceptorsFirstUnchosenIndex = response.getSuccess().getResponse().getAcceptorsFirstUnchosenIndex();
+                                MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                                 if (acceptorsFirstUnchosenIndex < MitterServer.firstUnchosenIndex) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
@@ -282,10 +284,10 @@ public class Proposer {
                 updatedEntry.setAcceptedValue(acceptReq.getAccept().getRequest().getValue());
                 MitterServer.log.set(proposedIndex, updatedEntry);
                 MitterServer.updateLastLogIndex();
-                // System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
+                System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
                 // MitterServer.firstUnchosenIndex += 1;
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
-                // System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
+                System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
         return true;
@@ -358,11 +360,7 @@ public class Proposer {
                     numOfActiveServers = MitterServer.serversList.size();
                 }
             }
-            try {
-                TimeUnit.MILLISECONDS.sleep(50);        // To throttle the access times of this thread on the list of notitifcations(i.e. notificationList)
-            } catch (Exception e) {
-                // Ignore
-            }
+            MitterServer.sleepFor(50);                   // To throttle the access times of this thread on the list of notitifcations(i.e. notificationList)
             MitterServer.notificationListLock.lock();    // Obtain the lock for the notification list
             notificationListSize = MitterServer.notificationList.size();
             MitterServer.notificationListLock.unlock();  // Release lock for notification list
@@ -414,6 +412,11 @@ public class Proposer {
         }
     }
 
+    /**
+     * Creates a success request to send to acceptors
+     * @param  acceptResponseFirstUnchosenIndex - The first unchosen index of the acceptor
+     * @return                                  - The success request
+     */
     private Message setupSuccessRequest(int acceptResponseFirstUnchosenIndex) {
         Message message = new Message();
         message.setServerId(MitterServer.serverId);
