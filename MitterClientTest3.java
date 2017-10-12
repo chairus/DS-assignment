@@ -42,9 +42,9 @@ public class MitterClientTest3 extends Client {
             while (true) {
                 try {
                     if (buffReader.ready()) {
-                        System.out.print("Trying to read XML data...");
+                        // System.out.print("Trying to read XML data...");
                         receivedNotification.add(buffReader.readLine());
-                        System.out.println("SUCCESS");
+                        // System.out.println("SUCCESS");
                     } else {
                         if (!receivedNotification.isEmpty()) {
                             NotificationInfo notification = readNotification();

@@ -90,7 +90,7 @@ public class Client {
     public static NotificationInfo readNotification() throws Exception {
         dataReader = new StringReader(receivedNotification.get(0));
         receivedNotification.remove(0);
-        System.out.println("Unmarshalling read XML data...");
+        // System.out.println("Unmarshalling read XML data...");
         JAXBElement<NotificationInfo> notificationInfo = (JAXBElement<NotificationInfo>) jaxbUnmarshaller.unmarshal(dataReader);
         NotificationInfo notification = notificationInfo.getValue();
         return notification;
