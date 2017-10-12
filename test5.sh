@@ -1,18 +1,12 @@
 #!/bin/bash
 
 ####################################################################
-#	Tests if the system is fault tolerant to two failed servers    #
+#	Tests if the system is fault-tolerant to two failed servers    #
 ####################################################################
 
 
 echo "========================================================================"
-echo "Testing if the notitifcations are replicated to all servers regardless of the server the notifier is connected to."
-echo "The received notifications of each server will be in the files called:"
-echo "test4_output_server_0.txt"
-echo "test4_output_server_3.txt"
-echo "test4_output_server_1.txt"
-echo "test4_output_server_2.txt"
-echo "test4_output_server_4.txt"
+echo "Testing if the system is fault-tolerant to two failed servers by terminating two replicas, a leader and a non-leader."
 echo "========================================================================"
 
 echo "Starting all five servers..."
