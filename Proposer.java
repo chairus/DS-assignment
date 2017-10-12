@@ -61,7 +61,6 @@ public class Proposer {
                     // result.acceptedValue = value;
                 }
             } else { // Start with prepare phase then accept phase
-                // MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
                 proposedIndex = MitterServer.firstUnchosenIndex;
                 MitterServer.nextIndex = proposedIndex + 1;
                 
@@ -175,7 +174,6 @@ public class Proposer {
                         if (removeFromActiveServers(acceptor)) {
                             index -= 1;
                             numOfActiveServers = MitterServer.serversList.size();
-                            // majoritySize = numOfActiveServers/2;
                             majoritySize = (int)Math.ceil(((double)numOfActiveServers)/2);
                         }
                     } catch (JAXBException e) {
@@ -262,7 +260,6 @@ public class Proposer {
                         if (removeFromActiveServers(acceptor)) {
                             index -= 1;
                             numOfActiveServers = MitterServer.serversList.size();
-                            // majoritySize = numOfActiveServers/2;
                             majoritySize = (int)Math.ceil(((double)numOfActiveServers)/2);
                         }
                     } catch (JAXBException e) {
@@ -283,10 +280,7 @@ public class Proposer {
                 updatedEntry.setAcceptedValue(acceptReq.getAccept().getRequest().getValue());
                 MitterServer.log.set(proposedIndex, updatedEntry);
                 MitterServer.updateLastLogIndex();
-                // System.out.println("LAST LOG INDEX: " + MitterServer.lastLogIndex);
-                // MitterServer.firstUnchosenIndex += 1;
                 MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
-                // System.out.println("FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
             }
         }
         return true;
@@ -325,19 +319,14 @@ public class Proposer {
                                     && Float.compare(MitterServer.log.get(acceptorsFirstUnchosenIndex).getAcceptedProposal(),Float.MAX_VALUE) >= 0) {
                                     sendSuccessRequest(acceptorsFirstUnchosenIndex, acceptor);
                                 }
-                            } else /*if (response.getHeartbeat() != null)*/ { // Received heartbeat message
+                            } else {                                   // Received heartbeat message
                                 MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
                         } else { // Send success request to all acceptors for full replication
                             if (numOfReplicatedServers < numOfActiveServers
                                 && MitterServer.lastLogIndex >= 0) {
-                                // System.out.println("SENT SUCCESS REQUEST TO ALL ACCEPTORS FOR FULL REPLCATION");
                                 sendSuccessRequest(MitterServer.firstUnchosenIndex-1, acceptor);
-                            // } else { // Send heartbeat message to each acceptors to notify them that this server/leader is still alive
-                                // System.out.printf("SENT HEARTBEAT MESSAGE TO AN ACCEPTOR(SERVER %d)\n", acceptor.getId());
-                                // MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                             }
-                            // System.out.printf("SENT HEARTBEAT MESSAGE TO AN ACCEPTOR(SERVER %d)\n", acceptor.getId());
                             MitterServer.sendHeartbeatMessage(acceptor.getSocket());
                         }
                     } catch (IOException e) { // A server has crashed or got disconnected

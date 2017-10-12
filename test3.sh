@@ -59,6 +59,6 @@ echo "Listening for notifications from the server..."
 # Run the second client
 java uni/mitter/MitterClientTest2 > test3_output_client_test2.txt &
 
-sleep 20
+sleep 30
 pkill "java"
 echo "Released all allocated resources."

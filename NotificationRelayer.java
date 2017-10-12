@@ -1,5 +1,6 @@
 /**
  * This class relays all notifications received by a non-leader server to the leader/proposer server.
+ * @author cyrusvillacampa
  */
 
 package uni.mitter;
@@ -59,8 +60,8 @@ public class NotificationRelayer extends Thread {
 
     /**
      * Initializes the socket writer, marshaller and unmarshaller
-     * @throws IOException   [description]
-     * @throws JAXBException [description]
+     * @throws IOException   
+     * @throws JAXBException 
      */
     public void init() throws IOException, JAXBException {
         OutputStream out = leader.getOutputStream();
@@ -72,16 +73,15 @@ public class NotificationRelayer extends Thread {
 
     /**
      * Sends a notification
-     * @param  notification  [description]
-     * @throws IOException   [description]
-     * @throws JAXBException [description]
+     * @param  notification  The notification to send
+     * @throws IOException   
+     * @throws JAXBException 
      */
     public void sendNotification(NotificationInfo notification) throws IOException, JAXBException {
         /* marshalling of java objects in xml (send to sever) */
         StringWriter dataWriter = new StringWriter();
         JAXBElement<NotificationInfo> notificationInfo = objectFactory.createNotification(notification);
         jaxbMarshaller.marshal(notificationInfo, dataWriter);
-        // buffWriter = new BufferedWriter(writer);
         buffWriter.write(dataWriter.toString());
         buffWriter.newLine();
         buffWriter.flush();

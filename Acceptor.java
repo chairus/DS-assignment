@@ -26,7 +26,7 @@ import javax.xml.bind.JAXBException;
 import generated.nonstandard.message.Message;
 
  public class Acceptor {
-    private long counter;   // The number of times
+    private long counter;   // A counter for updating the active servers list
 
      // Constructor
      public Acceptor() {
@@ -45,16 +45,12 @@ import generated.nonstandard.message.Message;
      public void respondToLeader(Message request) {
         if (request != null) {
             if (request.getPrepare() != null) {         // Prepare request
-                // System.out.println("RECEIVED PREPARE REQUEST");
                 respondPrepareRequest(request);
             } else if (request.getAccept() != null) {   // Accept request
-                // System.out.println("RECEIVED ACCEPT REQUEST");
                 respondAcceptRequest(request);
             } else if (request.getSuccess() != null) {  // Success request
-                // System.out.println("RECEIVED SUCCESS REQUEST");
                 respondSuccessRequest(request);
             } else if (request.getHeartbeat() != null) {// Heartbeat message
-                // System.out.println("RECEIVED HEARTBEAT MESSAGE");
                 updateActiveServersList(request.getHeartbeat().getActiveServers());
             }
         } else {    // Set the currentLeader variable to null to initiate re-election
@@ -74,9 +70,7 @@ import generated.nonstandard.message.Message;
 
         try {
             if (MitterServer.currentLeader != null) {
-                // System.out.println("========THE LEADER IS NOT NULL!!!========");
                 request = MitterServer.readMessage(MitterServer.currentLeader.getSocket(), 3000);
-                // System.out.println("REQUEST FROM readARequestFromLeader: " + request);
             }
         } catch (IOException e) {           // The leader has crashed or got disconnected
             System.err.printf("[ SERVER %d ] The leader(SERVER %d) has crashed or got disconnected.\n", MitterServer.serverId, MitterServer.currentLeader.getId());
@@ -132,9 +126,7 @@ import generated.nonstandard.message.Message;
         }
 
         Message response = setupPrepareResponse(status, acceptedValue, acceptedProposal, noMoreAccepted);
-        if (!sendRequestResponse(response)) {
-            // return;
-        }
+        sendRequestResponse(response);
         
         // Listen for request from leader
         Message receivedReq = readARequestFromLeader(response);
@@ -144,12 +136,11 @@ import generated.nonstandard.message.Message;
     /**
      * This method sends a response(prepare/accept/success) to the proposer/leader
      * @param response - The response to be sent to the proposer or leader
-     * @return         - True if it has successfully sent the response to the leader, False otherwise
      */
-    public boolean sendRequestResponse(Message response) {
+    public void sendRequestResponse(Message response) {
         // There is no leader and therefore elect one.
         if (MitterServer.currentLeader == null) {
-            return false;
+            return;
         }
 
         boolean retry;
@@ -164,14 +155,12 @@ import generated.nonstandard.message.Message;
                 buffWriter.flush();
             } catch (IOException e) {       // Leader got disconnected or has crashed and so elect a new leader
                 MitterServer.currentLeader = null;
-                return false;
+                return;
             } catch (JAXBException e) {     // If there was something wrong with the XML object(i.e. it got corrupted) resend the response
                 System.err.printf("[ SERVER %d ] Error: Acceptor, " + e.getMessage() + "\n", MitterServer.serverId);
                 retry = true;
             }
         } while (retry);
-
-        return true;
     }
 
     /**
@@ -225,10 +214,7 @@ import generated.nonstandard.message.Message;
             }
         }
         Message acceptResponse = setupAcceptResponse();
-        if (!sendRequestResponse(acceptResponse)) {
-            // return;
-        }
-        // System.out.println("SENT RESPONSE TO ACCEPT REQUEST(firstUnchosenIndex): " + acceptResponse.getAccept().getResponse().getAcceptorsFirstUnchosenIndex());
+        sendRequestResponse(acceptResponse);
         Message req = readARequestFromLeader(acceptResponse);
         respondToLeader(req);
     }
@@ -239,15 +225,10 @@ import generated.nonstandard.message.Message;
      */
     public void respondSuccessRequest(Message request) {
         int proposersFirstUnchosenIndex = request.getSuccess().getRequest().getIndex();
-        // System.out.println("PROPOSERS FIRST UNCHOSEN INDEX: " + proposersFirstUnchosenIndex);
-        // System.out.println("ACCEPTORS FIRST UNCHOSEN INDEX: " + MitterServer.firstUnchosenIndex);
         if (proposersFirstUnchosenIndex > -1) {
             updateLog(request);
             Message successReq = setupSuccessRequest();
-            if (!sendRequestResponse(successReq)) {
-                // return;
-            }
-            // System.out.println("SENT RESPONSE TO SUCCESS REQUEST(firstUnchosenIndex): " + MitterServer.firstUnchosenIndex);
+            sendRequestResponse(successReq);
             Message receivedRequest = readARequestFromLeader(successReq);
             respondToLeader(receivedRequest);
         }
@@ -314,8 +295,8 @@ import generated.nonstandard.message.Message;
         int successRequestIndex = successRequest.getSuccess().getRequest().getIndex();
         NotificationInfo successRequestValue = successRequest.getSuccess().getRequest().getValue();
 
-        if (successRequestIndex > MitterServer.log.size()) {
-            MitterServer.increaseLogCapacity(successRequestIndex+10);
+        if (successRequestIndex > MitterServer.log.size()-1) {
+            MitterServer.increaseLogCapacity(successRequestIndex+20);
         }
 
         LogEntry updatedEntry = MitterServer.log.get(successRequestIndex);
@@ -325,7 +306,6 @@ import generated.nonstandard.message.Message;
             updatedEntry.setAcceptedProposal(Float.MAX_VALUE);
             updatedEntry.setAcceptedValue(successRequestValue);
             MitterServer.log.set(successRequestIndex, updatedEntry);
-            // MitterServer.firstUnchosenIndex += 1;
         }
         MitterServer.firstUnchosenIndex = MitterServer.findFirstUnchosenIndex();
 
@@ -358,7 +338,6 @@ import generated.nonstandard.message.Message;
         }
         counter += 1;
         if (counter >= 30) {
-            // System.out.println("ACTIVE SERVERS: " + activeServers);
             String[] activeServerIds = activeServers.trim().split("\\s++");
             synchronized (MitterServer.serversList) {
                 int index = 0;
@@ -373,7 +352,6 @@ import generated.nonstandard.message.Message;
                     if (!found) {
                         removeFromActiveServers(sId);
                         index -= 1;
-                        // System.out.println("REMOVED A SERVER IN THE ACTIVE SERVER LIST");
                     }
                     index += 1;
                 }
