@@ -29,22 +29,41 @@ echo "Server 4 running..."
 
 sleep 7
 
-# grab the process id of the leader server
-leader_pid= ps | grep xterm | awk '{print $1}' | awk 'FNR == 5 {print}'
+# grab the process id of the leader and non-leader server
+leader_pid=$(ps | grep xterm | awk '{print $1}' | awk 'FNR == 5 {print}')
+replica_pid=$(ps | grep xterm | awk '{print $1}' | awk 'FNR == 1 {print}')
 
 echo "========================================================================"
 echo "Starting notifiers..."
+echo "Sending notifications to the server..."
 java uni/mitter/MitterNotifier2 &	# Connects to SERVER 1
 sleep 2
 java uni/mitter/MitterNotifier3 &	# Connects to SERVER 0
 sleep 1.5
 java uni/mitter/MitterNotifier &	# Connects to SERVER 4
-sleep 2
-echo "Sending notifications to the server..."
 
-sleep 10
+sleep 13
 
 echo "========================================================================"
-echo "Terminating the leader server(SERVER 4)..."
-echo "$leader_pid"
-echo "Leader terminated."
+echo "Terminating SERVER 4(leader) and SERVER 0(non-leader)..."
+kill $leader_pid
+kill $replica_pid
+echo "Servers terminated."
+
+sleep 7
+
+echo "========================================================================"
+echo "Starting notifiers..."
+echo "Sending notifications to the server..."
+java uni/mitter/MitterNotifier6 &	# Connects to SERVER 1
+sleep 2
+java uni/mitter/MitterNotifier7 &	# Connects to SERVER 2
+sleep 1.5
+java uni/mitter/MitterNotifier8 &	# Connects to SERVER 3
+sleep 2
+
+sleep 35
+
+pkill "java"
+pkill "xterm"
+echo "Released all allocated resources."

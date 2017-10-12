@@ -47,5 +47,4 @@ sleep 65
 
 pkill "java"
 pkill "xterm"
-
 echo "Released all allocated resources."
