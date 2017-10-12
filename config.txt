@@ -1,5 +1,5 @@
 # Lines starting with a '#'(hash) will be considered as comments
-# [serverId clientPort notifierPort serverPort ipAddress]
+# Interpretation of each line: [serverId clientPort notifierPort serverPort ipAddress]
 0 3000 3001 3002 127.0.0.1
 1 3003 3004 3005 127.0.0.1
 2 3006 3007 3008 127.0.0.1
