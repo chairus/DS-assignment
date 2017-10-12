@@ -134,20 +134,16 @@ public class ServerPeers extends Thread {
                             } catch (IOException ex) {
                                 // IGNORE
                             } catch (JAXBException ex) {
-                                System.err.format("[ SERVER %d ] Error: ServerPeers, " + ex.getMessage(), MitterServer.serverId);
+                                System.err.printf("[ SERVER %d ] Error: ServerPeers, %s", ex.getMessage(), MitterServer.serverId);
                             }
                         }
                     }
                 } catch (JAXBException e) {
-                    System.err.format("[ SERVER %d ] Error: ServerPeers, " + e.getMessage(), MitterServer.serverId);
+                    System.err.printf("[ SERVER %d ] Error: ServerPeers, %s", e.getMessage(), MitterServer.serverId);
                 }
             }
 
-            try {
-                TimeUnit.MILLISECONDS.sleep(50);   
-            } catch (Exception e) {
-                //IGNORE
-            }
+            MitterServer.sleepFor(50);
         }
     }
 
