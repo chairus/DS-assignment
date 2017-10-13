@@ -432,8 +432,6 @@ public class MitterServer {
                     sId.getSocket().close();    
                 } catch (IOException ex) {
                     System.err.format("[ SERVER %d ] Error: Proposer, " + ex.getMessage(), MitterServer.serverId);
-                    ex.printStackTrace();
-                    System.exit(1);
                 }
                 
                 if (!MitterServer.serversList.remove(sId)) {
